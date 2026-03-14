@@ -20,6 +20,9 @@
 16. 已支持文件点击单曲播放与“整目录顺序/随机播放”临时播放列表。
 17. 已具备后台播放与系统媒体通知能力（`PlaybackService`）。
 18. 已新增播放队列构建单元测试 `PlaybackQueueBuilderTest`。
+19. 已推进 Phase 3（首版）：播放队列构建时补齐标题/艺术家/专辑元数据。
+20. 已接入封面回退链路（同目录 `folder.jpg` / `cover.jpg` / `front.jpg`）。
+21. 播放前元数据与封面解析在 IO 线程执行，避免主线程阻塞。
 
 ## 1. 当前项目定位
 
@@ -57,7 +60,7 @@ tv-media-player/
 │     │  ├─ domain/model/{SmbConfig.kt,SmbEntry.kt}
 │     │  ├─ domain/repo/SmbRepository.kt
 │     │  ├─ lyrics/LrcParser.kt
-│     │  ├─ playback/{PlaybackService.kt,PlaybackQueueBuilder.kt}
+│     │  ├─ playback/{PlaybackService.kt,PlaybackQueueBuilder.kt,SmbMediaItemFactory.kt}
 │     │  └─ ui/
 │     │     ├─ TvBrowseFragment.kt
 │     │     ├─ TvBrowserViewModel.kt
@@ -139,4 +142,5 @@ TV Release: app\build\outputs\apk\tv\release\app-tv-release.apk
 1. 播放器、后台播放、通知控制、封面与歌词联动尚未接入真实 Media3 流程。
 2. 当前 SMB 浏览按目录逐级访问，尚未实现全库递归扫描聚合能力。
 3. 当前播放能力为“临时队列”，尚未实现长期播放列表管理与播放历史。
-4. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。
+4. 内嵌封面（APIC/FLAC PICTURE）与精确标签解析尚未接入专用解析器。
+5. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。

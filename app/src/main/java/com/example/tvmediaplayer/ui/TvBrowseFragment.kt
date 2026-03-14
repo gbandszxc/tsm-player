@@ -15,18 +15,19 @@ import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.lifecycle.lifecycleScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.tvmediaplayer.domain.model.SmbConfig
 import com.example.tvmediaplayer.domain.model.SmbEntry
+import com.example.tvmediaplayer.playback.SmbMediaItemFactory
 import com.example.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.example.tvmediaplayer.playback.PlaybackService
 import com.example.tvmediaplayer.ui.presenter.SimpleTextPresenter
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class TvBrowseFragment : BrowseSupportFragment() {
 
@@ -34,6 +35,7 @@ class TvBrowseFragment : BrowseSupportFragment() {
         TvBrowserViewModel.factory(requireContext().applicationContext)
     }
     private val rowsAdapter by lazy { ArrayObjectAdapter(ListRowPresenter()) }
+    private val mediaItemFactory by lazy { SmbMediaItemFactory() }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
@@ -147,21 +149,16 @@ class TvBrowseFragment : BrowseSupportFragment() {
             return
         }
 
-        val mediaItems = queue.map { entry ->
-            MediaItem.Builder()
-                .setUri(requireNotNull(entry.streamUri))
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(entry.name)
-                        .build()
-                )
-                .build()
+        val config = viewModel.state.value.config
+        lifecycleScope.launch {
+            val mediaItems = withContext(Dispatchers.IO) {
+                mediaItemFactory.create(config, queue)
+            }
+            controller.setShuffleModeEnabled(shuffle)
+            controller.setMediaItems(mediaItems, startIndex.coerceIn(0, mediaItems.lastIndex), 0L)
+            controller.prepare()
+            controller.play()
         }
-
-        controller.setShuffleModeEnabled(shuffle)
-        controller.setMediaItems(mediaItems, startIndex.coerceIn(0, mediaItems.lastIndex), 0L)
-        controller.prepare()
-        controller.play()
     }
 
     private fun ensureController() {
