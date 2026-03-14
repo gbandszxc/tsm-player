@@ -3,7 +3,7 @@
 ## 已完成事项（截至 2026-03-14）
 
 1. 初始化 Android TV 项目骨架并接入 Gradle Wrapper（8.7）。
-2. 完成 Leanback 首页浏览框架（当前为 `VerticalGridSupportFragment` 单列模式）。
+2. 完成 TV 首页浏览框架（当前为 `Fragment + RecyclerView` 分区面板模式）。
 3. 落地 SMB 浏览领域模型与仓库接口（已在 Phase 1 切换为 `jcifs-ng` 真实仓库）。
 4. 增加歌词 LRC 解析器基础实现。
 5. 构建参数固定为 JDK 17，ABI 限定 `arm64-v8a`。
@@ -35,8 +35,9 @@
 31. SMB 配置支持保存多个连接并在页面内快速切换激活连接。
 32. 已统一页面可见文案为中文（保留 `SMB` 等专有名词）。
 33. 连接管理区与文件浏览区已按 `spec/design.md` 分区重构（管理区独立，文件区纵向浏览）。
-34. 视觉风格已调亮并取消分区外暗框；焦点色调整为更柔和的蓝灰色。
+34. 视觉风格已调亮并取消分区外暗框，按连接管理/文件浏览/播放控制三段式布局。
 35. 连接管理区仅在根目录显示，进入子目录后默认从文件浏览区开始。
+36. 浏览页已按设计图改为左对齐卡片式 UI，并修复焦点高亮越界问题。
 
 ## 1. 当前项目定位
 
@@ -78,7 +79,7 @@ tv-media-player/
 │     │  └─ ui/
 │     │     ├─ TvBrowseFragment.kt
 │     │     ├─ TvBrowserViewModel.kt
-│     │     └─ presenter/SimpleTextPresenter.kt
+│     │     └─ AppFonts.kt
 │     └─ res/
 │        ├─ layout/activity_main.xml
 │        ├─ font/{misans_regular.ttf,misans_medium.ttf,misans_bold.ttf,misans_family.xml}

@@ -1,76 +1,112 @@
-﻿package com.example.tvmediaplayer.ui
+package com.example.tvmediaplayer.ui
 
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.leanback.app.VerticalGridSupportFragment
-import androidx.leanback.widget.ArrayObjectAdapter
-import androidx.leanback.widget.VerticalGridPresenter
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.example.tvmediaplayer.R
 import com.example.tvmediaplayer.domain.model.SmbConfig
 import com.example.tvmediaplayer.domain.model.SmbEntry
 import com.example.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.example.tvmediaplayer.playback.PlaybackService
 import com.example.tvmediaplayer.playback.SmbMediaItemFactory
-import com.example.tvmediaplayer.ui.presenter.SimpleTextPresenter
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class TvBrowseFragment : VerticalGridSupportFragment() {
+class TvBrowseFragment : Fragment() {
 
     private val viewModel by viewModels<TvBrowserViewModel> {
         TvBrowserViewModel.factory(requireContext().applicationContext)
     }
-    private val listAdapter by lazy { ArrayObjectAdapter(SimpleTextPresenter()) }
+
     private val mediaItemFactory by lazy { SmbMediaItemFactory() }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        title = "电视音乐播放器"
+    private lateinit var panelConnection: View
+    private lateinit var tvConnection: TextView
+    private lateinit var tvSavedCount: TextView
+    private lateinit var btnManage: Button
+    private lateinit var tvPath: TextView
+    private lateinit var btnRefresh: Button
+    private lateinit var btnRetry: Button
+    private lateinit var tvStatus: TextView
+    private lateinit var btnPlayAll: Button
+    private lateinit var btnPlayShuffle: Button
+    private lateinit var rvFiles: RecyclerView
 
-        gridPresenter = VerticalGridPresenter().apply {
-            numberOfColumns = 1
-        }
-        adapter = listAdapter
+    private lateinit var fileAdapter: FileEntryAdapter
 
-        setOnItemViewClickedListener { _, item, _, _ ->
-            when (item) {
-                is UiItem.ActionItem -> onActionClicked(item)
-                is UiItem.FileItem -> onFileClicked(item.entry)
-            }
-        }
-
-        lifecycleScope.launch {
-            viewModel.state.collect { state ->
-                render(state)
-                state.toast?.let {
-                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                    viewModel.consumeToast()
-                }
-            }
-        }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        return inflater.inflate(R.layout.fragment_tv_browser, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        view.isFocusableInTouchMode = true
-        view.requestFocus()
-        view.setOnKeyListener { _, keyCode, event ->
+        bindViews(view)
+        bindActions(view)
+        collectState()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ensureController()
+    }
+
+    override fun onStop() {
+        releaseController()
+        super.onStop()
+    }
+
+    private fun bindViews(root: View) {
+        panelConnection = root.findViewById(R.id.panel_connection)
+        tvConnection = root.findViewById(R.id.tv_connection)
+        tvSavedCount = root.findViewById(R.id.tv_saved_count)
+        btnManage = root.findViewById(R.id.btn_manage)
+        tvPath = root.findViewById(R.id.tv_path)
+        btnRefresh = root.findViewById(R.id.btn_refresh)
+        btnRetry = root.findViewById(R.id.btn_retry)
+        tvStatus = root.findViewById(R.id.tv_status)
+        btnPlayAll = root.findViewById(R.id.btn_play_all)
+        btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
+        rvFiles = root.findViewById(R.id.rv_files)
+
+        fileAdapter = FileEntryAdapter { entry -> onFileClicked(entry) }
+        rvFiles.layoutManager = LinearLayoutManager(requireContext())
+        rvFiles.adapter = fileAdapter
+        rvFiles.itemAnimator = null
+    }
+
+    private fun bindActions(root: View) {
+        btnManage.setOnClickListener { showConnectionManagerDialog() }
+        btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
+        btnRetry.setOnClickListener { viewModel.loadCurrentPath() }
+        btnPlayAll.setOnClickListener { playDirectory(shuffle = false) }
+        btnPlayShuffle.setOnClickListener { playDirectory(shuffle = true) }
+
+        root.isFocusableInTouchMode = true
+        root.requestFocus()
+        root.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_UP) return@setOnKeyListener false
             when (keyCode) {
                 KeyEvent.KEYCODE_BACK -> {
@@ -90,69 +126,46 @@ class TvBrowseFragment : VerticalGridSupportFragment() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        ensureController()
-    }
-
-    override fun onStop() {
-        releaseController()
-        super.onStop()
-    }
-
-    private fun render(state: TvBrowserState) {
-        listAdapter.clear()
-
-        val showConnectionSection = state.currentPath.isBlank()
-        if (showConnectionSection) {
-            listAdapter.add("【连接管理】")
-            listAdapter.add("当前连接：${configText(state.config)}")
-            listAdapter.add("已保存连接：${state.savedConnections.size} 个")
-            listAdapter.add(UiItem.ActionItem(Action.OPEN_CONNECTION_MANAGER, "管理连接（编辑 / 切换 / 新建）"))
-        }
-
-        listAdapter.add("【文件浏览】")
-        val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
-        listAdapter.add("当前路径：$pathLabel")
-        listAdapter.add(UiItem.ActionItem(Action.REFRESH, "刷新当前目录"))
-        if (state.error != null) {
-            listAdapter.add(UiItem.ActionItem(Action.RETRY, "重试连接"))
-        }
-
-        if (state.loading) {
-            listAdapter.add("加载中...")
-        } else {
-            if (state.currentPath.isNotBlank()) {
-                listAdapter.add(UiItem.FileItem(SmbEntry("..", state.currentPath, true), "[目录] ..（上一级）"))
-            }
-            if (state.entries.isEmpty()) {
-                listAdapter.add("当前目录为空")
-            } else {
-                state.entries.forEach { entry ->
-                    val icon = if (entry.isDirectory) "[目录]" else "[音频]"
-                    listAdapter.add(UiItem.FileItem(entry, "$icon ${entry.name}"))
+    private fun collectState() {
+        lifecycleScope.launch {
+            viewModel.state.collect { state ->
+                render(state)
+                state.toast?.let {
+                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                    viewModel.consumeToast()
                 }
             }
         }
-
-        listAdapter.add("【播放控制】")
-        listAdapter.add(UiItem.ActionItem(Action.PLAY_ALL, "播放当前目录（顺序）"))
-        listAdapter.add(UiItem.ActionItem(Action.PLAY_SHUFFLE, "播放当前目录（随机）"))
-
-        state.error?.let {
-            listAdapter.add("【连接状态】")
-            listAdapter.add(it)
-        }
     }
 
-    private fun onActionClicked(item: UiItem.ActionItem) {
-        when (item.action) {
-            Action.OPEN_CONNECTION_MANAGER -> showConnectionManagerDialog()
-            Action.REFRESH -> viewModel.loadCurrentPath()
-            Action.RETRY -> viewModel.loadCurrentPath()
-            Action.PLAY_ALL -> playDirectory(shuffle = false)
-            Action.PLAY_SHUFFLE -> playDirectory(shuffle = true)
+    private fun render(state: TvBrowserState) {
+        val showConnectionSection = state.currentPath.isBlank()
+        panelConnection.visibility = if (showConnectionSection) View.VISIBLE else View.GONE
+
+        tvConnection.text = "当前连接：${configText(state.config)}"
+        tvSavedCount.text = "已保存连接：${state.savedConnections.size} 个"
+
+        val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
+        tvPath.text = "当前路径：$pathLabel"
+
+        btnRetry.visibility = if (state.error != null) View.VISIBLE else View.GONE
+        if (state.error != null) {
+            tvStatus.visibility = View.VISIBLE
+            tvStatus.text = state.error
+        } else if (state.loading) {
+            tvStatus.visibility = View.VISIBLE
+            tvStatus.text = "加载中..."
+        } else {
+            tvStatus.visibility = View.GONE
         }
+
+        val displayEntries = buildList {
+            if (state.currentPath.isNotBlank()) {
+                add(SmbEntry(name = "..", fullPath = state.currentPath, isDirectory = true))
+            }
+            addAll(state.entries)
+        }
+        fileAdapter.submit(displayEntries)
     }
 
     private fun onFileClicked(entry: SmbEntry) {
@@ -350,21 +363,55 @@ class TvBrowseFragment : VerticalGridSupportFragment() {
         }
     }
 
-    private sealed interface UiItem {
-        data class ActionItem(val action: Action, private val text: String) : UiItem {
-            override fun toString(): String = text
+    private class FileEntryAdapter(
+        private val onClick: (SmbEntry) -> Unit
+    ) : RecyclerView.Adapter<FileEntryAdapter.Holder>() {
+        private val items = mutableListOf<SmbEntry>()
+
+        fun submit(list: List<SmbEntry>) {
+            items.clear()
+            items.addAll(list)
+            notifyDataSetChanged()
         }
 
-        data class FileItem(val entry: SmbEntry, private val text: String) : UiItem {
-            override fun toString(): String = text
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Holder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_file_entry, parent, false)
+            return Holder(view, onClick)
         }
-    }
 
-    private enum class Action {
-        OPEN_CONNECTION_MANAGER,
-        REFRESH,
-        RETRY,
-        PLAY_ALL,
-        PLAY_SHUFFLE
+        override fun onBindViewHolder(holder: Holder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        class Holder(
+            itemView: View,
+            private val onClick: (SmbEntry) -> Unit
+        ) : RecyclerView.ViewHolder(itemView) {
+            private val tvTag: TextView = itemView.findViewById(R.id.tv_tag)
+            private val tvName: TextView = itemView.findViewById(R.id.tv_name)
+            private var current: SmbEntry? = null
+
+            init {
+                itemView.setOnClickListener {
+                    current?.let(onClick)
+                }
+            }
+
+            fun bind(entry: SmbEntry) {
+                current = entry
+                if (entry.isDirectory) {
+                    tvTag.text = "目录"
+                    tvTag.setBackgroundResource(R.drawable.bg_tag_dir)
+                } else {
+                    tvTag.text = "音频"
+                    tvTag.setBackgroundResource(R.drawable.bg_tag_audio)
+                }
+                tvName.text = entry.name
+            }
+        }
     }
 }
+
