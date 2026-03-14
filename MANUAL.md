@@ -16,6 +16,10 @@
 12. 已增加 SMB 错误分级映射与中文提示（认证失败、服务器不可达、共享名不存在、路径无效、超时）。
 13. 已新增 SMB1 兼容开关（默认关闭，默认走 SMB2/3，可手动开启 SMB1）。
 14. 已补充首批单元测试：`SmbConfigTest`、`SmbFailureMapperTest`。
+15. 已完成 Phase 2（播放核心）：接入 Media3 ExoPlayer + MediaSessionService。
+16. 已支持文件点击单曲播放与“整目录顺序/随机播放”临时播放列表。
+17. 已具备后台播放与系统媒体通知能力（`PlaybackService`）。
+18. 已新增播放队列构建单元测试 `PlaybackQueueBuilderTest`。
 
 ## 1. 当前项目定位
 
@@ -53,6 +57,7 @@ tv-media-player/
 │     │  ├─ domain/model/{SmbConfig.kt,SmbEntry.kt}
 │     │  ├─ domain/repo/SmbRepository.kt
 │     │  ├─ lyrics/LrcParser.kt
+│     │  ├─ playback/{PlaybackService.kt,PlaybackQueueBuilder.kt}
 │     │  └─ ui/
 │     │     ├─ TvBrowseFragment.kt
 │     │     ├─ TvBrowserViewModel.kt
@@ -133,4 +138,5 @@ TV Release: app\build\outputs\apk\tv\release\app-tv-release.apk
 
 1. 播放器、后台播放、通知控制、封面与歌词联动尚未接入真实 Media3 流程。
 2. 当前 SMB 浏览按目录逐级访问，尚未实现全库递归扫描聚合能力。
-3. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。
+3. 当前播放能力为“临时队列”，尚未实现长期播放列表管理与播放历史。
+4. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。

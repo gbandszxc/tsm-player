@@ -1,5 +1,6 @@
 package com.example.tvmediaplayer.ui
 
+import android.content.ComponentName
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -14,9 +15,17 @@ import androidx.leanback.widget.HeaderItem
 import androidx.leanback.widget.ListRow
 import androidx.leanback.widget.ListRowPresenter
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.example.tvmediaplayer.domain.model.SmbConfig
 import com.example.tvmediaplayer.domain.model.SmbEntry
+import com.example.tvmediaplayer.playback.PlaybackQueueBuilder
+import com.example.tvmediaplayer.playback.PlaybackService
 import com.example.tvmediaplayer.ui.presenter.SimpleTextPresenter
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.launch
 
 class TvBrowseFragment : BrowseSupportFragment() {
@@ -25,6 +34,8 @@ class TvBrowseFragment : BrowseSupportFragment() {
         TvBrowserViewModel.factory(requireContext().applicationContext)
     }
     private val rowsAdapter by lazy { ArrayObjectAdapter(ListRowPresenter()) }
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var mediaController: MediaController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +48,7 @@ class TvBrowseFragment : BrowseSupportFragment() {
         setOnItemViewClickedListener { _, item, _, _ ->
             when (item) {
                 is UiItem.ActionItem -> onActionClicked(item)
-                is UiItem.FileItem -> viewModel.enterDirectory(item.entry)
+                is UiItem.FileItem -> onFileClicked(item.entry)
             }
         }
 
@@ -52,12 +63,24 @@ class TvBrowseFragment : BrowseSupportFragment() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        ensureController()
+    }
+
+    override fun onStop() {
+        releaseController()
+        super.onStop()
+    }
+
     private fun render(state: TvBrowserState) {
         rowsAdapter.clear()
 
         val configRow = ArrayObjectAdapter(SimpleTextPresenter()).apply {
             add(UiItem.ActionItem(Action.EDIT_CONFIG, "连接：${configText(state.config)}"))
             add(UiItem.ActionItem(Action.REFRESH, "刷新当前目录"))
+            add(UiItem.ActionItem(Action.PLAY_ALL, "播放当前目录（顺序）"))
+            add(UiItem.ActionItem(Action.PLAY_SHUFFLE, "播放当前目录（随机）"))
         }
         rowsAdapter.add(ListRow(HeaderItem(0, "连接与操作"), configRow))
 
@@ -92,7 +115,83 @@ class TvBrowseFragment : BrowseSupportFragment() {
         when (item.action) {
             Action.EDIT_CONFIG -> showConfigDialog()
             Action.REFRESH -> viewModel.loadCurrentPath()
+            Action.PLAY_ALL -> playDirectory(shuffle = false)
+            Action.PLAY_SHUFFLE -> playDirectory(shuffle = true)
         }
+    }
+
+    private fun onFileClicked(entry: SmbEntry) {
+        if (entry.isDirectory) {
+            viewModel.enterDirectory(entry)
+            return
+        }
+        val queue = PlaybackQueueBuilder.fromDirectory(viewModel.state.value.entries)
+        val startIndex = PlaybackQueueBuilder.startIndex(queue, entry)
+        playQueue(queue, startIndex, shuffle = false)
+    }
+
+    private fun playDirectory(shuffle: Boolean) {
+        val queue = PlaybackQueueBuilder.fromDirectory(viewModel.state.value.entries)
+        playQueue(queue, startIndex = 0, shuffle = shuffle)
+    }
+
+    private fun playQueue(queue: List<SmbEntry>, startIndex: Int, shuffle: Boolean) {
+        if (queue.isEmpty()) {
+            Toast.makeText(requireContext(), "当前目录没有可播放音频", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val controller = mediaController
+        if (controller == null) {
+            Toast.makeText(requireContext(), "播放器初始化中，请稍后重试", Toast.LENGTH_SHORT).show()
+            ensureController()
+            return
+        }
+
+        val mediaItems = queue.map { entry ->
+            MediaItem.Builder()
+                .setUri(requireNotNull(entry.streamUri))
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(entry.name)
+                        .build()
+                )
+                .build()
+        }
+
+        controller.setShuffleModeEnabled(shuffle)
+        controller.setMediaItems(mediaItems, startIndex.coerceIn(0, mediaItems.lastIndex), 0L)
+        controller.prepare()
+        controller.play()
+    }
+
+    private fun ensureController() {
+        if (mediaController != null || controllerFuture != null) return
+
+        val token = SessionToken(
+            requireContext(),
+            ComponentName(requireContext(), PlaybackService::class.java)
+        )
+        val future = MediaController.Builder(requireContext(), token).buildAsync()
+        controllerFuture = future
+        future.addListener(
+            {
+                runCatching { future.get() }
+                    .onSuccess { controller -> mediaController = controller }
+                    .onFailure {
+                        controllerFuture = null
+                        Toast.makeText(requireContext(), "播放器连接失败", Toast.LENGTH_SHORT).show()
+                    }
+            },
+            MoreExecutors.directExecutor()
+        )
+    }
+
+    private fun releaseController() {
+        controllerFuture?.let {
+            MediaController.releaseFuture(it)
+        }
+        controllerFuture = null
+        mediaController = null
     }
 
     private fun showConfigDialog() {
@@ -190,6 +289,8 @@ class TvBrowseFragment : BrowseSupportFragment() {
 
     private enum class Action {
         EDIT_CONFIG,
-        REFRESH
+        REFRESH,
+        PLAY_ALL,
+        PLAY_SHUFFLE
     }
 }
