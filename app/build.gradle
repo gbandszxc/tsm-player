@@ -75,6 +75,7 @@ dependencies {
     implementation 'eu.agno3.jcifs:jcifs-ng:2.1.10'
     implementation 'androidx.media3:media3-exoplayer:1.4.1'
     implementation 'androidx.media3:media3-session:1.4.1'
+    implementation 'net.jthink:jaudiotagger:3.0.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1'
 
     testImplementation 'junit:junit:4.13.2'

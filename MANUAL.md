@@ -23,6 +23,9 @@
 19. 已推进 Phase 3（首版）：播放队列构建时补齐标题/艺术家/专辑元数据。
 20. 已接入封面回退链路（同目录 `folder.jpg` / `cover.jpg` / `front.jpg`）。
 21. 播放前元数据与封面解析在 IO 线程执行，避免主线程阻塞。
+22. 已推进 Phase 4（首版）：支持同名同目录外挂 LRC 匹配与加载。
+23. 已增加内嵌歌词读取能力（通过标签字段 `LYRICS` 读取）。
+24. `LrcParser` 已支持 `offset` 标签与当前行二分查找。
 
 ## 1. 当前项目定位
 
@@ -59,7 +62,7 @@ tv-media-player/
 │     │  ├─ data/repo/{FakeSmbRepository.kt,JcifsSmbRepository.kt,SmbConfigStore.kt,SmbFailureMapper.kt}
 │     │  ├─ domain/model/{SmbConfig.kt,SmbEntry.kt}
 │     │  ├─ domain/repo/SmbRepository.kt
-│     │  ├─ lyrics/LrcParser.kt
+│     │  ├─ lyrics/{LrcParser.kt,SmbLyricsRepository.kt}
 │     │  ├─ playback/{PlaybackService.kt,PlaybackQueueBuilder.kt,SmbMediaItemFactory.kt}
 │     │  └─ ui/
 │     │     ├─ TvBrowseFragment.kt
@@ -143,4 +146,5 @@ TV Release: app\build\outputs\apk\tv\release\app-tv-release.apk
 2. 当前 SMB 浏览按目录逐级访问，尚未实现全库递归扫描聚合能力。
 3. 当前播放能力为“临时队列”，尚未实现长期播放列表管理与播放历史。
 4. 内嵌封面（APIC/FLAC PICTURE）与精确标签解析尚未接入专用解析器。
-5. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。
+5. 歌词 UI（滚动/高亮）尚未接入播放页，仅完成歌词数据读取与时间轴能力。
+6. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。
