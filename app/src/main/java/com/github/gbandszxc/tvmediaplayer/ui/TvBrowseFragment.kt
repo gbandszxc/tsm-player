@@ -178,6 +178,7 @@ class TvBrowseFragment : Fragment() {
             addAll(state.entries)
         }
         renderFileItems(displayEntries)
+        ensureBrowseFocus(displayEntries)
     }
 
     private fun renderFileItems(entries: List<SmbEntry>) {
@@ -193,6 +194,20 @@ class TvBrowseFragment : Fragment() {
 
             itemView.setOnClickListener { onFileClicked(entry) }
             filesContainer.addView(itemView)
+        }
+    }
+
+    private fun ensureBrowseFocus(entries: List<SmbEntry>) {
+        filesContainer.post {
+            val root = view ?: return@post
+            val focused = root.findFocus()
+            if (focused != null && focused !== root) return@post
+
+            if (entries.isNotEmpty()) {
+                filesContainer.getChildAt(0)?.requestFocus()
+            } else {
+                btnBackTop.requestFocus()
+            }
         }
     }
 
@@ -313,6 +328,7 @@ class TvBrowseFragment : Fragment() {
 
         val title = controller?.mediaMetadata?.title?.toString().orEmpty()
         btnNowPlaying.text = if (title.isBlank()) "回到当前播放" else "回到当前播放：$title"
+        btnNowPlaying.isSelected = true
     }
 
     private fun currentQueueUris(controller: MediaController): List<String> {
