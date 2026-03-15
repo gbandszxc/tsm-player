@@ -90,3 +90,18 @@
 - 本轮验证：
   - `testDevDebugUnitTest --tests "*SmbPathResolverTest" --tests "*SampleMediaValidationTest"` 通过。
   - `assembleDevDebug` 通过。
+
+## 2026-03-15（第 8 轮）
+
+- 用户反馈：
+  - 封面缓存已生效。
+  - `Track9` 仍存在歌词误判“暂无歌词”。
+  - 希望“回到当前播放”歌词也能命中缓存。
+- 本轮修复：
+  - 外置歌词查找改为多候选：优先 `streamUri` 同名替换 `.lrc`，再回退路径解析结果，覆盖更多 NAS 路径形态。
+  - 文本解码增加 UTF-16 BOM 识别，兼容部分歌词文件编码。
+  - 播放页歌词/封面缓存 key 统一改为 `uri` 优先，提升跨页面回到当前播放时命中率。
+  - 补充 `Track9` 时间轴解析单测，确保样本可解析。
+- 本轮验证：
+  - `testDevDebugUnitTest --tests "*SmbPathResolverTest" --tests "*SampleMediaValidationTest"` 通过。
+  - `assembleDevDebug` 通过。
