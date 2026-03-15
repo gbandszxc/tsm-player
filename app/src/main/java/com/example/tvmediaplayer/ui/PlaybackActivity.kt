@@ -128,6 +128,12 @@ class PlaybackActivity : FragmentActivity() {
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                val controller = mediaController ?: return@setOnKeyListener false
+                if (controller.isPlaying) controller.pause() else controller.play()
+                renderPlayerState(controller)
+                return@setOnKeyListener true
+            }
             if (keyCode != KeyEvent.KEYCODE_DPAD_LEFT && keyCode != KeyEvent.KEYCODE_DPAD_RIGHT) {
                 return@setOnKeyListener false
             }
@@ -295,12 +301,23 @@ class PlaybackActivity : FragmentActivity() {
 
         val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
         if (mediaUri.startsWith("smb://", ignoreCase = true)) {
-            val parent = mediaUri.substringBeforeLast('/', "")
-            val candidates = listOf("folder.jpg", "cover.jpg", "front.jpg")
-            for (name in candidates) {
-                loadSmbBitmap("$parent/$name", config)?.let { return@runCatching it }
-            }
+            loadSiblingArtwork(mediaUri, config)?.let { return@runCatching it }
             loadEmbeddedArtwork(mediaUri, config)?.let { return@runCatching it }
+        }
+        null
+    }.getOrNull()
+
+    private fun loadSiblingArtwork(mediaSmbUrl: String, config: SmbConfig) = runCatching {
+        val context = SmbContextFactory.build(config)
+        val parentPath = mediaSmbUrl.substringBeforeLast('/', "").trimEnd('/') + "/"
+        val parentDir = SmbFile(parentPath, context)
+        val candidates = listOf("folder.jpg", "cover.jpg", "front.jpg")
+        for (name in candidates) {
+            val candidate = SmbFile(parentDir, name)
+            if (!candidate.exists() || candidate.isDirectory) continue
+            SmbFileInputStream(candidate).use { stream ->
+                BitmapFactory.decodeStream(stream)?.let { return@runCatching it }
+            }
         }
         null
     }.getOrNull()
