@@ -73,6 +73,7 @@
 69. 已修复外置歌词偶发无法加载问题：`loadExternalLrc` 对每个候选路径加独立 `runCatching`，单个路径异常不再中断整个加载链路；`load` 方法对 `loadExternalLrc` 整体加 `runCatching`，确保外置失败后仍能尝试内嵌歌词。
 70. 已修复外置歌词文件名全角/半角不一致导致无法匹配的问题：精确路径命中失败时，遍历父目录并通过 `normalizeWidth`（全角 ASCII → 半角）+ 大小写不敏感做模糊匹配，兼容语音识别工具混用 `！`/`!`、`？`/`?` 等字符的场景。
 71. 版本升至 `1.0.1`（`versionCode=2`），包含封面与歌词加载修复。
+72. 已统一 APK 输出命名规则为 `tms-player-<buildType>-<versionName>.apk`（例如 `tms-player-debug-1.0.1.apk`、`tms-player-release-1.0.1.apk`）。
 
 ## 1. 当前项目定位
 
@@ -158,9 +159,9 @@ cmd /c "set JAVA_HOME=C:\D\Develop\Java\jdk-17.0.16+8&& set PATH=%JAVA_HOME%\bin
 ## 4. 产物位置
 
 ```text
-Dev Debug: app\build\outputs\apk\dev\debug\app-dev-debug.apk
-TV Debug:  app\build\outputs\apk\tv\debug\app-tv-debug.apk
-TV Release: app\build\outputs\apk\tv\release\app-tv-release.apk
+Dev Debug: app\build\outputs\apk\dev\debug\tms-player-debug-<versionName>-dev.apk
+TV Debug:  app\build\outputs\apk\tv\debug\tms-player-debug-<versionName>.apk
+TV Release: app\build\outputs\apk\tv\release\tms-player-release-<versionName>.apk
 ```
 
 ## 5. Release 命令差异说明

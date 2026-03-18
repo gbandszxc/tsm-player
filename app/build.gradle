@@ -62,6 +62,14 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def buildTypeName = variant.buildType.name
+            def variantVersionName = variant.versionName
+            outputFileName = "tms-player-${buildTypeName}-${variantVersionName}.apk"
+        }
+    }
 }
 
 dependencies {
@@ -82,5 +90,4 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
 }
-
 
