@@ -77,6 +77,7 @@
 73. 已补充 `.gitignore` 仓库忽略增强项：`*.pem/*.p12/*.crt/*.key`、`.env*`、常见系统/编辑器临时文件与本地 `.agent_prompt/` 工具目录，降低敏感信息与无关文件误提交风险。
 74. 已移除 product flavors（`dev`/`tv`），合并为标准 `debug`/`release` 两个构建变体；`debug` 包名后缀 `.debug`（支持与 release 并行安装），`android.software.leanback` 统一为 `required=false`，兼容 TV 与手机/平板侧载调试。
 75. 已优化多尺寸设备 UI 兼容性：SMB 配置弹窗内容区包裹 `ScrollView`（小屏可滚动填写全部字段）；浏览页和播放页的按钮栏改用 `HorizontalScrollView` 防溢出；播放页封面区由固定 340dp 改为权重 30% 自适应布局，适配手机横屏场景。
+76. 已新增 `SettingsActivity`：左侧分类面板 + 右侧详情面板的两级菜单设置页，遥控器方向键/OK键可自然操作；入口为浏览页右上角"设置"按钮；菜单结构包含"显示设置/播放设置/应用设置/关于"，"关于"页点击可跳转 GitHub 项目主页；其余条目暂为占位（功能开发中）。
 
 ## 1. 当前项目定位
 

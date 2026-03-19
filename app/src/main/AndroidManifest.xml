@@ -45,6 +45,11 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
         <service
             android:name=".playback.PlaybackService"
             android:enabled="true"

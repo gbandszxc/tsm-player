@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 遥控器焦点在此项 -->
+    <item android:state_focused="true">
+        <shape>
+            <corners android:radius="8dp" />
+            <solid android:color="#1D4ED8" />
+            <stroke android:width="2dp" android:color="#93C5FD" />
+        </shape>
+    </item>
+    <!-- 当前选中分类 -->
+    <item android:state_selected="true">
+        <shape>
+            <corners android:radius="8dp" />
+            <solid android:color="#1E3A5F" />
+            <stroke android:width="2dp" android:color="#3B82F6" />
+        </shape>
+    </item>
+    <!-- 默认 -->
+    <item>
+        <shape>
+            <corners android:radius="8dp" />
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+</selector>

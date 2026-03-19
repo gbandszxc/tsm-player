@@ -47,6 +47,7 @@ class TvBrowseFragment : Fragment() {
 
     private lateinit var panelConnection: View
     private lateinit var btnBackTop: Button
+    private lateinit var btnSettings: Button
     private lateinit var tvConnection: TextView
     private lateinit var tvSavedCount: TextView
     private lateinit var btnManage: Button
@@ -94,6 +95,7 @@ class TvBrowseFragment : Fragment() {
     private fun bindViews(root: View) {
         panelConnection = root.findViewById(R.id.panel_connection)
         btnBackTop = root.findViewById(R.id.btn_back_top)
+        btnSettings = root.findViewById(R.id.btn_settings)
         tvConnection = root.findViewById(R.id.tv_connection)
         tvSavedCount = root.findViewById(R.id.tv_saved_count)
         btnManage = root.findViewById(R.id.btn_manage)
@@ -109,6 +111,9 @@ class TvBrowseFragment : Fragment() {
 
     private fun bindActions(root: View) {
         btnBackTop.setOnClickListener { navigateUpDirectory() }
+        btnSettings.setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
+        }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
         btnRetry.setOnClickListener { viewModel.loadCurrentPath() }

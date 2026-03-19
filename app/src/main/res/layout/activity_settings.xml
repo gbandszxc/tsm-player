@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 设置页主布局：左侧分类面板 + 右侧详情面板 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0F0F23"
+    android:orientation="horizontal">
+
+    <!-- 左侧：分类面板（固定宽度，方便遥控器聚焦） -->
+    <LinearLayout
+        android:layout_width="260dp"
+        android:layout_height="match_parent"
+        android:background="#0D1A2E"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="设置"
+            android:textColor="#60A5FA"
+            android:textSize="26sp"
+            android:fontFamily="@font/misans_bold"
+            android:paddingBottom="20dp" />
+
+        <!-- 分类列表（动态填充） -->
+        <LinearLayout
+            android:id="@+id/container_categories"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="#1E3A5F" />
+
+    <!-- 右侧：详情面板（自适应剩余宽度） -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:scrollbars="none"
+        android:fillViewport="false">
+
+        <LinearLayout
+            android:id="@+id/container_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="28dp" />
+
+    </ScrollView>
+
+</LinearLayout>
