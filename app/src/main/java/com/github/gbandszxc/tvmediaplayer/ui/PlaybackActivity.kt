@@ -3,13 +3,20 @@
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.graphics.Typeface
 import android.os.Bundle
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.KeyEvent
 import android.widget.Button
 import android.widget.ImageView
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
@@ -72,9 +79,8 @@ class PlaybackActivity : FragmentActivity() {
     private lateinit var tvAlbum: TextView
     private lateinit var tvTime: TextView
     private lateinit var pbProgress: SeekBar
-    private lateinit var tvLyricPrev: TextView
-    private lateinit var tvLyricCurrent: TextView
-    private lateinit var tvLyricNext: TextView
+    private lateinit var scrollLyrics: ScrollView
+    private lateinit var tvLyricContent: TextView
     private lateinit var btnPrevious: Button
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
@@ -120,9 +126,8 @@ class PlaybackActivity : FragmentActivity() {
         tvAlbum = findViewById(R.id.tv_playback_album)
         tvTime = findViewById(R.id.tv_playback_time)
         pbProgress = findViewById(R.id.pb_playback)
-        tvLyricPrev = findViewById(R.id.tv_lyric_prev)
-        tvLyricCurrent = findViewById(R.id.tv_lyric_current)
-        tvLyricNext = findViewById(R.id.tv_lyric_next)
+        scrollLyrics = findViewById(R.id.scroll_lyrics)
+        tvLyricContent = findViewById(R.id.tv_lyric_content)
         btnPrevious = findViewById(R.id.btn_prev)
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
@@ -274,9 +279,7 @@ class PlaybackActivity : FragmentActivity() {
             renderLyrics(player.currentPosition)
             return
         }
-        tvLyricPrev.text = ""
-        tvLyricCurrent.text = "歌词加载中..."
-        tvLyricNext.text = ""
+        tvLyricContent.text = "歌词加载中..."
 
         val config = PlaybackConfigStore.current()
         if (config.host.isBlank()) {
@@ -307,9 +310,7 @@ class PlaybackActivity : FragmentActivity() {
             if (currentLyricKey != key) return@launch
             currentTimeline = timeline
             if (timeline == null || timeline.lines.isEmpty()) {
-                tvLyricCurrent.text = "暂无歌词"
-                tvLyricPrev.text = ""
-                tvLyricNext.text = ""
+                tvLyricContent.text = "暂无歌词"
                 return@launch
             }
             PlaybackLyricsCache.put(key, timeline)
@@ -319,20 +320,43 @@ class PlaybackActivity : FragmentActivity() {
 
     private fun renderLyrics(positionMs: Long) {
         val timeline = currentTimeline ?: return
-        val index = LrcParser.findCurrentLineIndex(
+        if (timeline.lines.isEmpty()) return
+
+        val currentIndex = LrcParser.findCurrentLineIndex(
             lines = timeline.lines,
             playbackPositionMs = positionMs,
             offsetMs = timeline.offsetMs
         )
-        if (index < 0) {
-            tvLyricPrev.text = ""
-            tvLyricCurrent.text = "..."
-            tvLyricNext.text = timeline.lines.firstOrNull()?.text.orEmpty()
-            return
+
+        val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
+        val highlightColor = ContextCompat.getColor(this, android.R.color.white)
+        val builder = SpannableStringBuilder()
+        var highlightStart = -1
+
+        timeline.lines.forEachIndexed { index, line ->
+            val start = builder.length
+            builder.append(line.text.ifBlank { "..." })
+            val end = builder.length
+            if (index == currentIndex) {
+                builder.setSpan(ForegroundColorSpan(highlightColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                builder.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                highlightStart = start
+            } else {
+                builder.setSpan(ForegroundColorSpan(normalColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            if (index != timeline.lines.lastIndex) builder.append('\n')
         }
-        tvLyricPrev.text = if (index > 0) timeline.lines[index - 1].text else ""
-        tvLyricCurrent.text = timeline.lines[index].text.ifBlank { "..." }
-        tvLyricNext.text = timeline.lines.getOrNull(index + 1)?.text.orEmpty()
+        tvLyricContent.text = builder
+
+        if (highlightStart >= 0) {
+            scrollLyrics.post {
+                val layout = tvLyricContent.layout ?: return@post
+                val lineIndex = layout.getLineForOffset(highlightStart)
+                val lineTop = layout.getLineTop(lineIndex)
+                val targetY = (lineTop - scrollLyrics.height / 3).coerceAtLeast(0)
+                scrollLyrics.smoothScrollTo(0, targetY)
+            }
+        }
     }
 
     private fun maybeLoadArtwork(player: Player) {

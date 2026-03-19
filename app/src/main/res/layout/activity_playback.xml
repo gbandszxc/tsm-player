@@ -13,12 +13,12 @@
         android:layout_weight="1"
         android:orientation="horizontal">
 
-        <!-- 封面区：用 weight 占 30%，minWidth 保底，最大高度自适应 -->
-        <FrameLayout
+        <!-- 封面区：SquareFrameLayout 保证宽高相等，centerCrop 裁剪非正方形图片 -->
+        <com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_weight="3"
-            android:minWidth="200dp"
+            android:layout_gravity="center_vertical"
             android:background="#25324A"
             android:clipChildren="true"
             android:clipToPadding="true">
@@ -29,9 +29,9 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_launcher_foreground" />
-        </FrameLayout>
+        </com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout>
 
-        <!-- 信息区：占 70% -->
+        <!-- 信息区：占 70%，内部垂直排列，歌词 ScrollView 撑满剩余高度 -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
@@ -105,40 +105,29 @@
                 android:textSize="18sp"
                 android:fontFamily="@font/misans_bold" />
 
-            <TextView
-                android:id="@+id/tv_lyric_prev"
+            <!-- 歌词滚动区：与全屏逻辑一致，当前行高亮，自动滚动 -->
+            <ScrollView
+                android:id="@+id/scroll_lyrics"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#94A3B8"
-                android:textSize="17sp"
-                android:lineSpacingExtra="3dp"
-                android:fontFamily="@font/misans_regular" />
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="8dp"
+                android:fadeScrollbars="false"
+                android:scrollbars="none">
 
-            <TextView
-                android:id="@+id/tv_lyric_current"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#EAF2FF"
-                android:textStyle="bold"
-                android:textSize="20sp"
-                android:lineSpacingExtra="4dp"
-                android:fontFamily="@font/misans_bold" />
-
-            <TextView
-                android:id="@+id/tv_lyric_next"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:textColor="#94A3B8"
-                android:textSize="17sp"
-                android:lineSpacingExtra="3dp"
-                android:fontFamily="@font/misans_regular" />
+                <TextView
+                    android:id="@+id/tv_lyric_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#94A3B8"
+                    android:textSize="17sp"
+                    android:lineSpacingExtra="4dp"
+                    android:fontFamily="@font/misans_regular" />
+            </ScrollView>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 底部按钮栏：HorizontalScrollView 防止小屏溢出，同时支持方向键导航 -->
+    <!-- 底部按钮栏：HorizontalScrollView 防止小屏溢出，支持方向键导航 -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
