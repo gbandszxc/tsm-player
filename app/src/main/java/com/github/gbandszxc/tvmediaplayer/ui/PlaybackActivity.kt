@@ -503,7 +503,11 @@ class PlaybackActivity : BaseActivity() {
         val context = SmbContextFactory.build(config)
         val parentPath = mediaSmbUrl.substringBeforeLast('/', "").trimEnd('/') + "/"
         val parentDir = SmbFile(parentPath, context)
-        val candidates = listOf("folder.jpg", "cover.jpg", "front.jpg")
+        val candidates = listOf(
+            "folder.jpg", "folder.png",
+            "cover.jpg", "cover.png",
+            "front.jpg", "front.png",
+        )
         for (name in candidates) {
             val candidate = SmbFile(parentDir, name)
             if (!candidate.exists() || candidate.isDirectory) continue
