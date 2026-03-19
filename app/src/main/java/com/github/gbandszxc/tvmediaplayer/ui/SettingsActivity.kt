@@ -203,6 +203,11 @@ class SettingsActivity : FragmentActivity() {
         rebuildCurrentCategory(moveFocusToDetail = false)
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) UiSettingsApplier.applyImmersiveFullscreen(this)
+    }
+
     private fun buildCategoryList() {
         categories.forEachIndexed { index, category ->
             val itemView = layoutInflater.inflate(

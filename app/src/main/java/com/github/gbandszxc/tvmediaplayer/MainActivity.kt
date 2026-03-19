@@ -21,4 +21,9 @@ class MainActivity : FragmentActivity() {
         super.onResume()
         UiSettingsApplier.applyAll(this)
     }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) UiSettingsApplier.applyImmersiveFullscreen(this)
+    }
 }

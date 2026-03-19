@@ -79,6 +79,11 @@ class LyricsFullscreenActivity : FragmentActivity() {
         applyUiSettings()
     }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) UiSettingsApplier.applyImmersiveFullscreen(this)
+    }
+
     override fun onStart() {
         super.onStart()
         ensureController()
