@@ -43,8 +43,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jaudiotagger.audio.AudioFileIO
+import org.jaudiotagger.tag.FieldKey
 
 class PlaybackActivity : FragmentActivity() {
+
+    private data class AudioTagInfo(
+        val title: String?,
+        val artist: String?,
+        val albumTitle: String?
+    )
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
@@ -55,6 +62,8 @@ class PlaybackActivity : FragmentActivity() {
     private var currentTimeline: LrcTimeline? = null
     private var currentLyricKey: String? = null
     private var currentArtworkKey: String? = null
+    private var currentTagKey: String? = null
+    private val tagInfoCache = mutableMapOf<String, AudioTagInfo>()
     private var fallbackConfig: SmbConfig = SmbConfig.Empty
 
     private lateinit var ivArtwork: ImageView
@@ -187,6 +196,7 @@ class PlaybackActivity : FragmentActivity() {
         val title = player.mediaMetadata.title?.toString().orEmpty()
         tvTitle.text = "歌曲：" + if (title.isBlank()) "暂无播放内容" else title
 
+        // 先用 mediaMetadata 回退值填充，等 tag 异步读完后再覆盖
         val artist = player.mediaMetadata.artist?.toString().orEmpty().ifBlank { "-" }
         val album = player.mediaMetadata.albumTitle?.toString().orEmpty().ifBlank { "-" }
         tvArtist.text = "艺术家：$artist"
@@ -196,6 +206,7 @@ class PlaybackActivity : FragmentActivity() {
         renderProgress(player.currentPosition, player.duration)
         maybeLoadLyrics(player)
         maybeLoadArtwork(player)
+        maybeLoadTagInfo(player)
         renderLyrics(player.currentPosition)
     }
 
@@ -319,6 +330,64 @@ class PlaybackActivity : FragmentActivity() {
             }
         }
     }
+
+    private fun maybeLoadTagInfo(player: Player) {
+        val mediaItem = player.currentMediaItem ?: return
+        val key = mediaCacheKey(mediaItem)
+        if (key == currentTagKey) return
+        currentTagKey = key
+
+        tagInfoCache[key]?.let { info ->
+            applyTagInfo(info)
+            return
+        }
+
+        lifecycleScope.launch {
+            val config = resolvePlaybackConfig()
+            val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+            val info = withContext(Dispatchers.IO) { loadAudioTagInfo(mediaUri, config) }
+            if (currentTagKey != key) return@launch
+            if (info != null) {
+                tagInfoCache[key] = info
+                applyTagInfo(info)
+            }
+        }
+    }
+
+    private fun applyTagInfo(info: AudioTagInfo) {
+        if (!info.title.isNullOrBlank()) {
+            tvTitle.text = "歌曲：${info.title}"
+        }
+        if (!info.artist.isNullOrBlank()) {
+            tvArtist.text = "艺术家：${info.artist}"
+        }
+        if (!info.albumTitle.isNullOrBlank()) {
+            tvAlbum.text = "专辑：${info.albumTitle}"
+        }
+    }
+
+    private fun loadAudioTagInfo(mediaUri: String, config: SmbConfig): AudioTagInfo? = runCatching {
+        if (!mediaUri.startsWith("smb://", ignoreCase = true)) return@runCatching null
+        val smbFile = SmbFile(mediaUri, SmbContextFactory.build(config))
+        val ext = mediaUri.substringAfterLast('.', "").lowercase()
+        val suffix = if (ext.isBlank() || ext.length > 8) "tmp" else ext
+        val temp = File.createTempFile("tags-", ".$suffix")
+        try {
+            SmbFileInputStream(smbFile).use { input ->
+                temp.outputStream().use { output ->
+                    if (suffix == "mp3") copyId3TagRegion(input, output) else input.copyTo(output)
+                }
+            }
+            val tag = AudioFileIO.read(temp).tag ?: return@runCatching null
+            AudioTagInfo(
+                title = tag.getFirst(FieldKey.TITLE).takeIf { it.isNotBlank() },
+                artist = tag.getFirst(FieldKey.ARTIST).takeIf { it.isNotBlank() },
+                albumTitle = tag.getFirst(FieldKey.ALBUM).takeIf { it.isNotBlank() }
+            )
+        } finally {
+            temp.delete()
+        }
+    }.getOrNull()
 
     private fun loadArtworkBitmap(config: SmbConfig, mediaItem: MediaItem) = runCatching {
         val artworkUri = mediaItem.mediaMetadata.artworkUri?.toString().orEmpty()
