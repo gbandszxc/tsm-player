@@ -19,7 +19,7 @@
 - 应用设置
   - 休眠设置
 - 关于
-关于按钮，点击后显示Github连接：https://github.com/gbandszxc/tms-player
+关于按钮，点击后显示Github连接：https://github.com/gbandszxc/tsm-player
 注意：
 1.除关于外，其它按钮先把菜单构建出来即可，不用实现实际功能。
 2.不要忘记遥控器操作优先、兼容触屏设备的原则

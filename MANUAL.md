@@ -4,7 +4,7 @@
 
 1. 完成 Android TV 工程基础搭建与构建链路落地：Gradle Wrapper 8.7、JDK 17、`arm64-v8a`，`debug/release` 可稳定打包，release 已接入签名。
 2. 构建变体收敛为标准 `debug/release`（移除 `dev/tv` flavors），`debug` 使用 `.debug` 包名后缀，支持与 release 并行安装。
-3. 应用包名与源码包路径统一为 `com.github.gbandszxc.tvmediaplayer`，APK 命名统一为 `tms-player-<buildType>-<versionName>.apk`。
+3. 应用包名与源码包路径统一为 `com.github.gbandszxc.tvmediaplayer`，APK 命名统一为 `tsm-player-<buildType>-<versionName>.apk`。
 4. SMB 架构完成领域模型 + 仓库接口落地，并切换到 `jcifs-ng` 实现，支持直接浏览 `smb://` 目录。
 5. SMB 配置完成 DataStore 持久化，支持多连接保存与快速切换，支持共享名留空浏览共享根目录，并保留 SMB1 兼容开关（默认关闭）。
 6. SMB 访问链路补齐可用性能力：错误分级中文提示、弱网重试、错误态快速重试入口。
@@ -107,8 +107,8 @@ cmd /c "set JAVA_HOME=C:\D\Develop\Java\jdk-17.0.16+8&& set PATH=%JAVA_HOME%\bin
 ## 4. 产物位置
 
 ```text
-Debug:   app\build\outputs\apk\debug\tms-player-debug-<versionName>.apk
-Release: app\build\outputs\apk\release\tms-player-release-<versionName>.apk
+Debug:   app\build\outputs\apk\debug\tsm-player-debug-<versionName>.apk
+Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 ```
 
 ## 5. Release 命令差异说明

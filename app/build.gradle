@@ -58,7 +58,7 @@ android {
         variant.outputs.all { output ->
             def buildTypeName = variant.buildType.name
             def variantVersionName = variant.versionName
-            outputFileName = "tms-player-${buildTypeName}-${variantVersionName}.apk"
+            outputFileName = "tsm-player-${buildTypeName}-${variantVersionName}.apk"
         }
     }
 }

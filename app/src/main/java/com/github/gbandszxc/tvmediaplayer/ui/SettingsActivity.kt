@@ -194,7 +194,7 @@ class SettingsActivity : BaseActivity() {
                             startActivity(
                                 Intent(
                                     Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/gbandszxc/tms-player")
+                                    Uri.parse("https://github.com/gbandszxc/tsm-player")
                                 )
                             )
                         }
