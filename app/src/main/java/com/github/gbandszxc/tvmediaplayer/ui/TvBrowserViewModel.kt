@@ -42,6 +42,7 @@ class TvBrowserViewModel(
 
     private val _state = MutableStateFlow(TvBrowserState())
     val state: StateFlow<TvBrowserState> = _state.asStateFlow()
+    private var lastPersistedAnchor: AnchorFingerprint? = null
 
     init {
         viewModelScope.launch {
@@ -115,6 +116,16 @@ class TvBrowserViewModel(
             }.onSuccess { list ->
                 val anchor = configStore.loadBrowseAnchor(snapshot.activeConnectionId, snapshot.currentPath)
                 val restore = resolveAnchorRestore(anchor, list)
+                lastPersistedAnchor = anchor
+                    ?.takeIf { restore.index != null }
+                    ?.let {
+                        AnchorFingerprint(
+                            connectionId = snapshot.activeConnectionId,
+                            directoryPath = snapshot.currentPath,
+                            itemKey = it.itemKey,
+                            index = restore.index ?: return@let null
+                        )
+                    }
                 _state.update {
                     it.copy(
                         entries = list,
@@ -226,6 +237,7 @@ class TvBrowserViewModel(
 
     fun acceptFastLocate() {
         val targetIndex = _state.value.fastLocate?.currentIndex ?: return
+        val targetEntry = _state.value.entries.getOrNull(targetIndex)
         _state.update {
             it.copy(
                 restoredFocusIndex = targetIndex,
@@ -234,6 +246,7 @@ class TvBrowserViewModel(
                 inlineMessage = null
             )
         }
+        targetEntry?.let { persistBrowseAnchor(it, preferredIndex = targetIndex) }
     }
 
     fun cancelFastLocate() {
@@ -244,21 +257,7 @@ class TvBrowserViewModel(
     }
 
     fun onItemFocused(index: Int, entry: SmbEntry) {
-        val snapshot = _state.value
-        if (index < 0 || snapshot.currentPath.isBlank()) return
-
-        _state.update { it.copy(restoredFocusIndex = index) }
-        viewModelScope.launch {
-            configStore.saveBrowseAnchor(
-                connectionId = snapshot.activeConnectionId,
-                directoryPath = snapshot.currentPath,
-                anchor = BrowseFocusAnchor(
-                    itemKey = entry.fullPath,
-                    index = index,
-                    updatedAt = System.currentTimeMillis()
-                )
-            )
-        }
+        persistBrowseAnchor(entry, preferredIndex = index)
     }
 
     private fun defaultConnectionName(config: SmbConfig): String {
@@ -303,6 +302,7 @@ class TvBrowserViewModel(
                 isFastLocateMode = false
             )
         }
+        lastPersistedAnchor = null
         viewModelScope.launch { persist() }
         loadCurrentPath()
     }
@@ -319,10 +319,47 @@ class TvBrowserViewModel(
                 isFastLocateMode = false
             )
         }
+        lastPersistedAnchor = null
         viewModelScope.launch {
             configStore.saveActiveBrowsePath(normalizedPath)
         }
         loadCurrentPath()
+    }
+
+    private fun persistBrowseAnchor(entry: SmbEntry, preferredIndex: Int?) {
+        val snapshot = _state.value
+        if (snapshot.currentPath.isBlank() || snapshot.entries.isEmpty()) return
+
+        val matchedIndex = snapshot.entries.indexOfFirst { it.fullPath == entry.fullPath }
+        val realIndex = when {
+            matchedIndex >= 0 -> matchedIndex
+            preferredIndex != null &&
+                preferredIndex in snapshot.entries.indices &&
+                snapshot.entries[preferredIndex].fullPath == entry.fullPath -> preferredIndex
+            else -> return
+        }
+
+        _state.update { it.copy(restoredFocusIndex = realIndex) }
+        val fingerprint = AnchorFingerprint(
+            connectionId = snapshot.activeConnectionId,
+            directoryPath = snapshot.currentPath,
+            itemKey = entry.fullPath,
+            index = realIndex
+        )
+        if (fingerprint == lastPersistedAnchor) return
+
+        lastPersistedAnchor = fingerprint
+        viewModelScope.launch {
+            configStore.saveBrowseAnchor(
+                connectionId = snapshot.activeConnectionId,
+                directoryPath = snapshot.currentPath,
+                anchor = BrowseFocusAnchor(
+                    itemKey = entry.fullPath,
+                    index = realIndex,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
     }
 
     private fun resolveAnchorRestore(anchor: BrowseFocusAnchor?, entries: List<SmbEntry>): AnchorRestoreResult {
@@ -341,6 +378,13 @@ class TvBrowserViewModel(
     private data class AnchorRestoreResult(
         val index: Int?,
         val message: String?
+    )
+
+    private data class AnchorFingerprint(
+        val connectionId: String?,
+        val directoryPath: String,
+        val itemKey: String,
+        val index: Int
     )
 
     companion object {
