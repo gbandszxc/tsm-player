@@ -135,3 +135,12 @@ Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 1. SMB 浏览页的“播放控制”面板已移到“文件浏览”上方，结构顺序调整后仍保留原始按钮状态与焦点关系，便于用户先快速触达播放相关操作再滚动到文件列表。
 2. 播放页底部按钮栏在“返回文件页”后新增 `btn_locate`（文本“定位”），采用 `bg_button_light_yellow` 并复用 `#3A2A00` 字色，保持现有焦点链（`nextFocusUp` 指向进度条）。该按钮将用于快速跳回当前播放曲目的目录，补全“播放目录定位”能力。
 
+## 10. 当前已知基线问题
+在 `2026-04-06` 于 worktree `feature/tv-browse-long-list-navigation` 执行 `.\gradlew.bat testDebugUnitTest` 时，存在以下既有失败，当前作为基线问题记录，后续长列表导航功能开发默认不以修复它们为本次范围：
+
+1. `com.github.gbandszxc.tvmediaplayer.playback.SampleMediaValidationTest.lrcSampleShouldBeParsable`
+2. `com.github.gbandszxc.tvmediaplayer.playback.SampleMediaValidationTest.mp3SampleShouldContainEmbeddedArtwork`
+3. `com.github.gbandszxc.tvmediaplayer.playback.SmbPathResolverTest.track9SampleShouldParseTimestamps`
+
+若后续整体验证仍需跑全量单测，应在结果说明中单独标注这 3 个已知失败，避免和本轮功能回归混淆。
+
