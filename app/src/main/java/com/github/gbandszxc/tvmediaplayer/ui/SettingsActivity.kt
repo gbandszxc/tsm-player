@@ -165,7 +165,9 @@ class SettingsActivity : BaseActivity() {
                     listOf(
                         SettingsItem(
                             title = "清理缓存",
-                            descriptionProvider = { "歌词、封面与浏览锚点缓存，重启恢复播放时可跳过 SMB 加载" },
+                            descriptionProvider = {
+                                "歌词与封面缓存提升播放页体验；浏览锚点缓存用于目录焦点恢复"
+                            },
                             valueProvider = {
                                 val total = PlaybackLyricsCache.diskCacheSize(this) +
                                         PlaybackArtworkCache.diskCacheSize(this)
@@ -175,13 +177,15 @@ class SettingsActivity : BaseActivity() {
                         ) {
                             PlaybackLyricsCache.clearDisk(this)
                             PlaybackArtworkCache.clearDisk(this)
+                            Toast.makeText(
+                                this,
+                                "缓存已清除（包含歌词、封面与浏览锚点）",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             lifecycleScope.launch {
-                                SmbConfigStore(applicationContext).clearBrowseCache()
-                                Toast.makeText(
-                                    this@SettingsActivity,
-                                    "缓存已清除（包含歌词、封面与浏览锚点）",
-                                    Toast.LENGTH_SHORT
-                                ).show()
+                                runCatching {
+                                    SmbConfigStore(applicationContext).clearBrowseCache()
+                                }
                             }
                             rebuildCurrentCategory(moveFocusToDetail = false)
                         }
