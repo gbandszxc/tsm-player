@@ -1,19 +1,16 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
-class BrowseFastLocateCalculator {
+object BrowseFastLocateCalculator {
 
-    fun canEnter(state: BrowseFastLocateState): Boolean =
-        state.visibleWindowSize > 0 &&
-            state.totalCount >= state.visibleWindowSize * 2
+    fun canEnter(totalCount: Int, visibleWindowSize: Int): Boolean =
+        visibleWindowSize > 0 && totalCount >= visibleWindowSize * 2
 
-    fun jumpPage(state: BrowseFastLocateState, forward: Boolean): BrowseFastLocateState {
-        val direction = if (forward) 1 else -1
+    fun jumpPage(state: BrowseFastLocateState, direction: Int): BrowseFastLocateState {
         val target = state.currentIndex + direction * state.visibleWindowSize
         return state.copy(currentIndex = clamp(target, state.totalCount))
     }
 
-    fun jumpSegment(state: BrowseFastLocateState, forward: Boolean): BrowseFastLocateState {
-        val direction = if (forward) 1 else -1
+    fun jumpSegment(state: BrowseFastLocateState, direction: Int): BrowseFastLocateState {
         val delta = maxOf(1, (state.totalCount * 0.1f).toInt())
         val target = state.currentIndex + direction * delta
         return state.copy(currentIndex = clamp(target, state.totalCount))
