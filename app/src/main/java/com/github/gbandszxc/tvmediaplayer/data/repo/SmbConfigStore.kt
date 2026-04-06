@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import java.io.IOException
@@ -31,6 +32,9 @@ interface BrowserConfigStore {
     suspend fun setActiveConnection(id: String)
     suspend fun setActiveConfig(config: SmbConfig, browsePath: String)
     suspend fun saveActiveBrowsePath(path: String)
+    suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor?
+    suspend fun saveBrowseAnchor(connectionId: String?, directoryPath: String, anchor: BrowseFocusAnchor)
+    suspend fun clearBrowseCache()
     fun newConnectionId(): String
 }
 
@@ -103,6 +107,29 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         }
     }
 
+    override suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor? {
+        val preferences = appContext.smbDataStore.data
+            .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
+            .first()
+        val key = anchorKey(connectionId, directoryPath)
+        return decodeBrowseAnchors(preferences[Keys.BROWSE_ANCHORS_JSON])[key]
+    }
+
+    override suspend fun saveBrowseAnchor(connectionId: String?, directoryPath: String, anchor: BrowseFocusAnchor) {
+        appContext.smbDataStore.edit { preferences ->
+            val key = anchorKey(connectionId, directoryPath)
+            val anchors = decodeBrowseAnchors(preferences[Keys.BROWSE_ANCHORS_JSON])
+            anchors[key] = anchor
+            preferences[Keys.BROWSE_ANCHORS_JSON] = encodeBrowseAnchors(anchors)
+        }
+    }
+
+    override suspend fun clearBrowseCache() {
+        appContext.smbDataStore.edit { preferences ->
+            preferences.remove(Keys.BROWSE_ANCHORS_JSON)
+        }
+    }
+
     override fun newConnectionId(): String = UUID.randomUUID().toString()
 
     private fun writeLegacy(preferences: androidx.datastore.preferences.core.MutablePreferences, config: SmbConfig) {
@@ -170,6 +197,45 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         return array.toString()
     }
 
+    private fun decodeBrowseAnchors(json: String?): MutableMap<String, BrowseFocusAnchor> {
+        if (json.isNullOrBlank()) return mutableMapOf()
+        return runCatching {
+            val root = JSONObject(json)
+            buildMap {
+                val keys = root.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val item = root.optJSONObject(key) ?: continue
+                    val itemKey = item.optString("itemKey")
+                    if (itemKey.isBlank()) continue
+                    put(
+                        key,
+                        BrowseFocusAnchor(
+                            itemKey = itemKey,
+                            index = item.optInt("index", 0),
+                            updatedAt = item.optLong("updatedAt", 0L)
+                        )
+                    )
+                }
+            }.toMutableMap()
+        }.getOrDefault(mutableMapOf())
+    }
+
+    private fun encodeBrowseAnchors(anchors: Map<String, BrowseFocusAnchor>): String {
+        val root = JSONObject()
+        anchors.forEach { (key, anchor) ->
+            root.put(
+                key,
+                JSONObject().apply {
+                    put("itemKey", anchor.itemKey)
+                    put("index", anchor.index)
+                    put("updatedAt", anchor.updatedAt)
+                }
+            )
+        }
+        return root.toString()
+    }
+
     private fun Preferences.toLegacyConfig(): SmbConfig =
         SmbConfig(
             host = this[Keys.HOST].orEmpty(),
@@ -183,6 +249,9 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
 
     private fun normalizeBrowsePath(path: String): String = path.trim().replace("\\", "/").trim('/')
 
+    private fun anchorKey(connectionId: String?, directoryPath: String): String =
+        "${connectionId.orEmpty()}|${normalizeBrowsePath(directoryPath)}"
+
     private object Keys {
         val HOST = stringPreferencesKey("host")
         val SHARE = stringPreferencesKey("share")
@@ -194,5 +263,6 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         val SAVED_CONNECTIONS_JSON = stringPreferencesKey("saved_connections_json")
         val ACTIVE_CONNECTION_ID = stringPreferencesKey("active_connection_id")
         val ACTIVE_BROWSE_PATH = stringPreferencesKey("active_browse_path")
+        val BROWSE_ANCHORS_JSON = stringPreferencesKey("browse_anchors_json")
     }
 }

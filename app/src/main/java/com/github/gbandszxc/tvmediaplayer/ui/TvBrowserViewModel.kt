@@ -8,6 +8,7 @@ import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.JcifsSmbRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbFailureMapper
+import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
@@ -27,7 +28,11 @@ data class TvBrowserState(
     val entries: List<SmbEntry> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
-    val toast: String? = null
+    val toast: String? = null,
+    val restoredFocusIndex: Int? = null,
+    val inlineMessage: String? = null,
+    val fastLocate: BrowseFastLocateState? = null,
+    val isFastLocateMode: Boolean = false
 )
 
 class TvBrowserViewModel(
@@ -108,7 +113,18 @@ class TvBrowserViewModel(
             runCatching {
                 repository.list(snapshot.config, snapshot.currentPath)
             }.onSuccess { list ->
-                _state.update { it.copy(entries = list, loading = false) }
+                val anchor = configStore.loadBrowseAnchor(snapshot.activeConnectionId, snapshot.currentPath)
+                val restore = resolveAnchorRestore(anchor, list)
+                _state.update {
+                    it.copy(
+                        entries = list,
+                        loading = false,
+                        restoredFocusIndex = restore.index,
+                        inlineMessage = restore.message,
+                        fastLocate = null,
+                        isFastLocateMode = false
+                    )
+                }
             }.onFailure { ex ->
                 val message = SmbFailureMapper.toUserMessage(SmbFailureMapper.map(ex))
                 _state.update { it.copy(loading = false, error = message) }
@@ -131,6 +147,10 @@ class TvBrowserViewModel(
 
     fun consumeToast() {
         _state.update { it.copy(toast = null) }
+    }
+
+    fun consumeInlineMessage() {
+        _state.update { it.copy(inlineMessage = null) }
     }
 
     fun navigateUp(): Boolean {
@@ -173,6 +193,74 @@ class TvBrowserViewModel(
         }
     }
 
+    fun enterFastLocate(visibleWindowSize: Int): Boolean {
+        val snapshot = _state.value
+        if (!BrowseFastLocateCalculator.canEnter(snapshot.entries.size, visibleWindowSize)) return false
+
+        val initialIndex = snapshot.restoredFocusIndex
+            ?.coerceIn(0, (snapshot.entries.size - 1).coerceAtLeast(0))
+            ?: 0
+        _state.update {
+            it.copy(
+                isFastLocateMode = true,
+                fastLocate = BrowseFastLocateState(
+                    totalCount = snapshot.entries.size,
+                    currentIndex = initialIndex,
+                    visibleWindowSize = visibleWindowSize.coerceAtLeast(1)
+                ),
+                inlineMessage = null
+            )
+        }
+        return true
+    }
+
+    fun jumpFastLocateByPage(direction: Int) {
+        val current = _state.value.fastLocate ?: return
+        _state.update { it.copy(fastLocate = BrowseFastLocateCalculator.jumpPage(current, direction)) }
+    }
+
+    fun jumpFastLocateBySegment(direction: Int) {
+        val current = _state.value.fastLocate ?: return
+        _state.update { it.copy(fastLocate = BrowseFastLocateCalculator.jumpSegment(current, direction)) }
+    }
+
+    fun acceptFastLocate() {
+        val targetIndex = _state.value.fastLocate?.currentIndex ?: return
+        _state.update {
+            it.copy(
+                restoredFocusIndex = targetIndex,
+                isFastLocateMode = false,
+                fastLocate = null,
+                inlineMessage = null
+            )
+        }
+    }
+
+    fun cancelFastLocate() {
+        _state.update {
+            if (!it.isFastLocateMode) return@update it
+            it.copy(isFastLocateMode = false, fastLocate = null)
+        }
+    }
+
+    fun onItemFocused(index: Int, entry: SmbEntry) {
+        val snapshot = _state.value
+        if (index < 0 || snapshot.currentPath.isBlank()) return
+
+        _state.update { it.copy(restoredFocusIndex = index) }
+        viewModelScope.launch {
+            configStore.saveBrowseAnchor(
+                connectionId = snapshot.activeConnectionId,
+                directoryPath = snapshot.currentPath,
+                anchor = BrowseFocusAnchor(
+                    itemKey = entry.fullPath,
+                    index = index,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     private fun defaultConnectionName(config: SmbConfig): String {
         val share = config.share.ifBlank { "全部共享" }
         return "${config.host} / $share"
@@ -208,7 +296,11 @@ class TvBrowserViewModel(
                 config = config,
                 activeConnectionId = activeConnectionId,
                 currentPath = browsePath,
-                error = null
+                error = null,
+                restoredFocusIndex = null,
+                inlineMessage = null,
+                fastLocate = null,
+                isFastLocateMode = false
             )
         }
         viewModelScope.launch { persist() }
@@ -220,7 +312,11 @@ class TvBrowserViewModel(
         _state.update {
             it.copy(
                 currentPath = normalizedPath,
-                error = null
+                error = null,
+                restoredFocusIndex = null,
+                inlineMessage = null,
+                fastLocate = null,
+                isFastLocateMode = false
             )
         }
         viewModelScope.launch {
@@ -229,7 +325,23 @@ class TvBrowserViewModel(
         loadCurrentPath()
     }
 
+    private fun resolveAnchorRestore(anchor: BrowseFocusAnchor?, entries: List<SmbEntry>): AnchorRestoreResult {
+        if (anchor == null || entries.isEmpty()) return AnchorRestoreResult(index = null, message = null)
+
+        val matchedIndex = entries.indexOfFirst { it.fullPath == anchor.itemKey }
+        return if (matchedIndex >= 0) {
+            AnchorRestoreResult(index = matchedIndex, message = null)
+        } else {
+            AnchorRestoreResult(index = 0, message = "目录内容已变化，已回到开头")
+        }
+    }
+
     private fun normalizePath(path: String): String = path.trim().replace("\\", "/").trim('/')
+
+    private data class AnchorRestoreResult(
+        val index: Int?,
+        val message: String?
+    )
 
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
