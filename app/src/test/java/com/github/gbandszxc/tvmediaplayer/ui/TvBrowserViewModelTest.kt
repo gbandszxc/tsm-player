@@ -242,7 +242,7 @@ class TvBrowserViewModelTest {
     }
 
     @Test
-    fun `locate playback directory falls back to head when stored anchor conflicts with entries`() = runTest(dispatcher) {
+    fun `locate playback directory falls back to nearest available index when stored anchor item is missing`() = runTest(dispatcher) {
         val config = sampleConfig(path = "Music")
         val browsePath = "Music/Albums"
         val entries = listOf(
@@ -284,8 +284,47 @@ class TvBrowserViewModelTest {
         advanceUntilIdle()
 
         assertEquals(browsePath, viewModel.state.value.currentPath)
-        assertEquals(0, viewModel.state.value.restoredFocusIndex)
+        assertEquals(1, viewModel.state.value.restoredFocusIndex)
         assertEquals("目录内容已变化，已回到开头", viewModel.state.value.inlineMessage)
+    }
+
+    @Test
+    fun `temporary config uses stable non-empty namespace for browse anchor`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = null,
+                savedConnections = emptyList(),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(entriesByPath = mapOf(browsePath to entries))
+
+        val firstViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        val loadedNamespace = store.loadedAnchors.lastOrNull()?.first
+        assertNotNull(loadedNamespace)
+        assertTrue(loadedNamespace!!.isNotBlank())
+
+        firstViewModel.onItemFocused(index = 1, entry = entries[1])
+        advanceUntilIdle()
+
+        val savedNamespace = store.savedAnchors.lastOrNull()?.first?.first
+        assertEquals(loadedNamespace, savedNamespace)
+        assertTrue(savedNamespace!!.isNotBlank())
+
+        val secondViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        assertEquals(1, secondViewModel.state.value.restoredFocusIndex)
+        assertEquals(loadedNamespace, store.loadedAnchors.lastOrNull()?.first)
     }
 
     @Test

@@ -20,6 +20,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -110,6 +111,13 @@ class TvBrowseFragment : Fragment() {
         super.onStop()
     }
 
+    override fun onDestroyView() {
+        view?.let { root ->
+            ViewCompat.removeOnUnhandledKeyEventListener(root, globalMenuKeyListener)
+        }
+        super.onDestroyView()
+    }
+
     private fun bindViews(root: View) {
         panelConnection = root.findViewById(R.id.panel_connection)
         rootScroll = root.findViewById(R.id.root_scroll)
@@ -154,16 +162,9 @@ class TvBrowseFragment : Fragment() {
         root.isFocusableInTouchMode = true
         root.requestFocus()
         root.setOnKeyListener { _, keyCode, event ->
-            if (handleFastLocateKey(keyCode, event)) return@setOnKeyListener true
-            if (event.action != KeyEvent.ACTION_UP) return@setOnKeyListener false
-            when (keyCode) {
-                KeyEvent.KEYCODE_MENU -> {
-                    showConnectionManagerDialog()
-                    true
-                }
-                else -> false
-            }
+            handleFastLocateKey(keyCode, event)
         }
+        ViewCompat.addOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         updateNowPlayingButton()
     }
 
@@ -330,6 +331,13 @@ class TvBrowseFragment : Fragment() {
                 fastLocateIndicator.layoutParams = layoutParams
             }
         }
+    }
+    private val globalMenuKeyListener = ViewCompat.OnUnhandledKeyEventListenerCompat { _, event ->
+        if (event.keyCode != KeyEvent.KEYCODE_MENU || event.action != KeyEvent.ACTION_UP) {
+            return@OnUnhandledKeyEventListenerCompat false
+        }
+        showConnectionManagerDialog()
+        true
     }
 
     private fun estimateVisibleWindowSize(): Int {

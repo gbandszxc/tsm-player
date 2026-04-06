@@ -14,6 +14,8 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
+import java.security.MessageDigest
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -114,13 +116,14 @@ class TvBrowserViewModel(
             runCatching {
                 repository.list(snapshot.config, snapshot.currentPath)
             }.onSuccess { list ->
-                val anchor = configStore.loadBrowseAnchor(snapshot.activeConnectionId, snapshot.currentPath)
+                val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
+                val anchor = configStore.loadBrowseAnchor(anchorConnectionId, snapshot.currentPath)
                 val restore = resolveAnchorRestore(anchor, list)
                 lastPersistedAnchor = anchor
                     ?.takeIf { restore.index != null }
                     ?.let {
                         AnchorFingerprint(
-                            connectionId = snapshot.activeConnectionId,
+                            connectionId = anchorConnectionId,
                             directoryPath = snapshot.currentPath,
                             itemKey = it.itemKey,
                             index = restore.index ?: return@let null
@@ -340,8 +343,9 @@ class TvBrowserViewModel(
         }
 
         _state.update { it.copy(restoredFocusIndex = realIndex) }
+        val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
         val fingerprint = AnchorFingerprint(
-            connectionId = snapshot.activeConnectionId,
+            connectionId = anchorConnectionId,
             directoryPath = snapshot.currentPath,
             itemKey = entry.fullPath,
             index = realIndex
@@ -351,7 +355,7 @@ class TvBrowserViewModel(
         lastPersistedAnchor = fingerprint
         viewModelScope.launch {
             configStore.saveBrowseAnchor(
-                connectionId = snapshot.activeConnectionId,
+                connectionId = anchorConnectionId,
                 directoryPath = snapshot.currentPath,
                 anchor = BrowseFocusAnchor(
                     itemKey = entry.fullPath,
@@ -369,11 +373,32 @@ class TvBrowserViewModel(
         return if (matchedIndex >= 0) {
             AnchorRestoreResult(index = matchedIndex, message = null)
         } else {
-            AnchorRestoreResult(index = 0, message = "目录内容已变化，已回到开头")
+            AnchorRestoreResult(
+                index = anchor.index.coerceIn(0, entries.lastIndex),
+                message = "目录内容已变化，已回到开头"
+            )
         }
     }
 
     private fun normalizePath(path: String): String = path.trim().replace("\\", "/").trim('/')
+
+    private fun resolveAnchorConnectionId(activeConnectionId: String?, config: SmbConfig): String {
+        return activeConnectionId ?: buildTemporaryAnchorNamespace(config)
+    }
+
+    private fun buildTemporaryAnchorNamespace(config: SmbConfig): String {
+        val source = listOf(
+            config.host.trim().lowercase(Locale.ROOT),
+            config.share.trim().lowercase(Locale.ROOT),
+            normalizePath(config.path).lowercase(Locale.ROOT),
+            config.username.trim().lowercase(Locale.ROOT),
+            config.guest.toString(),
+            config.smb1Enabled.toString()
+        ).joinToString(separator = "|")
+        val digest = MessageDigest.getInstance("SHA-256").digest(source.toByteArray(Charsets.UTF_8))
+        val hex = digest.joinToString(separator = "") { byte -> "%02x".format(byte.toInt() and 0xff) }
+        return "temp-$hex"
+    }
 
     private data class AnchorRestoreResult(
         val index: Int?,
@@ -381,7 +406,7 @@ class TvBrowserViewModel(
     )
 
     private data class AnchorFingerprint(
-        val connectionId: String?,
+        val connectionId: String,
         val directoryPath: String,
         val itemKey: String,
         val index: Int

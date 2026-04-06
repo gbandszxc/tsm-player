@@ -139,7 +139,11 @@ Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 
 当前在 TV 浏览页中，当目录项过多时可以长按确认进入快速定位模式，模式面板会展示当前滚动百分比、上下整屏跳与左右 10% 分段跳动的提示，确认键接受落点、返回键取消。快速定位的计算与状态由 `TvBrowserViewModel` 驱动，UI 仅负责展现面板以及进度数字。
 
-目录焦点会在 `SmbConfigStore` 中以“连接 + 目录路径”为粒度保存锚点，返回同一路径时由 ViewModel 恢复焦点到离开前的条目或最近可用的位置，保持浏览链路连续。
+浏览页已保证 `MENU` 键在任意焦点位置（文件项、顶部按钮、快速定位模式）都可触发“连接管理”。
+
+目录焦点会在 `SmbConfigStore` 中以“连接命名空间 + 目录路径”为粒度保存锚点，返回同一路径时由 ViewModel 恢复焦点到离开前的条目；若条目已失效则按历史 `anchor.index` 回到最近可用位置（clamp 到列表范围），并继续提示“目录内容已变化，已回到开头”。
+
+当 `activeConnectionId == null`（未保存/临时配置）时，ViewModel 会基于 `host/share/path/username/guest/smb1Enabled` 生成稳定且不含密码的指纹命名空间，避免不同临时连接共享同一空锚点空间。
 
 设置页的 “清理缓存” 会调用 `SmbConfigStore.clearBrowseCache()`，除了歌词与封面磁盘缓存还会重置这些目录焦点锚点，缓存清除后需要重新浏览一次才能再生成新锚点。
 
