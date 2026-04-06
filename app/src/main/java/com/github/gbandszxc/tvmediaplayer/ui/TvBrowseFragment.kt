@@ -3,6 +3,8 @@
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Rect
 import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
@@ -12,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -39,6 +42,9 @@ import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 class TvBrowseFragment : Fragment() {
 
@@ -51,6 +57,7 @@ class TvBrowseFragment : Fragment() {
     private var mediaController: MediaController? = null
 
     private lateinit var panelConnection: View
+    private lateinit var rootScroll: ScrollView
     private lateinit var btnBackTop: Button
     private lateinit var btnSettings: Button
     private lateinit var tvConnection: TextView
@@ -60,6 +67,11 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnRefresh: Button
     private lateinit var btnRetry: Button
     private lateinit var tvStatus: TextView
+    private lateinit var panelFastLocate: View
+    private lateinit var tvFastLocateHint: TextView
+    private lateinit var tvFastLocateTarget: TextView
+    private lateinit var fastLocateTrack: View
+    private lateinit var fastLocateIndicator: View
     private lateinit var btnPlayAll: Button
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
@@ -100,6 +112,7 @@ class TvBrowseFragment : Fragment() {
 
     private fun bindViews(root: View) {
         panelConnection = root.findViewById(R.id.panel_connection)
+        rootScroll = root.findViewById(R.id.root_scroll)
         btnBackTop = root.findViewById(R.id.btn_back_top)
         btnSettings = root.findViewById(R.id.btn_settings)
         tvConnection = root.findViewById(R.id.tv_connection)
@@ -109,6 +122,11 @@ class TvBrowseFragment : Fragment() {
         btnRefresh = root.findViewById(R.id.btn_refresh)
         btnRetry = root.findViewById(R.id.btn_retry)
         tvStatus = root.findViewById(R.id.tv_status)
+        panelFastLocate = root.findViewById(R.id.panel_fast_locate)
+        tvFastLocateHint = root.findViewById(R.id.tv_fast_locate_hint)
+        tvFastLocateTarget = root.findViewById(R.id.tv_fast_locate_target)
+        fastLocateTrack = root.findViewById(R.id.view_fast_locate_track)
+        fastLocateIndicator = root.findViewById(R.id.view_fast_locate_indicator)
         btnPlayAll = root.findViewById(R.id.btn_play_all)
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
@@ -136,6 +154,7 @@ class TvBrowseFragment : Fragment() {
         root.isFocusableInTouchMode = true
         root.requestFocus()
         root.setOnKeyListener { _, keyCode, event ->
+            if (handleFastLocateKey(keyCode, event)) return@setOnKeyListener true
             if (event.action != KeyEvent.ACTION_UP) return@setOnKeyListener false
             when (keyCode) {
                 KeyEvent.KEYCODE_MENU -> {
@@ -153,6 +172,10 @@ class TvBrowseFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
+                    if (viewModel.state.value.isFastLocateMode) {
+                        viewModel.cancelFastLocate()
+                        return
+                    }
                     if (navigateUpDirectory()) return
                     isEnabled = false
                     requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -192,13 +215,22 @@ class TvBrowseFragment : Fragment() {
             state.error != null -> {
                 tvStatus.visibility = View.VISIBLE
                 tvStatus.text = state.error
+                tvStatus.setTextColor(Color.parseColor("#FCA5A5"))
             }
             state.loading -> {
                 tvStatus.visibility = View.VISIBLE
                 tvStatus.text = "加载中..."
+                tvStatus.setTextColor(Color.parseColor("#BFDBFE"))
+            }
+            !state.inlineMessage.isNullOrBlank() -> {
+                tvStatus.visibility = View.VISIBLE
+                tvStatus.text = state.inlineMessage
+                tvStatus.setTextColor(Color.parseColor("#BFDBFE"))
             }
             else -> tvStatus.visibility = View.GONE
         }
+
+        renderFastLocatePanel(state)
 
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
@@ -206,13 +238,14 @@ class TvBrowseFragment : Fragment() {
             }
             addAll(state.entries)
         }
-        renderFileItems(displayEntries)
-        ensureBrowseFocus(displayEntries)
+        renderFileItems(state, displayEntries)
+        ensureBrowseFocus(state, displayEntries)
     }
 
-    private fun renderFileItems(entries: List<SmbEntry>) {
+    private fun renderFileItems(state: TvBrowserState, entries: List<SmbEntry>) {
         filesContainer.removeAllViews()
-        entries.forEach { entry ->
+        val hasParentEntry = state.currentPath.isNotBlank()
+        entries.forEachIndexed { displayIndex, entry ->
             val itemView = layoutInflater.inflate(R.layout.item_file_entry, filesContainer, false)
             val tvTag: TextView = itemView.findViewById(R.id.tv_tag)
             val tvName: TextView = itemView.findViewById(R.id.tv_name)
@@ -221,23 +254,153 @@ class TvBrowseFragment : Fragment() {
             tvTag.background = null
             tvName.text = entry.name
 
-            itemView.setOnClickListener { onFileClicked(entry) }
+            itemView.setOnClickListener {
+                if (viewModel.state.value.isFastLocateMode) return@setOnClickListener
+                onFileClicked(entry)
+            }
+            itemView.setOnLongClickListener {
+                viewModel.enterFastLocate(estimateVisibleWindowSize())
+                true
+            }
+            itemView.setOnFocusChangeListener { _, hasFocus ->
+                if (!hasFocus || viewModel.state.value.isFastLocateMode) return@setOnFocusChangeListener
+                val stateIndex = mapDisplayIndexToStateIndex(displayIndex, hasParentEntry) ?: return@setOnFocusChangeListener
+                viewModel.onItemFocused(stateIndex, entry)
+            }
+            itemView.setOnKeyListener { _, keyCode, event ->
+                handleFastLocateKey(keyCode, event)
+            }
             filesContainer.addView(itemView)
         }
     }
 
-    private fun ensureBrowseFocus(entries: List<SmbEntry>) {
+    private fun ensureBrowseFocus(state: TvBrowserState, entries: List<SmbEntry>) {
         filesContainer.post {
             val root = view ?: return@post
-            val focused = root.findFocus()
-            if (focused != null && focused !== root) return@post
-
-            if (entries.isNotEmpty()) {
-                filesContainer.getChildAt(0)?.requestFocus()
-            } else {
+            if (entries.isEmpty()) {
                 btnBackTop.requestFocus()
+                return@post
+            }
+
+            val hasParentEntry = state.currentPath.isNotBlank()
+            val targetDisplayIndex = when {
+                state.isFastLocateMode -> state.fastLocate?.currentIndex?.let {
+                    mapStateIndexToDisplayIndex(it, hasParentEntry)
+                }
+                state.restoredFocusIndex != null -> mapStateIndexToDisplayIndex(state.restoredFocusIndex, hasParentEntry)
+                else -> null
+            }?.coerceIn(0, filesContainer.childCount - 1)
+
+            val focused = root.findFocus()
+            if (targetDisplayIndex != null) {
+                val currentDisplayIndex = focused?.let(::findFocusedDisplayIndex) ?: -1
+                if (currentDisplayIndex != targetDisplayIndex || focused == null || focused === root) {
+                    filesContainer.getChildAt(targetDisplayIndex)?.requestFocus()
+                }
+                return@post
+            }
+
+            if (focused != null && focused !== root) return@post
+            filesContainer.getChildAt(0)?.requestFocus() ?: btnBackTop.requestFocus()
+        }
+    }
+
+    private fun renderFastLocatePanel(state: TvBrowserState) {
+        val locate = state.fastLocate
+        val inMode = state.isFastLocateMode && locate != null
+        panelFastLocate.visibility = if (inMode) View.VISIBLE else View.GONE
+        if (!inMode || locate == null) return
+
+        tvFastLocateHint.text = "快速定位：↑/↓整屏跳  ←/→10%跳  确认接受  返回取消"
+        tvFastLocateTarget.text = "目标：${locate.currentIndex + 1}/${locate.totalCount} (${locate.progressPercent}%)"
+
+        fastLocateTrack.post {
+            val trackHeight = fastLocateTrack.height
+            val indicatorHeight = fastLocateIndicator.height
+            if (trackHeight <= 0 || indicatorHeight <= 0) return@post
+            val usable = (trackHeight - indicatorHeight).coerceAtLeast(0)
+            val top = (usable * (locate.progressPercent / 100f)).roundToInt()
+
+            val layoutParams = fastLocateIndicator.layoutParams as? FrameLayout.LayoutParams ?: return@post
+            if (layoutParams.topMargin != top) {
+                layoutParams.topMargin = top
+                fastLocateIndicator.layoutParams = layoutParams
             }
         }
+    }
+
+    private fun estimateVisibleWindowSize(): Int {
+        val firstRow = filesContainer.getChildAt(0) ?: return 1
+        val rowParams = firstRow.layoutParams as? ViewGroup.MarginLayoutParams
+        val rowHeightUnit = firstRow.height + (rowParams?.topMargin ?: 0)
+        if (rowHeightUnit <= 0) return 1
+
+        val scrollRect = Rect()
+        val containerRect = Rect()
+        val hasScrollRect = rootScroll.getGlobalVisibleRect(scrollRect)
+        val hasContainerRect = filesContainer.getGlobalVisibleRect(containerRect)
+        val overlapHeight = if (hasScrollRect && hasContainerRect) {
+            max(0, min(scrollRect.bottom, containerRect.bottom) - max(scrollRect.top, containerRect.top))
+        } else {
+            0
+        }
+        val effectiveHeight = if (overlapHeight > 0) overlapHeight else rootScroll.height
+        return max(1, effectiveHeight / rowHeightUnit)
+    }
+
+    private fun handleFastLocateKey(keyCode: Int, event: KeyEvent): Boolean {
+        val state = viewModel.state.value
+        if (!state.isFastLocateMode) return false
+        if (event.action != KeyEvent.ACTION_DOWN) return true
+
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                viewModel.jumpFastLocateByPage(direction = -1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                viewModel.jumpFastLocateByPage(direction = 1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                viewModel.jumpFastLocateBySegment(direction = -1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                viewModel.jumpFastLocateBySegment(direction = 1)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                viewModel.acceptFastLocate()
+                true
+            }
+            KeyEvent.KEYCODE_BACK -> {
+                viewModel.cancelFastLocate()
+                true
+            }
+            else -> false
+        }
+    }
+
+    private fun findFocusedDisplayIndex(focused: View): Int {
+        var current: View? = focused
+        while (current != null && current.parent !== filesContainer) {
+            current = current.parent as? View
+        }
+        return if (current == null) -1 else filesContainer.indexOfChild(current)
+    }
+
+    private fun mapDisplayIndexToStateIndex(displayIndex: Int, hasParentEntry: Boolean): Int? {
+        if (displayIndex < 0) return null
+        if (!hasParentEntry) return displayIndex
+        if (displayIndex == 0) return null
+        return displayIndex - 1
+    }
+
+    private fun mapStateIndexToDisplayIndex(stateIndex: Int, hasParentEntry: Boolean): Int {
+        return if (hasParentEntry) stateIndex + 1 else stateIndex
     }
 
     private fun onFileClicked(entry: SmbEntry) {
