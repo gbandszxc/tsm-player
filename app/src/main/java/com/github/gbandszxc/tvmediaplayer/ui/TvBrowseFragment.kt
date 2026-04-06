@@ -56,6 +56,8 @@ class TvBrowseFragment : Fragment() {
     private val mediaItemFactory by lazy { SmbMediaItemFactory() }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
+    private val fastLocateConfirmGuard = FastLocateConfirmGuard()
+    private val browseListRenderGate = BrowseListRenderGate()
 
     private lateinit var panelConnection: View
     private lateinit var rootScroll: ScrollView
@@ -115,6 +117,8 @@ class TvBrowseFragment : Fragment() {
         view?.let { root ->
             ViewCompat.removeOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         }
+        fastLocateConfirmGuard.reset()
+        browseListRenderGate.reset()
         super.onDestroyView()
     }
 
@@ -240,7 +244,9 @@ class TvBrowseFragment : Fragment() {
             }
             addAll(state.entries)
         }
-        renderFileItems(state, displayEntries)
+        if (browseListRenderGate.shouldRebuild(state.currentPath, displayEntries)) {
+            renderFileItems(state, displayEntries)
+        }
         ensureBrowseFocus(state, displayEntries)
     }
 
@@ -264,6 +270,8 @@ class TvBrowseFragment : Fragment() {
                 val entered = viewModel.enterFastLocate(estimateVisibleWindowSize())
                 if (!entered) {
                     Toast.makeText(requireContext(), "当前列表较短，无法进入快速定位", Toast.LENGTH_SHORT).show()
+                } else {
+                    fastLocateConfirmGuard.arm()
                 }
                 true
             }
@@ -314,7 +322,10 @@ class TvBrowseFragment : Fragment() {
         val locate = state.fastLocate
         val inMode = state.isFastLocateMode && locate != null
         panelFastLocate.visibility = if (inMode) View.VISIBLE else View.GONE
-        if (!inMode || locate == null) return
+        if (!inMode || locate == null) {
+            fastLocateConfirmGuard.reset()
+            return
+        }
 
         tvFastLocateHint.text = "快速定位模式 ${locate.progressPercent}%"
         tvFastLocateTarget.text =
@@ -364,6 +375,7 @@ class TvBrowseFragment : Fragment() {
     private fun handleFastLocateKey(keyCode: Int, event: KeyEvent): Boolean {
         val state = viewModel.state.value
         if (!state.isFastLocateMode) return false
+        if (fastLocateConfirmGuard.shouldConsumeWhileFastLocate(keyCode, event.action)) return true
         if (keyCode == KeyEvent.KEYCODE_MENU) return false
         if (event.action != KeyEvent.ACTION_DOWN) return true
 
@@ -387,10 +399,12 @@ class TvBrowseFragment : Fragment() {
             KeyEvent.KEYCODE_DPAD_CENTER,
             KeyEvent.KEYCODE_ENTER,
             KeyEvent.KEYCODE_NUMPAD_ENTER -> {
+                fastLocateConfirmGuard.reset()
                 viewModel.acceptFastLocate()
                 true
             }
             KeyEvent.KEYCODE_BACK -> {
+                fastLocateConfirmGuard.reset()
                 viewModel.cancelFastLocate()
                 true
             }

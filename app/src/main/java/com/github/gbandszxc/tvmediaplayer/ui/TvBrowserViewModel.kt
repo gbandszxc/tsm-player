@@ -342,7 +342,9 @@ class TvBrowserViewModel(
             else -> return
         }
 
-        _state.update { it.copy(restoredFocusIndex = realIndex) }
+        if (snapshot.restoredFocusIndex != realIndex) {
+            _state.update { it.copy(restoredFocusIndex = realIndex) }
+        }
         val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
         val fingerprint = AnchorFingerprint(
             connectionId = anchorConnectionId,

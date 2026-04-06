@@ -55,11 +55,8 @@
 
 ## Baseline Note
 
-- 已知基线失败已记录在 `docs/MANUAL.md`
-- 执行全量 `testDebugUnitTest` 时，需把以下 3 个失败视为既有问题，不作为本计划阻塞项：
-  - `SampleMediaValidationTest.lrcSampleShouldBeParsable`
-  - `SampleMediaValidationTest.mp3SampleShouldContainEmbeddedArtwork`
-  - `SmbPathResolverTest.track9SampleShouldParseTimestamps`
+- 该计划撰写时曾临时记录 3 个 `Track9` 相关单测为“基线失败”。
+- 截至 `2026-04-06` 已重新核验：`.\gradlew.bat testDebugUnitTest` 通过，这 3 项不再视为本计划的遗留基线问题。
 
 ### Task 1: 快速定位纯逻辑与单测
 
@@ -367,7 +364,7 @@ SettingsItem(
 - 长列表快速定位模式
 - 目录焦点锚点恢复
 - 清缓存会重置浏览锚点
-- 已知 3 个基线失败保持记录
+- 单测基线状态随验证结果更新
 
 - [ ] **Step 4: 跑受影响单测和 Debug 打包**
 
@@ -382,13 +379,13 @@ Expected:
 - 新增/修改的目标单测 PASS
 - `assembleDebug` SUCCESS
 
-- [ ] **Step 5: 跑全量单测并记录基线失败**
+- [ ] **Step 5: 跑全量单测并记录结果**
 
 Run: `.\gradlew.bat testDebugUnitTest`
 
 Expected:
 - 新功能相关测试 PASS
-- 仅保留 `Baseline Note` 中列出的 3 个既有失败
+- 若无失败，则同步清理 `Baseline Note` 与手册中的过期记录
 
 ```powershell
 git add app/src/main/java/com/github/gbandszxc/tvmediaplayer/ui/SettingsActivity.kt docs/MANUAL.md

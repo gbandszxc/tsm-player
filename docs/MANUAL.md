@@ -139,6 +139,10 @@ Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 
 当前在 TV 浏览页中，当目录项过多时可以长按确认进入快速定位模式。模式提示改为根布局右下角悬浮层，不再跟随长列表一起滚动，因此长按进入后会稳定显示“快速定位模式 xx%”和临时比例条；方向键仍保持上下整屏跳、左右 10% 分段跳，确认键接受落点、返回键取消。快速定位的计算与状态由 `TvBrowserViewModel` 驱动，UI 仅负责展现悬浮提示层以及进度数字。
 
+为兼容电视实机遥控器的长按重复事件，浏览页在“长按确认进入快速定位模式”后，会在该次确认键释放前临时屏蔽残余确认事件，避免模式刚出现就被同一次长按立刻接受退出。
+
+文件列表渲染已增加“目录内容指纹”门控：只有目录路径或条目内容真正变化时才重建整表；单纯的焦点移动、锚点写回、快速定位落点变更只做焦点更新，不再反复 `removeAllViews + inflate`，以降低电视端长按方向键连续滚动时的焦点丢失与卡顿风险。
+
 浏览页已保证 `MENU` 键在任意焦点位置（文件项、顶部按钮、快速定位模式）都可触发“连接管理”。
 
 目录焦点会在 `SmbConfigStore` 中以“连接命名空间 + 目录路径”为粒度保存锚点，返回同一路径时由 ViewModel 恢复焦点到离开前的条目；若条目已失效则按历史 `anchor.index` 回到最近可用位置（clamp 到列表范围），并继续提示“目录内容已变化，已回到开头”。
@@ -147,12 +151,6 @@ Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 
 设置页的 “清理缓存” 会调用 `SmbConfigStore.clearBrowseCache()`，除了歌词与封面磁盘缓存还会重置这些目录焦点锚点，缓存清除后需要重新浏览一次才能再生成新锚点。
 
-## 11. 当前已知基线问题
-在 `2026-04-06` 于 worktree `feature/tv-browse-long-list-navigation` 执行 `.\gradlew.bat testDebugUnitTest` 时，存在以下既有失败，当前作为基线问题记录，后续长列表导航功能开发默认不以修复它们为本次范围：
-
-1. `com.github.gbandszxc.tvmediaplayer.playback.SampleMediaValidationTest.lrcSampleShouldBeParsable`
-2. `com.github.gbandszxc.tvmediaplayer.playback.SampleMediaValidationTest.mp3SampleShouldContainEmbeddedArtwork`
-3. `com.github.gbandszxc.tvmediaplayer.playback.SmbPathResolverTest.track9SampleShouldParseTimestamps`
-
-若后续整体验证仍需跑全量单测，应在结果说明中单独标注这 3 个已知失败，避免和本轮功能回归混淆。
+## 11. 单测基线状态
+截至 `2026-04-06`，此前记录在长列表导航计划中的 3 个 `Track9` 相关“基线失败”已不再复现，当前 `.\gradlew.bat testDebugUnitTest` 可通过，不再将它们视为已知失败项。
 
