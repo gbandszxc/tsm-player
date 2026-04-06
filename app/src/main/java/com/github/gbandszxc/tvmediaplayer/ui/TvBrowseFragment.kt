@@ -351,6 +351,7 @@ class TvBrowseFragment : Fragment() {
     private fun handleFastLocateKey(keyCode: Int, event: KeyEvent): Boolean {
         val state = viewModel.state.value
         if (!state.isFastLocateMode) return false
+        if (keyCode == KeyEvent.KEYCODE_MENU) return false
         if (event.action != KeyEvent.ACTION_DOWN) return true
 
         return when (keyCode) {
