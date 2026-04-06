@@ -259,7 +259,10 @@ class TvBrowseFragment : Fragment() {
                 onFileClicked(entry)
             }
             itemView.setOnLongClickListener {
-                viewModel.enterFastLocate(estimateVisibleWindowSize())
+                val entered = viewModel.enterFastLocate(estimateVisibleWindowSize())
+                if (!entered) {
+                    Toast.makeText(requireContext(), "当前列表较短，无法进入快速定位", Toast.LENGTH_SHORT).show()
+                }
                 true
             }
             itemView.setOnFocusChangeListener { _, hasFocus ->
@@ -332,7 +335,7 @@ class TvBrowseFragment : Fragment() {
     private fun estimateVisibleWindowSize(): Int {
         val firstRow = filesContainer.getChildAt(0) ?: return 1
         val rowParams = firstRow.layoutParams as? ViewGroup.MarginLayoutParams
-        val rowHeightUnit = firstRow.height + (rowParams?.topMargin ?: 0)
+        val rowHeightUnit = firstRow.height + (rowParams?.topMargin ?: 0) + (rowParams?.bottomMargin ?: 0)
         if (rowHeightUnit <= 0) return 1
 
         val scrollRect = Rect()
@@ -345,7 +348,7 @@ class TvBrowseFragment : Fragment() {
             0
         }
         val effectiveHeight = if (overlapHeight > 0) overlapHeight else rootScroll.height
-        return max(1, effectiveHeight / rowHeightUnit)
+        return max(1, (effectiveHeight + rowHeightUnit - 1) / rowHeightUnit)
     }
 
     private fun handleFastLocateKey(keyCode: Int, event: KeyEvent): Boolean {
@@ -381,7 +384,7 @@ class TvBrowseFragment : Fragment() {
                 viewModel.cancelFastLocate()
                 true
             }
-            else -> false
+            else -> true
         }
     }
 
