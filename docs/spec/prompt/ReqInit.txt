@@ -43,10 +43,10 @@ App 目标用户：使用安卓电视（无 Google Play，只能侧载 APK）的
 7. **不包含的功能**（明确排除，避免多余）：
    - 自动扫描音乐库、MediaStore 集成、标签编辑、在线歌词搜索、云盘集成、EQ/音效、播放列表管理（除临时文件夹播放外）、小部件等。
 
-请按照以下结构输出你的回答，保存至 @spec/plan.md
+请按照以下结构输出你的回答，保存至 @docs/spec/plan.md
 1. 需求总结（一句话描述 App 核心定位）。
 2. 技术栈推荐（语言、框架、核心库）。
-3. 主要 Activity/Fragment/Composable 结构。页面布局可以参考ui-ux-pro-max提示，每个页面具体样式用ascii字符绘制大体样例，保存到 @spec/design.md。
+3. 主要 Activity/Fragment/Composable 结构。页面布局可以参考ui-ux-pro-max提示，每个页面具体样式用ascii字符绘制大体样例，保存到 @docs/spec/design.md。
 4. SMB 连接 & 文件浏览实现思路。
 5. 播放器 + 封面 + 歌词解析关键代码片段（伪代码或 Kotlin 示例）。
 6. 潜在坑点 & 解决方案（尤其是 Android TV 字体、SMB 认证、LRC 同步）。

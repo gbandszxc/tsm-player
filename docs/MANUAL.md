@@ -53,7 +53,7 @@ tsm-player/
 │        ├─ values/{strings.xml,colors.xml,themes.xml}
 │        ├─ drawable/{ic_launcher_foreground.xml,tv_banner.xml}
 │        └─ mipmap-anydpi-v26/{ic_launcher.xml,ic_launcher_round.xml}
-└─ spec/
+└─ docs/spec/
    ├─ plan.md
    ├─ next-steps.md
    ├─ design.md
