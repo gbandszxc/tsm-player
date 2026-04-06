@@ -21,36 +21,49 @@ private val Context.smbDataStore by preferencesDataStore(name = "smb_config")
 data class SmbConfigStoreState(
     val activeConfig: SmbConfig,
     val activeConnectionId: String?,
-    val savedConnections: List<SavedSmbConnection>
+    val savedConnections: List<SavedSmbConnection>,
+    val activeBrowsePath: String = activeConfig.normalizedPath()
 )
 
-class SmbConfigStore(private val appContext: Context) {
+interface BrowserConfigStore {
+    suspend fun loadState(): SmbConfigStoreState
+    suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean = true)
+    suspend fun setActiveConnection(id: String)
+    suspend fun saveActiveBrowsePath(path: String)
+    fun newConnectionId(): String
+}
 
-    suspend fun loadState(): SmbConfigStoreState {
+class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
+
+    override suspend fun loadState(): SmbConfigStoreState {
         val preferences = appContext.smbDataStore.data
             .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
             .first()
 
         val saved = decodeSaved(preferences[Keys.SAVED_CONNECTIONS_JSON])
         val activeId = preferences[Keys.ACTIVE_CONNECTION_ID]
+        val activeBrowsePath = preferences[Keys.ACTIVE_BROWSE_PATH]
 
         if (saved.isNotEmpty()) {
             val active = saved.firstOrNull { it.id == activeId } ?: saved.first()
             return SmbConfigStoreState(
                 activeConfig = active.config,
                 activeConnectionId = active.id,
-                savedConnections = saved
+                savedConnections = saved,
+                activeBrowsePath = activeBrowsePath ?: active.config.normalizedPath()
             )
         }
 
+        val legacyConfig = preferences.toLegacyConfig()
         return SmbConfigStoreState(
-            activeConfig = preferences.toLegacyConfig(),
+            activeConfig = legacyConfig,
             activeConnectionId = null,
-            savedConnections = emptyList()
+            savedConnections = emptyList(),
+            activeBrowsePath = activeBrowsePath ?: legacyConfig.normalizedPath()
         )
     }
 
-    suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean = true) {
+    override suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean) {
         appContext.smbDataStore.edit { preferences ->
             val current = decodeSaved(preferences[Keys.SAVED_CONNECTIONS_JSON]).toMutableList()
             val index = current.indexOfFirst { it.id == connection.id }
@@ -60,20 +73,28 @@ class SmbConfigStore(private val appContext: Context) {
             if (activate) {
                 preferences[Keys.ACTIVE_CONNECTION_ID] = connection.id
                 writeLegacy(preferences, connection.config)
+                preferences[Keys.ACTIVE_BROWSE_PATH] = connection.config.normalizedPath()
             }
         }
     }
 
-    suspend fun setActiveConnection(id: String) {
+    override suspend fun setActiveConnection(id: String) {
         appContext.smbDataStore.edit { preferences ->
             val current = decodeSaved(preferences[Keys.SAVED_CONNECTIONS_JSON])
             val target = current.firstOrNull { it.id == id } ?: return@edit
             preferences[Keys.ACTIVE_CONNECTION_ID] = id
             writeLegacy(preferences, target.config)
+            preferences[Keys.ACTIVE_BROWSE_PATH] = target.config.normalizedPath()
         }
     }
 
-    fun newConnectionId(): String = UUID.randomUUID().toString()
+    override suspend fun saveActiveBrowsePath(path: String) {
+        appContext.smbDataStore.edit { preferences ->
+            preferences[Keys.ACTIVE_BROWSE_PATH] = normalizeBrowsePath(path)
+        }
+    }
+
+    override fun newConnectionId(): String = UUID.randomUUID().toString()
 
     private fun writeLegacy(preferences: androidx.datastore.preferences.core.MutablePreferences, config: SmbConfig) {
         preferences[Keys.HOST] = config.host
@@ -151,6 +172,8 @@ class SmbConfigStore(private val appContext: Context) {
             smb1Enabled = this[Keys.SMB1] ?: false
         )
 
+    private fun normalizeBrowsePath(path: String): String = path.trim().replace("\\", "/").trim('/')
+
     private object Keys {
         val HOST = stringPreferencesKey("host")
         val SHARE = stringPreferencesKey("share")
@@ -161,5 +184,6 @@ class SmbConfigStore(private val appContext: Context) {
         val SMB1 = booleanPreferencesKey("smb1")
         val SAVED_CONNECTIONS_JSON = stringPreferencesKey("saved_connections_json")
         val ACTIVE_CONNECTION_ID = stringPreferencesKey("active_connection_id")
+        val ACTIVE_BROWSE_PATH = stringPreferencesKey("active_browse_path")
     }
 }

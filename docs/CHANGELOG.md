@@ -27,3 +27,4 @@
 23. 歌词/封面缓存改为磁盘持久化：`PlaybackLyricsCache` 和 `PlaybackArtworkCache` 新增 `saveAsync/loadFromDisk/clearDisk/diskCacheSize` 接口，JSON 歌词存 `cacheDir/lyrics/`，JPEG 封面存 `cacheDir/artwork/`；PlaybackActivity 的 maybeLoadLyrics 和 maybeLoadArtwork 加入磁盘二级缓存查询；LyricsFullscreenActivity 修复 key 不一致问题（统一为 uri 优先）并接入同一缓存；设置新增"其它设置"分类，包含"清理缓存"条目，显示当前磁盘缓存大小。
 24. SMB 封面/标签提速扩展到多格式：`PlaybackActivity` 新增"按扩展名快速探测 + 失败自动回退全量读取"机制；`mp3` 继续走 ID3v2 区域拷贝，`flac` 读取 STREAMINFO/PICTURE 等元数据块，`m4a/mp4/m4b/aac/alac` 与 `ogg/opus` 先读取限定前缀字节探测，若未解析到标签或封面则自动回退全量读取，保证兼容性。
 25. 歌词加载性能优化（2026-03-27）：新增 `SmbAudioMetadataProbe` 统一 SMB 元数据快速探测（标题/艺术家/专辑/封面/内嵌歌词）并带并发去重，`PlaybackActivity` 的标签/封面改为复用该探测结果；`SmbLyricsRepository` 改为"外置 `.lrc` 先发起 + 内嵌延迟并发，先成功先返回"；歌词重试改为"仅异常重试、未命中不重试"；`PlaybackLyricsCache` 新增无歌词负缓存（内存+磁盘短 TTL），避免反复打开同一无歌词文件重复走 SMB 慢路径。
+26. 目录浏览返回与恢复修复（2026-04-06）：`TvBrowseFragment` 改为通过 `OnBackPressedDispatcher` 统一接管遥控器返回键，深层目录下返回会先回到上一级；`SmbConfigStore` 新增当前浏览路径持久化，应用从后台返回或页面重建后可恢复到离开前的目录层级。

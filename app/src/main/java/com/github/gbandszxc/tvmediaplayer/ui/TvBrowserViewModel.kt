@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.JcifsSmbRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbFailureMapper
@@ -30,7 +31,7 @@ data class TvBrowserState(
 
 class TvBrowserViewModel(
     private val repository: SmbRepository,
-    private val configStore: SmbConfigStore
+    private val configStore: BrowserConfigStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TvBrowserState())
@@ -42,7 +43,7 @@ class TvBrowserViewModel(
             _state.update {
                 it.copy(
                     config = loaded.activeConfig,
-                    currentPath = loaded.activeConfig.normalizedPath(),
+                    currentPath = loaded.activeBrowsePath,
                     savedConnections = loaded.savedConnections,
                     activeConnectionId = loaded.activeConnectionId
                 )
@@ -57,6 +58,7 @@ class TvBrowserViewModel(
         val id = if (saveAsNew) configStore.newConnectionId() else (_state.value.activeConnectionId ?: configStore.newConnectionId())
         val actualName = name.ifBlank { defaultConnectionName(config) }
         val saved = SavedSmbConnection(id = id, name = actualName, config = config)
+        val rootPath = config.normalizedPath()
 
         _state.update {
             val mutable = it.savedConnections.toMutableList()
@@ -64,7 +66,7 @@ class TvBrowserViewModel(
             if (index >= 0) mutable[index] = saved else mutable.add(saved)
             it.copy(
                 config = config,
-                currentPath = config.normalizedPath(),
+                currentPath = rootPath,
                 activeConnectionId = id,
                 savedConnections = mutable,
                 error = null
@@ -79,10 +81,11 @@ class TvBrowserViewModel(
 
     fun switchConnection(connectionId: String) {
         val target = _state.value.savedConnections.firstOrNull { it.id == connectionId } ?: return
+        val rootPath = target.config.normalizedPath()
         _state.update {
             it.copy(
                 config = target.config,
-                currentPath = target.config.normalizedPath(),
+                currentPath = rootPath,
                 activeConnectionId = target.id,
                 error = null
             )
@@ -117,20 +120,44 @@ class TvBrowserViewModel(
             _state.update { it.copy(toast = "待实现：播放 ${entry.name}") }
             return
         }
-        val current = _state.value.currentPath
-        val nextPath = if (entry.name == "..") current.substringBeforeLast('/', "") else entry.fullPath
-        _state.update { it.copy(currentPath = nextPath) }
-        loadCurrentPath()
+        val nextPath = if (entry.name == "..") {
+            _state.value.currentPath.substringBeforeLast('/', "")
+        } else {
+            entry.fullPath
+        }
+        updateCurrentPath(nextPath)
     }
 
     fun consumeToast() {
         _state.update { it.copy(toast = null) }
     }
 
+    fun navigateUp(): Boolean {
+        if (_state.value.currentPath.isBlank()) return false
+        updateCurrentPath(_state.value.currentPath.substringBeforeLast('/', ""))
+        return true
+    }
+
     private fun defaultConnectionName(config: SmbConfig): String {
         val share = config.share.ifBlank { "全部共享" }
         return "${config.host} / $share"
     }
+
+    private fun updateCurrentPath(path: String) {
+        val normalizedPath = normalizePath(path)
+        _state.update {
+            it.copy(
+                currentPath = normalizedPath,
+                error = null
+            )
+        }
+        viewModelScope.launch {
+            configStore.saveActiveBrowsePath(normalizedPath)
+        }
+        loadCurrentPath()
+    }
+
+    private fun normalizePath(path: String): String = path.trim().replace("\\", "/").trim('/')
 
     companion object {
         fun factory(context: Context): ViewModelProvider.Factory = object : ViewModelProvider.Factory {

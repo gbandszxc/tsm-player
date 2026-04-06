@@ -16,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -82,6 +83,7 @@ class TvBrowseFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         bindViews(view)
         bindActions(view)
+        bindBackHandler()
         collectState()
     }
 
@@ -135,7 +137,6 @@ class TvBrowseFragment : Fragment() {
         root.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_UP) return@setOnKeyListener false
             when (keyCode) {
-                KeyEvent.KEYCODE_BACK -> navigateUpDirectory()
                 KeyEvent.KEYCODE_MENU -> {
                     showConnectionManagerDialog()
                     true
@@ -144,6 +145,20 @@ class TvBrowseFragment : Fragment() {
             }
         }
         updateNowPlayingButton()
+    }
+
+    private fun bindBackHandler() {
+        requireActivity().onBackPressedDispatcher.addCallback(
+            viewLifecycleOwner,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (navigateUpDirectory()) return
+                    isEnabled = false
+                    requireActivity().onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        )
     }
 
     private fun collectState() {
@@ -235,9 +250,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun navigateUpDirectory(): Boolean {
-        if (viewModel.state.value.currentPath.isBlank()) return false
-        viewModel.enterDirectory(SmbEntry("..", viewModel.state.value.currentPath, true))
-        return true
+        return viewModel.navigateUp()
     }
 
     private fun playDirectory(shuffle: Boolean) {
