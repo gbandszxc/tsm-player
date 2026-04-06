@@ -1,1 +1,1 @@
-请阅读 @AGENTS.MD
+**Read @AGENTS.md**

@@ -2,6 +2,7 @@ package com.github.gbandszxc.tvmediaplayer.ui
 
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
+import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
@@ -16,6 +17,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -202,6 +205,259 @@ class TvBrowserViewModelTest {
         assertEquals(listOf("Music", "HiRes/Artist"), repository.requestedPaths)
     }
 
+    @Test
+    fun `init restores focus index from browse anchor when item key matches`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music/Albums"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Albums/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Albums/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath
+            ),
+            anchors = mutableMapOf(
+                ("conn-1" to browsePath) to BrowseFocusAnchor(
+                    itemKey = "Music/Albums/Track 02.flac",
+                    index = 1,
+                    updatedAt = 10L
+                )
+            )
+        )
+        val repository = FakeSmbRepository(
+            entriesByPath = mapOf(
+                browsePath to entries
+            )
+        )
+
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.state.value.restoredFocusIndex)
+        assertEquals(listOf("conn-1" to browsePath), store.loadedAnchors)
+    }
+
+    @Test
+    fun `locate playback directory falls back to nearest available index when stored anchor item is missing`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music/Albums"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Albums/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Albums/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = "Music"
+            ),
+            anchors = mutableMapOf(
+                ("conn-1" to browsePath) to BrowseFocusAnchor(
+                    itemKey = "Music/Albums/Track 99.flac",
+                    index = 1,
+                    updatedAt = 10L
+                )
+            )
+        )
+        val repository = FakeSmbRepository(
+            entriesByPath = mapOf(
+                "Music" to emptyList(),
+                browsePath to entries
+            )
+        )
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.locateToPlaybackDirectory(
+            PlaybackLocationResolver.Target(
+                mediaId = "Music/Albums/Track 02.flac",
+                directoryPath = browsePath,
+                sourceConnectionId = "conn-1",
+                sourceConfig = config
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(browsePath, viewModel.state.value.currentPath)
+        assertEquals(1, viewModel.state.value.restoredFocusIndex)
+        assertEquals("目录内容已变化，已回到开头", viewModel.state.value.inlineMessage)
+    }
+
+    @Test
+    fun `temporary config uses stable non-empty namespace for browse anchor`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = null,
+                savedConnections = emptyList(),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(entriesByPath = mapOf(browsePath to entries))
+
+        val firstViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        val loadedNamespace = store.loadedAnchors.lastOrNull()?.first
+        assertNotNull(loadedNamespace)
+        assertTrue(loadedNamespace!!.isNotBlank())
+
+        firstViewModel.onItemFocused(index = 1, entry = entries[1])
+        advanceUntilIdle()
+
+        val savedNamespace = store.savedAnchors.lastOrNull()?.first?.first
+        assertEquals(loadedNamespace, savedNamespace)
+        assertTrue(savedNamespace!!.isNotBlank())
+
+        val secondViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        assertEquals(1, secondViewModel.state.value.restoredFocusIndex)
+        assertEquals(loadedNamespace, store.loadedAnchors.lastOrNull()?.first)
+    }
+
+    @Test
+    fun `clear browse cache removes stored anchor so focus is not restored`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(
+            entriesByPath = mapOf(
+                browsePath to entries
+            )
+        )
+
+        val firstViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+        firstViewModel.onItemFocused(index = 1, entry = entries[1])
+        advanceUntilIdle()
+
+        val secondViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+        assertEquals(1, secondViewModel.state.value.restoredFocusIndex)
+
+        store.clearBrowseCache()
+
+        val thirdViewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+        assertNull(thirdViewModel.state.value.restoredFocusIndex)
+    }
+
+    @Test
+    fun `on item focused saves anchor using real entries index when input index is wrong`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(entriesByPath = mapOf(browsePath to entries))
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.onItemFocused(index = 999, entry = entries[1])
+        advanceUntilIdle()
+
+        val saved = store.savedAnchors.lastOrNull()
+        assertNotNull(saved)
+        assertEquals(1, saved!!.second.index)
+        assertEquals("Music/Track 02.flac", saved.second.itemKey)
+        assertEquals(1, viewModel.state.value.restoredFocusIndex)
+    }
+
+    @Test
+    fun `on item focused skips duplicate anchor writes for same directory item and index`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(entriesByPath = mapOf(browsePath to entries))
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.onItemFocused(index = 1, entry = entries[1])
+        viewModel.onItemFocused(index = 1, entry = entries[1])
+        advanceUntilIdle()
+
+        assertEquals(1, store.savedAnchors.size)
+    }
+
+    @Test
+    fun `accept fast locate persists anchor for target entry immediately`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val browsePath = "Music"
+        val entries = listOf(
+            SmbEntry(name = "Track 01", fullPath = "Music/Track 01.flac", isDirectory = false),
+            SmbEntry(name = "Track 02", fullPath = "Music/Track 02.flac", isDirectory = false),
+            SmbEntry(name = "Track 03", fullPath = "Music/Track 03.flac", isDirectory = false),
+            SmbEntry(name = "Track 04", fullPath = "Music/Track 04.flac", isDirectory = false),
+            SmbEntry(name = "Track 05", fullPath = "Music/Track 05.flac", isDirectory = false),
+            SmbEntry(name = "Track 06", fullPath = "Music/Track 06.flac", isDirectory = false)
+        )
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath
+            )
+        )
+        val repository = FakeSmbRepository(entriesByPath = mapOf(browsePath to entries))
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.enterFastLocate(visibleWindowSize = 3))
+        viewModel.jumpFastLocateByPage(direction = 1)
+        viewModel.acceptFastLocate()
+        advanceUntilIdle()
+
+        val saved = store.savedAnchors.lastOrNull()
+        assertNotNull(saved)
+        assertEquals(3, saved!!.second.index)
+        assertEquals(entries[3].fullPath, saved.second.itemKey)
+        assertEquals(3, viewModel.state.value.restoredFocusIndex)
+    }
+
     private fun sampleConfig(
         host: String = "192.168.1.2",
         share: String = "Media",
@@ -216,21 +472,26 @@ class TvBrowserViewModelTest {
             guest = true
         )
 
-    private class FakeSmbRepository : SmbRepository {
+    private class FakeSmbRepository(
+        private val entriesByPath: Map<String, List<SmbEntry>> = emptyMap()
+    ) : SmbRepository {
         val requestedPaths = mutableListOf<String>()
 
         override suspend fun list(config: SmbConfig, path: String): List<SmbEntry> {
             requestedPaths += path
-            return emptyList()
+            return entriesByPath[path].orEmpty()
         }
     }
 
     private class FakeBrowserConfigStore(
-        private val state: SmbConfigStoreState
+        private val state: SmbConfigStoreState,
+        private val anchors: MutableMap<Pair<String?, String>, BrowseFocusAnchor> = mutableMapOf()
     ) : BrowserConfigStore {
         val savedBrowsePaths = mutableListOf<String>()
         val activatedConnectionIds = mutableListOf<String>()
         val activatedConfigs = mutableListOf<SmbConfig>()
+        val loadedAnchors = mutableListOf<Pair<String?, String>>()
+        val savedAnchors = mutableListOf<Pair<Pair<String?, String>, BrowseFocusAnchor>>()
 
         override suspend fun loadState(): SmbConfigStoreState = state
 
@@ -247,6 +508,22 @@ class TvBrowserViewModelTest {
 
         override suspend fun saveActiveBrowsePath(path: String) {
             savedBrowsePaths += path
+        }
+
+        override suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor? {
+            val key = connectionId to directoryPath
+            loadedAnchors += key
+            return anchors[key]
+        }
+
+        override suspend fun saveBrowseAnchor(connectionId: String?, directoryPath: String, anchor: BrowseFocusAnchor) {
+            val key = connectionId to directoryPath
+            anchors[key] = anchor
+            savedAnchors += key to anchor
+        }
+
+        override suspend fun clearBrowseCache() {
+            anchors.clear()
         }
 
         override fun newConnectionId(): String = "generated-id"
