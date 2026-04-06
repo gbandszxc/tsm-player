@@ -55,6 +55,10 @@ class PlaybackService : MediaSessionService() {
         if (!UiSettingsStore.rememberLastPlayback(this)) return
         val player = mediaSession?.player ?: return
         if (player.mediaItemCount == 0) return
+        val currentMediaId = player.currentMediaItem?.mediaId
+            ?.let(PlaybackLocationResolver::normalizePath)
+        val currentDirectoryPath = currentMediaId?.let(PlaybackLocationResolver::parentDirectory)
+        val sourceConfig = PlaybackConfigStore.current().takeIf { it.host.isNotBlank() }
         val uris = buildList {
             repeat(player.mediaItemCount) { i ->
                 player.getMediaItemAt(i).localConfiguration?.uri?.toString()?.let(::add)
@@ -73,7 +77,11 @@ class PlaybackService : MediaSessionService() {
                 queueMediaIds = ids,
                 currentIndex = player.currentMediaItemIndex,
                 positionMs = player.currentPosition.coerceAtLeast(0L),
-                title = player.mediaMetadata.title?.toString().orEmpty()
+                title = player.mediaMetadata.title?.toString().orEmpty(),
+                currentMediaId = currentMediaId,
+                currentDirectoryPath = currentDirectoryPath,
+                sourceConnectionId = null,
+                sourceConfig = sourceConfig
             )
         )
     }

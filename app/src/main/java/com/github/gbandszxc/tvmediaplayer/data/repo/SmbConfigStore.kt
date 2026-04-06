@@ -29,6 +29,7 @@ interface BrowserConfigStore {
     suspend fun loadState(): SmbConfigStoreState
     suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean = true)
     suspend fun setActiveConnection(id: String)
+    suspend fun setActiveConfig(config: SmbConfig, browsePath: String)
     suspend fun saveActiveBrowsePath(path: String)
     fun newConnectionId(): String
 }
@@ -85,6 +86,14 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
             preferences[Keys.ACTIVE_CONNECTION_ID] = id
             writeLegacy(preferences, target.config)
             preferences[Keys.ACTIVE_BROWSE_PATH] = target.config.normalizedPath()
+        }
+    }
+
+    override suspend fun setActiveConfig(config: SmbConfig, browsePath: String) {
+        appContext.smbDataStore.edit { preferences ->
+            preferences.remove(Keys.ACTIVE_CONNECTION_ID)
+            writeLegacy(preferences, config)
+            preferences[Keys.ACTIVE_BROWSE_PATH] = normalizeBrowsePath(browsePath)
         }
     }
 

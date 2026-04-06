@@ -29,6 +29,7 @@ import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
@@ -556,5 +557,9 @@ class TvBrowseFragment : Fragment() {
             if (path.isBlank()) "smb://${config.host}/${config.share}"
             else "smb://${config.host}/${config.share}/$path"
         }
+    }
+
+    fun handlePlaybackLocateTarget(target: PlaybackLocationResolver.Target) {
+        viewModel.locateToPlaybackDirectory(target)
     }
 }

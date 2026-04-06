@@ -6,6 +6,7 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -98,10 +99,117 @@ class TvBrowserViewModelTest {
         assertEquals(listOf("Music/Albums/Disc1", "Music/Albums"), repository.requestedPaths)
     }
 
-    private fun sampleConfig(path: String): SmbConfig =
+    @Test
+    fun `locate to playback directory reuses current connection when target matches active connection`() = runTest(dispatcher) {
+        val activeConfig = sampleConfig(path = "Music")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = activeConfig,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", activeConfig)),
+                activeBrowsePath = "Music"
+            )
+        )
+        val repository = FakeSmbRepository()
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.locateToPlaybackDirectory(
+            PlaybackLocationResolver.Target(
+                mediaId = "Music/Albums/Track 01.flac",
+                directoryPath = "Music/Albums",
+                sourceConnectionId = "conn-1",
+                sourceConfig = activeConfig
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals("Music/Albums", viewModel.state.value.currentPath)
+        assertEquals(listOf("Music", "Music/Albums"), repository.requestedPaths)
+        assertEquals(emptyList<String>(), store.activatedConnectionIds)
+        assertEquals(emptyList<SmbConfig>(), store.activatedConfigs)
+        assertTrue(store.savedBrowsePaths.contains("Music/Albums"))
+    }
+
+    @Test
+    fun `locate to playback directory switches saved connection when target belongs to another smb`() = runTest(dispatcher) {
+        val currentConfig = sampleConfig(path = "Music")
+        val otherConfig = sampleConfig(host = "192.168.1.9", share = "Archive", path = "HiRes")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = currentConfig,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(
+                    SavedSmbConnection("conn-1", "NAS", currentConfig),
+                    SavedSmbConnection("conn-2", "Archive", otherConfig)
+                ),
+                activeBrowsePath = "Music"
+            )
+        )
+        val repository = FakeSmbRepository()
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.locateToPlaybackDirectory(
+            PlaybackLocationResolver.Target(
+                mediaId = "HiRes/Artist/Track 01.flac",
+                directoryPath = "HiRes/Artist",
+                sourceConnectionId = "conn-2",
+                sourceConfig = otherConfig
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(otherConfig, viewModel.state.value.config)
+        assertEquals("conn-2", viewModel.state.value.activeConnectionId)
+        assertEquals("HiRes/Artist", viewModel.state.value.currentPath)
+        assertEquals(listOf("conn-2"), store.activatedConnectionIds)
+        assertTrue(store.savedBrowsePaths.contains("HiRes/Artist"))
+        assertEquals(listOf("Music", "HiRes/Artist"), repository.requestedPaths)
+    }
+
+    @Test
+    fun `locate to playback directory falls back to source config when saved connection no longer exists`() = runTest(dispatcher) {
+        val currentConfig = sampleConfig(path = "Music")
+        val snapshotConfig = sampleConfig(host = "192.168.1.9", share = "Archive", path = "HiRes")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = currentConfig,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", currentConfig)),
+                activeBrowsePath = "Music"
+            )
+        )
+        val repository = FakeSmbRepository()
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.locateToPlaybackDirectory(
+            PlaybackLocationResolver.Target(
+                mediaId = "HiRes/Artist/Track 01.flac",
+                directoryPath = "HiRes/Artist",
+                sourceConnectionId = "conn-missing",
+                sourceConfig = snapshotConfig
+            )
+        )
+        advanceUntilIdle()
+
+        assertEquals(snapshotConfig, viewModel.state.value.config)
+        assertEquals(null, viewModel.state.value.activeConnectionId)
+        assertEquals("HiRes/Artist", viewModel.state.value.currentPath)
+        assertEquals(listOf(snapshotConfig), store.activatedConfigs)
+        assertTrue(store.savedBrowsePaths.contains("HiRes/Artist"))
+        assertEquals(listOf("Music", "HiRes/Artist"), repository.requestedPaths)
+    }
+
+    private fun sampleConfig(
+        host: String = "192.168.1.2",
+        share: String = "Media",
+        path: String
+    ): SmbConfig =
         SmbConfig(
-            host = "192.168.1.2",
-            share = "Media",
+            host = host,
+            share = share,
             path = path,
             username = "",
             password = "",
@@ -121,12 +229,21 @@ class TvBrowserViewModelTest {
         private val state: SmbConfigStoreState
     ) : BrowserConfigStore {
         val savedBrowsePaths = mutableListOf<String>()
+        val activatedConnectionIds = mutableListOf<String>()
+        val activatedConfigs = mutableListOf<SmbConfig>()
 
         override suspend fun loadState(): SmbConfigStoreState = state
 
         override suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean) = Unit
 
-        override suspend fun setActiveConnection(id: String) = Unit
+        override suspend fun setActiveConnection(id: String) {
+            activatedConnectionIds += id
+        }
+
+        override suspend fun setActiveConfig(config: SmbConfig, browsePath: String) {
+            activatedConfigs += config
+            savedBrowsePaths += browsePath
+        }
 
         override suspend fun saveActiveBrowsePath(path: String) {
             savedBrowsePaths += path

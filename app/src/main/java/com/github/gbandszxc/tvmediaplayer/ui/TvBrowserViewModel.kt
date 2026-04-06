@@ -12,6 +12,7 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -138,9 +139,80 @@ class TvBrowserViewModel(
         return true
     }
 
+    fun locateToPlaybackDirectory(target: PlaybackLocationResolver.Target) {
+        val targetPath = normalizePath(target.directoryPath)
+        if (targetPath.isBlank()) {
+            _state.update { it.copy(toast = "无法定位当前播放目录") }
+            return
+        }
+
+        val stateSnapshot = _state.value
+        if (isCurrentConnectionTarget(stateSnapshot, target)) {
+            applyLocatedPath(stateSnapshot.config, stateSnapshot.activeConnectionId, targetPath) {
+                configStore.saveActiveBrowsePath(targetPath)
+            }
+            return
+        }
+
+        val matchedSavedConnection = findSavedConnection(stateSnapshot.savedConnections, target)
+        if (matchedSavedConnection != null) {
+            applyLocatedPath(matchedSavedConnection.config, matchedSavedConnection.id, targetPath) {
+                configStore.setActiveConnection(matchedSavedConnection.id)
+                configStore.saveActiveBrowsePath(targetPath)
+            }
+            return
+        }
+
+        if (target.sourceConfig.host.isBlank()) {
+            _state.update { it.copy(toast = "无法定位当前播放目录") }
+            return
+        }
+
+        applyLocatedPath(target.sourceConfig, null, targetPath) {
+            configStore.setActiveConfig(target.sourceConfig, targetPath)
+        }
+    }
+
     private fun defaultConnectionName(config: SmbConfig): String {
         val share = config.share.ifBlank { "全部共享" }
         return "${config.host} / $share"
+    }
+
+    private fun isCurrentConnectionTarget(state: TvBrowserState, target: PlaybackLocationResolver.Target): Boolean {
+        if (target.sourceConnectionId != null && target.sourceConnectionId == state.activeConnectionId) {
+            return true
+        }
+        return PlaybackLocationResolver.matchesConnection(state.config, target.sourceConfig)
+    }
+
+    private fun findSavedConnection(
+        savedConnections: List<SavedSmbConnection>,
+        target: PlaybackLocationResolver.Target
+    ): SavedSmbConnection? {
+        target.sourceConnectionId?.let { targetId ->
+            savedConnections.firstOrNull { it.id == targetId }?.let { return it }
+        }
+        return savedConnections.firstOrNull {
+            PlaybackLocationResolver.matchesConnection(it.config, target.sourceConfig)
+        }
+    }
+
+    private fun applyLocatedPath(
+        config: SmbConfig,
+        activeConnectionId: String?,
+        browsePath: String,
+        persist: suspend () -> Unit
+    ) {
+        _state.update {
+            it.copy(
+                config = config,
+                activeConnectionId = activeConnectionId,
+                currentPath = browsePath,
+                error = null
+            )
+        }
+        viewModelScope.launch { persist() }
+        loadCurrentPath()
     }
 
     private fun updateCurrentPath(path: String) {

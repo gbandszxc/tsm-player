@@ -1,5 +1,6 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -24,8 +25,10 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.github.gbandszxc.tvmediaplayer.MainActivity
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
+import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
@@ -36,6 +39,7 @@ import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
 import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import com.google.common.util.concurrent.ListenableFuture
@@ -88,6 +92,7 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var btnNext: Button
     private lateinit var btnLyricsFullscreen: Button
     private lateinit var btnBack: Button
+    private lateinit var btnLocate: Button
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -142,6 +147,7 @@ class PlaybackActivity : BaseActivity() {
         btnNext = findViewById(R.id.btn_next)
         btnLyricsFullscreen = findViewById(R.id.btn_lyrics_fullscreen)
         btnBack = findViewById(R.id.btn_back_to_browser)
+        btnLocate = findViewById(R.id.btn_locate)
     }
 
     private fun bindActions() {
@@ -156,6 +162,7 @@ class PlaybackActivity : BaseActivity() {
             startActivity(Intent(this, LyricsFullscreenActivity::class.java))
         }
         btnBack.setOnClickListener { finish() }
+        btnLocate.setOnClickListener { locateCurrentPlayback() }
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
@@ -539,6 +546,12 @@ class PlaybackActivity : BaseActivity() {
         if (!UiSettingsStore.rememberLastPlayback(this)) return
         val controller = mediaController ?: return
         if (controller.mediaItemCount == 0) return
+        val currentMediaId = controller.currentMediaItem?.mediaId
+            ?.let(PlaybackLocationResolver::normalizePath)
+        val currentDirectoryPath = currentMediaId?.let(PlaybackLocationResolver::parentDirectory)
+        val sourceConfig = PlaybackConfigStore.current()
+            .takeIf { it.host.isNotBlank() }
+            ?: fallbackConfig.takeIf { it.host.isNotBlank() }
         val uris = buildList {
             repeat(controller.mediaItemCount) { i ->
                 controller.getMediaItemAt(i).localConfiguration?.uri?.toString()?.let(::add)
@@ -557,8 +570,74 @@ class PlaybackActivity : BaseActivity() {
                 queueMediaIds = ids,
                 currentIndex = controller.currentMediaItemIndex,
                 positionMs = controller.currentPosition.coerceAtLeast(0L),
-                title = controller.mediaMetadata.title?.toString().orEmpty()
+                title = controller.mediaMetadata.title?.toString().orEmpty(),
+                currentMediaId = currentMediaId,
+                currentDirectoryPath = currentDirectoryPath,
+                sourceConnectionId = null,
+                sourceConfig = sourceConfig
             )
+        )
+    }
+
+    private fun locateCurrentPlayback() {
+        lifecycleScope.launch {
+            val storeState = withContext(Dispatchers.IO) { configStore.loadState() }
+            val target = resolveActivePlaybackTarget(storeState)
+                ?: LastPlaybackStore.load(this@PlaybackActivity)?.let(PlaybackLocationResolver::fromSnapshot)
+
+            if (target == null) {
+                Toast.makeText(this@PlaybackActivity, "无法定位当前播放目录", Toast.LENGTH_SHORT).show()
+                return@launch
+            }
+
+            if (requiresLocateConfirmation(storeState, target)) {
+                showLocateConfirmationDialog(target)
+            } else {
+                openBrowserAtPlaybackDirectory(target)
+            }
+        }
+    }
+
+    private fun requiresLocateConfirmation(
+        storeState: SmbConfigStoreState,
+        target: PlaybackLocationResolver.Target
+    ): Boolean {
+        if (target.sourceConnectionId != null && storeState.activeConnectionId != null) {
+            return target.sourceConnectionId != storeState.activeConnectionId
+        }
+        return !PlaybackLocationResolver.matchesConnection(storeState.activeConfig, target.sourceConfig)
+    }
+
+    private fun showLocateConfirmationDialog(target: PlaybackLocationResolver.Target) {
+        val targetLabel = target.sourceConfig.rootUrl().ifBlank { "目标 SMB 连接" }
+        AlertDialog.Builder(this)
+            .setTitle("切换 SMB 连接")
+            .setMessage("当前播放文件位于另一个 SMB 连接，是否切换到 $targetLabel 并定位到该目录？")
+            .setPositiveButton("切换并定位") { _, _ ->
+                openBrowserAtPlaybackDirectory(target)
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun openBrowserAtPlaybackDirectory(target: PlaybackLocationResolver.Target) {
+        startActivity(MainActivity.createLocateIntent(this, target))
+        finish()
+    }
+
+    private fun resolveActivePlaybackTarget(storeState: SmbConfigStoreState): PlaybackLocationResolver.Target? {
+        val currentMediaId = mediaController?.currentMediaItem?.mediaId
+            ?.let(PlaybackLocationResolver::normalizePath)
+            ?: return null
+        val sourceConfig = PlaybackConfigStore.current()
+            .takeIf { it.host.isNotBlank() }
+            ?: storeState.activeConfig.takeIf { it.host.isNotBlank() }
+            ?: SmbConfig.Empty
+        return PlaybackLocationResolver.Target(
+            mediaId = currentMediaId,
+            directoryPath = PlaybackLocationResolver.parentDirectory(currentMediaId).orEmpty(),
+            sourceConnectionId = storeState.activeConnectionId,
+            sourceConfig = sourceConfig
         )
     }
 

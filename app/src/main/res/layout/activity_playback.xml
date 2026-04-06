@@ -213,6 +213,20 @@
                 android:textSize="16sp"
                 android:background="@drawable/bg_button_primary"
                 android:fontFamily="@font/misans_medium" />
+
+            <Button
+                android:id="@+id/btn_locate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:minWidth="120dp"
+                android:nextFocusUp="@id/pb_playback"
+                android:text="定位"
+                android:textAllCaps="false"
+                android:textColor="#3A2A00"
+                android:textSize="16sp"
+                android:background="@drawable/bg_button_light_yellow"
+                android:fontFamily="@font/misans_medium" />
         </LinearLayout>
     </HorizontalScrollView>
 
