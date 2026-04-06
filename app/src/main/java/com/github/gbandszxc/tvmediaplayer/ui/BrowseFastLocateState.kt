@@ -8,7 +8,8 @@ data class BrowseFastLocateState(
     val progressPercent: Int
         get() {
             if (totalCount <= 1) return 0
-            val percent = (currentIndex.toFloat() * 100f / (totalCount - 1)).toInt()
+            val clampedIndex = currentIndex.coerceIn(0, (totalCount - 1).coerceAtLeast(0))
+            val percent = (clampedIndex.toFloat() * 100f / (totalCount - 1)).toInt()
             return percent.coerceIn(0, 100)
         }
 }

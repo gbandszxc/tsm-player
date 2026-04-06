@@ -39,4 +39,13 @@ class BrowseFastLocateCalculatorTest {
         assertTrue(BrowseFastLocateCalculator.canEnter(totalCount = 25, visibleWindowSize = 6))
         assertFalse(BrowseFastLocateCalculator.canEnter(totalCount = 25, visibleWindowSize = 0))
     }
+
+    @Test
+    fun progressPercentUsesClampedIndexBoundaries() {
+        val underflow = BrowseFastLocateState(totalCount = 40, currentIndex = -5, visibleWindowSize = 5)
+        assertEquals(0, underflow.progressPercent)
+
+        val overflow = BrowseFastLocateState(totalCount = 40, currentIndex = 80, visibleWindowSize = 5)
+        assertEquals(100, overflow.progressPercent)
+    }
 }
