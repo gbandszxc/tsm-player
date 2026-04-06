@@ -13,10 +13,13 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import android.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
+import kotlinx.coroutines.launch
 
 class SettingsActivity : BaseActivity() {
 
@@ -162,7 +165,7 @@ class SettingsActivity : BaseActivity() {
                     listOf(
                         SettingsItem(
                             title = "清理缓存",
-                            descriptionProvider = { "歌词与封面磁盘缓存，重启恢复播放时可跳过 SMB 加载" },
+                            descriptionProvider = { "歌词、封面与浏览锚点缓存，重启恢复播放时可跳过 SMB 加载" },
                             valueProvider = {
                                 val total = PlaybackLyricsCache.diskCacheSize(this) +
                                         PlaybackArtworkCache.diskCacheSize(this)
@@ -172,7 +175,14 @@ class SettingsActivity : BaseActivity() {
                         ) {
                             PlaybackLyricsCache.clearDisk(this)
                             PlaybackArtworkCache.clearDisk(this)
-                            Toast.makeText(this, "缓存已清除", Toast.LENGTH_SHORT).show()
+                            lifecycleScope.launch {
+                                SmbConfigStore(applicationContext).clearBrowseCache()
+                                Toast.makeText(
+                                    this@SettingsActivity,
+                                    "缓存已清除（包含歌词、封面与浏览锚点）",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
                             rebuildCurrentCategory(moveFocusToDetail = false)
                         }
                     )
