@@ -243,58 +243,6 @@
                     android:visibility="gone" />
 
                 <LinearLayout
-                    android:id="@+id/panel_fast_locate"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:background="#1E293B"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="10dp"
-                    android:visibility="gone">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:id="@+id/tv_fast_locate_hint"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="快速定位：↑/↓整屏跳  ←/→10%跳  确认接受  返回取消"
-                            android:textColor="#BFDBFE"
-                            android:textSize="14sp"
-                            android:fontFamily="@font/misans_medium" />
-
-                        <TextView
-                            android:id="@+id/tv_fast_locate_target"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="6dp"
-                            android:textColor="#EAF2FF"
-                            android:textSize="15sp"
-                            android:fontFamily="@font/misans_bold" />
-                    </LinearLayout>
-
-                    <FrameLayout
-                        android:id="@+id/view_fast_locate_track"
-                        android:layout_width="18dp"
-                        android:layout_height="120dp"
-                        android:layout_marginStart="12dp"
-                        android:background="#334155">
-
-                        <View
-                            android:id="@+id/view_fast_locate_indicator"
-                            android:layout_width="match_parent"
-                            android:layout_height="18dp"
-                            android:layout_gravity="top"
-                            android:background="#38BDF8" />
-                    </FrameLayout>
-                </LinearLayout>
-
-                <LinearLayout
                     android:id="@+id/container_files"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -339,5 +287,63 @@
         android:textSize="15sp"
         android:background="@drawable/bg_button_dark"
         android:fontFamily="@font/misans_medium" />
+
+    <LinearLayout
+        android:id="@+id/panel_fast_locate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp"
+        android:background="#DD0F172A"
+        android:elevation="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="280dp"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_fast_locate_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="快速定位模式 42%"
+                android:textColor="#EAF2FF"
+                android:textSize="16sp"
+                android:fontFamily="@font/misans_bold" />
+
+            <TextView
+                android:id="@+id/tv_fast_locate_target"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:lineSpacingExtra="2dp"
+                android:textColor="#BFDBFE"
+                android:textSize="14sp"
+                android:fontFamily="@font/misans_medium" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/view_fast_locate_track"
+            android:layout_width="18dp"
+            android:layout_height="136dp"
+            android:layout_marginStart="14dp"
+            android:background="#334155">
+
+            <View
+                android:id="@+id/view_fast_locate_indicator"
+                android:layout_width="match_parent"
+                android:layout_height="18dp"
+                android:layout_gravity="top"
+                android:background="#38BDF8" />
+        </FrameLayout>
+    </LinearLayout>
 
 </FrameLayout>

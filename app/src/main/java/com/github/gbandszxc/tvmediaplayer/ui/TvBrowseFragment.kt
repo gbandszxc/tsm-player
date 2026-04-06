@@ -139,6 +139,7 @@ class TvBrowseFragment : Fragment() {
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
         filesContainer = root.findViewById(R.id.container_files)
+        panelFastLocate.bringToFront()
     }
 
     private fun bindActions(root: View) {
@@ -315,8 +316,9 @@ class TvBrowseFragment : Fragment() {
         panelFastLocate.visibility = if (inMode) View.VISIBLE else View.GONE
         if (!inMode || locate == null) return
 
-        tvFastLocateHint.text = "快速定位：↑/↓整屏跳  ←/→10%跳  确认接受  返回取消"
-        tvFastLocateTarget.text = "目标：${locate.currentIndex + 1}/${locate.totalCount} (${locate.progressPercent}%)"
+        tvFastLocateHint.text = "快速定位模式 ${locate.progressPercent}%"
+        tvFastLocateTarget.text =
+            "当前：${locate.currentIndex + 1}/${locate.totalCount}\n↑/↓整屏跳  ←/→10%跳  确认接受  返回取消"
 
         fastLocateTrack.post {
             val trackHeight = fastLocateTrack.height
