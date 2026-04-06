@@ -89,3 +89,5 @@ Thumbs.db
 
 # local AI/tool artifacts
 .agent_prompt/
+.worktrees/
+/.superpowers/
