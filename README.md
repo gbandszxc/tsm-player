@@ -4,7 +4,7 @@
 > 
 > 一款专为 Android TV 设计的媒体播放器，支持通过 SMB 协议播放局域网共享媒体文件。
 
-![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android%20TV-green.svg)
 ![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)
 
@@ -56,6 +56,18 @@
 3. 输入服务器地址、用户名和密码
 4. 浏览并播放媒体文件
 
+### 快速定位模式
+
+当文件列表很长时，不需要一直长按遥控器下键滚动：
+
+1. 在文件浏览页把焦点停在任意文件项上
+2. 长按确认键进入“快速定位模式”
+3. 观察右下角临时出现的比例条和百分比提示
+4. 使用 `↑/↓` 按整屏跳转，使用 `←/→` 按列表总长度的 `10%` 分段跳转
+5. 按确认键接受当前位置并退出模式，按返回键取消本次跳转
+
+目录级焦点锚点会自动记住最近浏览位置；再次进入同一目录时，会尽量恢复到上次停留的条目。若在设置页执行“清理缓存”，这些浏览锚点也会一并重置。
+
 ### 播放界面
 ![播放界面](docs/screenshots/playback.png)
 
@@ -74,5 +86,4 @@ cd tsm-player
 # 构建 Release 版本
 .\gradlew.bat assembleRelease
 ```
-
 
