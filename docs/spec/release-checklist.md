@@ -2,9 +2,11 @@
 
 ## 1. 构建与产物
 
-1. 执行 `.\gradlew.bat clean testDevDebugUnitTest assembleDevDebug`，确保开发构建和单元测试通过。
-2. 执行 `.\gradlew.bat assembleTvRelease` 产出电视发布包。
-3. 产物路径确认：`app\build\outputs\apk\tv\release\app-tv-release.apk`。
+1. 执行 `.\gradlew.bat clean testDebugUnitTest assembleDebug`，确保调试构建和单元测试通过。
+2. 执行 `.\gradlew.bat assembleRelease` 产出电视发布包；若 `lintVitalAnalyzeRelease` 因网络问题失败，可改用 `.\gradlew.bat clean assembleRelease -x lintVitalAnalyzeRelease`。
+3. 产物路径确认：
+   - `app\build\outputs\apk\release\tsm-player-release-armeabi-v7a-<versionName>.apk`
+   - `app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk`
 
 ## 2. 功能验收
 
@@ -30,4 +32,3 @@
 - 上下左右/确认操作连贯。
 - `Back` 返回上级目录。
 - `Menu` 打开 SMB 配置弹窗。
-

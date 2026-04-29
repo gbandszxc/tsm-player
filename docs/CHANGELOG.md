@@ -29,3 +29,4 @@
 25. 歌词加载性能优化（2026-03-27）：新增 `SmbAudioMetadataProbe` 统一 SMB 元数据快速探测（标题/艺术家/专辑/封面/内嵌歌词）并带并发去重，`PlaybackActivity` 的标签/封面改为复用该探测结果；`SmbLyricsRepository` 改为"外置 `.lrc` 先发起 + 内嵌延迟并发，先成功先返回"；歌词重试改为"仅异常重试、未命中不重试"；`PlaybackLyricsCache` 新增无歌词负缓存（内存+磁盘短 TTL），避免反复打开同一无歌词文件重复走 SMB 慢路径。
 26. 目录浏览返回与恢复修复（2026-04-06）：`TvBrowseFragment` 改为通过 `OnBackPressedDispatcher` 统一接管遥控器返回键，深层目录下返回会先回到上一级；`SmbConfigStore` 新增当前浏览路径持久化，应用从后台返回或页面重建后可恢复到离开前的目录层级。
 27. TV 长列表导航稳定性修复（2026-04-06）：快速定位模式新增“长按确认进入后，释放前屏蔽同次确认事件”保护，解决电视实机上 `OK/Enter` 长按仅闪现一次就退出的问题；文件列表渲染新增目录内容指纹门控，焦点逐项移动时不再整表重建，降低长按方向键连续滚动时的焦点丢失与卡顿风险。
+28. APK ABI 兼容性调整（2026-04-29）：`app/build.gradle` 从单一 `arm64-v8a` 改为按 `armeabi-v7a` 与 `arm64-v8a` 拆分输出，解决 32 位 Android TV 侧载 `INSTALL_FAILED_NO_MATCHING_ABIS` 的安装失败；APK 命名同步改为 `tsm-player-<buildType>-<abi>-<versionName>.apk`，便于 GitHub Release 分发区分架构。

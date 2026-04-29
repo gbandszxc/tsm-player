@@ -1,4 +1,4 @@
-﻿# Android TV (arm64) 项目手册
+﻿# Android TV（arm64 + armv7）项目手册
 
 ## 已完成事项
 
@@ -14,7 +14,7 @@
 - `minSdk`：`21`
 - `targetSdk`：`34`
 - `compileSdk`：`34`
-- ABI：`arm64-v8a`
+- ABI：`armeabi-v7a`、`arm64-v8a`
 - UI：Leanback
 
 ## 2. 关键文件结构（当前）
@@ -65,10 +65,10 @@ tsm-player/
 在项目根目录执行（Windows PowerShell）：
 
 ```powershell
-# Debug（TV 与手机/平板均可侧载，包名后缀 .debug）
+# Debug（生成 `armeabi-v7a` / `arm64-v8a` 两个调试 APK，包名后缀 `.debug`）
 .\gradlew.bat assembleDebug
 
-# Release（签名包，正式发布用）
+# Release（生成 `armeabi-v7a` / `arm64-v8a` 两个签名 APK）
 .\gradlew.bat assembleRelease
 
 # Release（规避 lintVital 依赖下载问题）
@@ -87,8 +87,13 @@ cmd /c "set JAVA_HOME=C:\D\Develop\Java\jdk-17.0.16+8&& set PATH=%JAVA_HOME%\bin
 ## 4. 产物位置
 
 ```text
-Debug:   app\build\outputs\apk\debug\tsm-player-debug-<versionName>.apk
-Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
+Debug:
+  app\build\outputs\apk\debug\tsm-player-debug-armeabi-v7a-<versionName>.apk
+  app\build\outputs\apk\debug\tsm-player-debug-arm64-v8a-<versionName>.apk
+
+Release:
+  app\build\outputs\apk\release\tsm-player-release-armeabi-v7a-<versionName>.apk
+  app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
 ```
 
 ## 5. Release 命令差异说明
@@ -105,15 +110,17 @@ Release: app\build\outputs\apk\release\tsm-player-release-<versionName>.apk
 
 ## 6. 构建变体说明
 
-项目只有 `debug` 和 `release` 两个构建变体，不再区分 flavor：
+项目只有 `debug` 和 `release` 两个构建变体，不再区分 flavor；每个构建变体都会按 ABI 拆成两个 APK：
 
 1. `debug`
 - 包名：`com.github.gbandszxc.tvmediaplayer.debug`（带 `.debug` 后缀，可与 release 并行安装）
 - `android.software.leanback required=false`，可在手机/平板安装侧载调试
+- 产物：`armeabi-v7a` 与 `arm64-v8a` 各一包
 
 2. `release`
 - 包名：`com.github.gbandszxc.tvmediaplayer`（正式包名）
 - 使用签名配置，`required=false` 同样兼容多设备安装
+- 产物：`armeabi-v7a` 与 `arm64-v8a` 各一包
 ## 7. 签名配置与安全
 
 1. 项目已在 `app/build.gradle` 配置 `signingConfigs.release`。
