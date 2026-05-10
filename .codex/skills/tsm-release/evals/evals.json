@@ -1,0 +1,23 @@
+{
+  "skill_name": "tsm-release",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮当前项目发一个新版本，更新内容是修复播放页返回状态和优化 SMB 目录加载。",
+      "expected_output": "应使用用户提供的更新日志，递增 versionName/versionCode，维护 docs，运行测试与 Debug/Release 构建，提交推送后用 scripts/release.ps1 创建 GitHub Release 并校验两个 ABI APK。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "发版一下。",
+      "expected_output": "由于没有提供更新日志，应先询问是否需要根据上次发版后的 git 提交记录智能总结；如果用户拒绝智能总结，应提醒必须提供更新日志并停止。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "根据最近提交帮我智能总结更新日志并发布下一版。",
+      "expected_output": "应读取最新 Release/tag 后的 git log，总结用户可见更新，确认或使用该说明，随后执行完整发版流程并上传 armeabi-v7a 与 arm64-v8a 两个 APK。",
+      "files": []
+    }
+  ]
+}

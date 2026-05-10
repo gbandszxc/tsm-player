@@ -202,3 +202,15 @@ app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
 .\scripts\release.ps1 -TagName v1.0.7 -Title "v1.0.7"
 ```
 
+## 14. 项目级发版 Skill
+
+仓库内新增项目级 skill：
+
+```text
+.codex\skills\tsm-release\SKILL.md
+```
+
+后续在 Codex 中进行本项目发版、版本迭代、GitHub Release 创建或上传 release APK 时，应优先调用 `tsm-release`。该 skill 会复用 `scripts\release.ps1`，并固定执行更新日志确认、版本号递增、文档维护、Debug/Release 构建、提交推送、GitHub Release 创建与两个 ABI 资产校验。
+
+如果用户没有提供更新日志，skill 会先询问是否需要根据上次发版后的 git 提交记录智能总结；若用户不需要智能总结，则必须由用户补充更新日志后再继续发版。
+
