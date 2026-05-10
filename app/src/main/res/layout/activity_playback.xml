@@ -1,233 +1,283 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="#172554"
-    android:padding="20dp">
+    android:layout_height="match_parent">
 
-    <!-- 上方主内容区：封面 + 信息 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="horizontal">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#172554"
+        android:padding="20dp">
 
-        <!-- 封面区：SquareFrameLayout 保证宽高相等，centerCrop 裁剪非正方形图片 -->
-        <com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:layout_gravity="center_vertical"
-            android:background="#25324A"
-            android:clipChildren="true"
-            android:clipToPadding="true">
-
-            <ImageView
-                android:id="@+id/iv_artwork"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/default_cover" />
-        </com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout>
-
-        <!-- 信息区：占 70%，内部垂直排列，歌词 ScrollView 撑满剩余高度 -->
+        <!-- 上方主内容区：封面 + 信息 -->
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="7"
-            android:layout_marginStart="20dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:id="@+id/tv_playback_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="歌曲：暂无播放内容"
-                android:textColor="#EAF2FF"
-                android:textSize="28sp"
-                android:maxLines="2"
-                android:ellipsize="end"
-                android:fontFamily="@font/misans_bold" />
-
-            <TextView
-                android:id="@+id/tv_playback_artist"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="艺术家：-"
-                android:textColor="#CBD5E1"
-                android:textSize="18sp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:fontFamily="@font/misans_regular" />
-
-            <TextView
-                android:id="@+id/tv_playback_album"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:text="专辑：-"
-                android:textColor="#CBD5E1"
-                android:textSize="18sp"
-                android:maxLines="1"
-                android:ellipsize="end"
-                android:fontFamily="@font/misans_regular" />
-
-            <TextView
-                android:id="@+id/tv_playback_time"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="00:00 / 00:00"
-                android:textColor="#EAF2FF"
-                android:textSize="16sp"
-                android:fontFamily="@font/misans_medium" />
-
-            <SeekBar
-                android:id="@+id/pb_playback"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:focusable="true"
-                android:focusableInTouchMode="true"
-                android:nextFocusDown="@id/btn_prev"
-                android:max="1000"
-                android:progressTint="#34D399"
-                android:progressBackgroundTint="#334155"
-                android:thumbTint="#EAF2FF" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="歌词："
-                android:textColor="#60A5FA"
-                android:textSize="18sp"
-                android:fontFamily="@font/misans_bold" />
-
-            <!-- 歌词滚动区：与全屏逻辑一致，当前行高亮，自动滚动 -->
-            <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
-                android:id="@+id/scroll_lyrics"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
-                android:layout_marginTop="10dp"
-                android:fadeScrollbars="false"
-                android:scrollbars="none"
-                android:focusable="false"
-                android:focusableInTouchMode="false"
-                android:descendantFocusability="blocksDescendants">
-
-                <TextView
-                    android:id="@+id/tv_lyric_content"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="#94A3B8"
-                    android:textSize="20sp"
-                    android:lineSpacingExtra="6dp"
-                    android:fontFamily="@font/misans_regular"
-                    android:focusable="false" />
-            </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
-        </LinearLayout>
-    </LinearLayout>
-
-    <!-- 底部按钮栏：HorizontalScrollView 防止小屏溢出，支持方向键导航 -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:scrollbars="none"
-        android:fillViewport="false">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/btn_prev"
-                android:layout_width="wrap_content"
+            <!-- 封面区：SquareFrameLayout 保证宽高相等，centerCrop 裁剪非正方形图片 -->
+            <com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:minWidth="100dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="上一首"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_dark"
-                android:fontFamily="@font/misans_medium" />
+                android:layout_weight="3"
+                android:layout_gravity="center_vertical"
+                android:background="#25324A"
+                android:clipChildren="true"
+                android:clipToPadding="true">
 
-            <Button
-                android:id="@+id/btn_play_pause"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:minWidth="100dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="播放"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_green"
-                android:fontFamily="@font/misans_medium" />
+                <ImageView
+                    android:id="@+id/iv_artwork"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:nextFocusRight="@id/pb_playback"
+                    android:nextFocusDown="@id/pb_playback"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/default_cover" />
+            </com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout>
 
-            <Button
-                android:id="@+id/btn_next"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:minWidth="100dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="下一首"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_dark"
-                android:fontFamily="@font/misans_medium" />
+            <!-- 信息区：占 70%，内部垂直排列，歌词 ScrollView 撑满剩余高度 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="7"
+                android:layout_marginStart="20dp"
+                android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btn_lyrics_fullscreen"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:minWidth="120dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="歌词全屏"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_primary"
-                android:fontFamily="@font/misans_medium" />
+                <TextView
+                    android:id="@+id/tv_playback_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="歌曲：暂无播放内容"
+                    android:textColor="#EAF2FF"
+                    android:textSize="28sp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_bold" />
 
-            <Button
-                android:id="@+id/btn_back_to_browser"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:minWidth="120dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="返回文件页"
-                android:textAllCaps="false"
-                android:textColor="#FFFFFF"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_primary"
-                android:fontFamily="@font/misans_medium" />
+                <TextView
+                    android:id="@+id/tv_playback_artist"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="艺术家：-"
+                    android:textColor="#CBD5E1"
+                    android:textSize="18sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_regular" />
 
-            <Button
-                android:id="@+id/btn_locate"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:minWidth="120dp"
-                android:nextFocusUp="@id/pb_playback"
-                android:text="定位"
-                android:textAllCaps="false"
-                android:textColor="#3A2A00"
-                android:textSize="16sp"
-                android:background="@drawable/bg_button_light_yellow"
-                android:fontFamily="@font/misans_medium" />
+                <TextView
+                    android:id="@+id/tv_playback_album"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="专辑：-"
+                    android:textColor="#CBD5E1"
+                    android:textSize="18sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_regular" />
+
+                <TextView
+                    android:id="@+id/tv_playback_time"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="00:00 / 00:00"
+                    android:textColor="#EAF2FF"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/misans_medium" />
+
+                <SeekBar
+                    android:id="@+id/pb_playback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:focusable="true"
+                    android:focusableInTouchMode="true"
+                    android:nextFocusUp="@id/iv_artwork"
+                    android:nextFocusDown="@id/btn_prev"
+                    android:nextFocusLeft="@id/iv_artwork"
+                    android:max="1000"
+                    android:progressTint="#34D399"
+                    android:progressBackgroundTint="#334155"
+                    android:thumbTint="#EAF2FF" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="歌词："
+                    android:textColor="#60A5FA"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/misans_bold" />
+
+                <!-- 歌词滚动区：与全屏逻辑一致，当前行高亮，自动滚动 -->
+                <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
+                    android:id="@+id/scroll_lyrics"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="10dp"
+                    android:fadeScrollbars="false"
+                    android:scrollbars="none"
+                    android:focusable="false"
+                    android:focusableInTouchMode="false"
+                    android:descendantFocusability="blocksDescendants">
+
+                    <TextView
+                        android:id="@+id/tv_lyric_content"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="#94A3B8"
+                        android:textSize="20sp"
+                        android:lineSpacingExtra="6dp"
+                        android:fontFamily="@font/misans_regular"
+                        android:focusable="false" />
+                </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
+            </LinearLayout>
         </LinearLayout>
-    </HorizontalScrollView>
 
-</LinearLayout>
+        <!-- 底部按钮栏：HorizontalScrollView 防止小屏溢出，支持方向键导航 -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:scrollbars="none"
+            android:fillViewport="false">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_prev"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="100dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="上一首"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_dark"
+                    android:fontFamily="@font/misans_medium" />
+
+                <Button
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:minWidth="100dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="播放"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_green"
+                    android:fontFamily="@font/misans_medium" />
+
+                <Button
+                    android:id="@+id/btn_next"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:minWidth="100dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="下一首"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_dark"
+                    android:fontFamily="@font/misans_medium" />
+
+                <Button
+                    android:id="@+id/btn_lyrics_fullscreen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:minWidth="120dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="歌词全屏"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_primary"
+                    android:fontFamily="@font/misans_medium" />
+
+                <Button
+                    android:id="@+id/btn_back_to_browser"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:minWidth="120dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="返回文件页"
+                    android:textAllCaps="false"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_primary"
+                    android:fontFamily="@font/misans_medium" />
+
+                <Button
+                    android:id="@+id/btn_locate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:minWidth="120dp"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text="定位"
+                    android:textAllCaps="false"
+                    android:textColor="#3A2A00"
+                    android:textSize="16sp"
+                    android:background="@drawable/bg_button_light_yellow"
+                    android:fontFamily="@font/misans_medium" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/layout_artwork_fullscreen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_artwork_fullscreen_blur"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:alpha="0.78"
+            android:scaleType="centerCrop" />
+
+        <ImageView
+            android:id="@+id/iv_artwork_fullscreen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter" />
+
+        <Button
+            android:id="@+id/btn_close_artwork_fullscreen"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_margin="24dp"
+            android:minWidth="96dp"
+            android:text="关闭"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:background="@drawable/bg_button_dark"
+            android:fontFamily="@font/misans_medium" />
+    </FrameLayout>
+</FrameLayout>
