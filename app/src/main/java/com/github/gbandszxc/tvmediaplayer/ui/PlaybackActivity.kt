@@ -95,7 +95,6 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var layoutArtworkFullscreen: FrameLayout
     private lateinit var ivArtworkFullscreenBlur: ImageView
     private lateinit var ivArtworkFullscreen: ImageView
-    private lateinit var btnCloseArtworkFullscreen: Button
     private lateinit var btnPrevious: Button
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
@@ -155,7 +154,6 @@ class PlaybackActivity : BaseActivity() {
         layoutArtworkFullscreen = findViewById(R.id.layout_artwork_fullscreen)
         ivArtworkFullscreenBlur = findViewById(R.id.iv_artwork_fullscreen_blur)
         ivArtworkFullscreen = findViewById(R.id.iv_artwork_fullscreen)
-        btnCloseArtworkFullscreen = findViewById(R.id.btn_close_artwork_fullscreen)
         btnPrevious = findViewById(R.id.btn_prev)
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
@@ -177,12 +175,9 @@ class PlaybackActivity : BaseActivity() {
             }
         }
         layoutArtworkFullscreen.setOnClickListener { hideArtworkFullscreen() }
-        btnCloseArtworkFullscreen.setOnClickListener { hideArtworkFullscreen() }
         layoutArtworkFullscreen.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE ||
-                keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-            ) {
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
                 hideArtworkFullscreen()
                 true
             } else {
@@ -531,7 +526,7 @@ class PlaybackActivity : BaseActivity() {
         renderArtworkFullscreen(bitmap)
         layoutArtworkFullscreen.visibility = View.VISIBLE
         layoutArtworkFullscreen.bringToFront()
-        btnCloseArtworkFullscreen.requestFocus()
+        layoutArtworkFullscreen.requestFocus()
     }
 
     private fun renderArtworkFullscreen(bitmap: Bitmap) {
