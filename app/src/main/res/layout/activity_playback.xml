@@ -19,23 +19,26 @@
 
             <!-- 封面区：SquareFrameLayout 保证宽高相等，centerCrop 裁剪非正方形图片 -->
             <com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout
+                android:id="@+id/layout_artwork_frame"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="3"
                 android:layout_gravity="center_vertical"
                 android:background="#25324A"
+                android:clickable="true"
                 android:clipChildren="true"
-                android:clipToPadding="true">
+                android:clipToPadding="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:foreground="@drawable/bg_artwork_focus"
+                android:nextFocusRight="@id/pb_playback"
+                android:nextFocusDown="@id/pb_playback">
 
                 <ImageView
                     android:id="@+id/iv_artwork"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true"
-                    android:nextFocusRight="@id/pb_playback"
-                    android:nextFocusDown="@id/pb_playback"
+                    android:focusable="false"
                     android:scaleType="centerCrop"
                     android:src="@drawable/default_cover" />
             </com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout>
@@ -100,9 +103,9 @@
                     android:layout_marginTop="8dp"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
-                    android:nextFocusUp="@id/iv_artwork"
+                    android:nextFocusUp="@id/layout_artwork_frame"
                     android:nextFocusDown="@id/btn_prev"
-                    android:nextFocusLeft="@id/iv_artwork"
+                    android:nextFocusLeft="@id/layout_artwork_frame"
                     android:max="1000"
                     android:progressTint="#34D399"
                     android:progressBackgroundTint="#334155"

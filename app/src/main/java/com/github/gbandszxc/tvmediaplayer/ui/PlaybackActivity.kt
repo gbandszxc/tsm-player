@@ -84,6 +84,7 @@ class PlaybackActivity : BaseActivity() {
     private val tagInfoCache = mutableMapOf<String, AudioTagInfo>()
     private var fallbackConfig: SmbConfig = SmbConfig.Empty
 
+    private lateinit var layoutArtworkFrame: FrameLayout
     private lateinit var ivArtwork: ImageView
     private lateinit var tvTitle: TextView
     private lateinit var tvArtist: TextView
@@ -143,6 +144,7 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun bindViews() {
+        layoutArtworkFrame = findViewById(R.id.layout_artwork_frame)
         ivArtwork = findViewById(R.id.iv_artwork)
         tvTitle = findViewById(R.id.tv_playback_title)
         tvArtist = findViewById(R.id.tv_playback_artist)
@@ -163,8 +165,8 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun bindActions() {
-        ivArtwork.setOnClickListener { showArtworkFullscreen() }
-        ivArtwork.setOnKeyListener { _, keyCode, event ->
+        layoutArtworkFrame.setOnClickListener { showArtworkFullscreen() }
+        layoutArtworkFrame.setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN &&
                 (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)
             ) {
@@ -541,7 +543,7 @@ class PlaybackActivity : BaseActivity() {
 
     private fun hideArtworkFullscreen() {
         layoutArtworkFullscreen.visibility = View.GONE
-        ivArtwork.requestFocus()
+        layoutArtworkFrame.requestFocus()
     }
 
     private fun createScaledBlurSource(bitmap: Bitmap): Bitmap {
