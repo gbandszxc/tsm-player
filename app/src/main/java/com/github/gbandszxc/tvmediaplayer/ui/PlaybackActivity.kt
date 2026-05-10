@@ -3,6 +3,7 @@
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Typeface
 import android.os.Bundle
@@ -12,12 +13,15 @@ import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.KeyEvent
+import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
@@ -75,6 +79,7 @@ class PlaybackActivity : BaseActivity() {
     private var currentTimeline: LrcTimeline? = null
     private var currentLyricKey: String? = null
     private var currentArtworkKey: String? = null
+    private var currentArtworkBitmap: Bitmap? = null
     private var currentTagKey: String? = null
     private val tagInfoCache = mutableMapOf<String, AudioTagInfo>()
     private var fallbackConfig: SmbConfig = SmbConfig.Empty
@@ -87,6 +92,10 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var pbProgress: SeekBar
     private lateinit var scrollLyrics: ScrollView
     private lateinit var tvLyricContent: TextView
+    private lateinit var layoutArtworkFullscreen: FrameLayout
+    private lateinit var ivArtworkFullscreenBlur: ImageView
+    private lateinit var ivArtworkFullscreen: ImageView
+    private lateinit var btnCloseArtworkFullscreen: Button
     private lateinit var btnPrevious: Button
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
@@ -115,6 +124,7 @@ class PlaybackActivity : BaseActivity() {
         bindViews()
         applyUiSettings()
         bindActions()
+        bindBackHandling()
     }
 
     override fun onResume() {
@@ -142,6 +152,10 @@ class PlaybackActivity : BaseActivity() {
         pbProgress = findViewById(R.id.pb_playback)
         scrollLyrics = findViewById(R.id.scroll_lyrics)
         tvLyricContent = findViewById(R.id.tv_lyric_content)
+        layoutArtworkFullscreen = findViewById(R.id.layout_artwork_fullscreen)
+        ivArtworkFullscreenBlur = findViewById(R.id.iv_artwork_fullscreen_blur)
+        ivArtworkFullscreen = findViewById(R.id.iv_artwork_fullscreen)
+        btnCloseArtworkFullscreen = findViewById(R.id.btn_close_artwork_fullscreen)
         btnPrevious = findViewById(R.id.btn_prev)
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
@@ -151,6 +165,30 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun bindActions() {
+        ivArtwork.setOnClickListener { showArtworkFullscreen() }
+        ivArtwork.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN &&
+                (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)
+            ) {
+                showArtworkFullscreen()
+                true
+            } else {
+                false
+            }
+        }
+        layoutArtworkFullscreen.setOnClickListener { hideArtworkFullscreen() }
+        btnCloseArtworkFullscreen.setOnClickListener { hideArtworkFullscreen() }
+        layoutArtworkFullscreen.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE ||
+                keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+            ) {
+                hideArtworkFullscreen()
+                true
+            } else {
+                false
+            }
+        }
         btnPrevious.setOnClickListener { mediaController?.seekToPreviousMediaItem() }
         btnPlayPause.setOnClickListener {
             val controller = mediaController ?: return@setOnClickListener
@@ -216,6 +254,22 @@ class PlaybackActivity : BaseActivity() {
                 startProgressTicker()
             }
         })
+    }
+
+    private fun bindBackHandling() {
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
+                        hideArtworkFullscreen()
+                        return
+                    }
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        )
     }
 
     private fun applyUiSettings() {
@@ -421,10 +475,10 @@ class PlaybackActivity : BaseActivity() {
         if (artworkKey == currentArtworkKey) return
         currentArtworkKey = artworkKey
         PlaybackArtworkCache.get(artworkKey)?.let {
-            ivArtwork.setImageBitmap(it)
+            setCurrentArtworkBitmap(it)
             return
         }
-        ivArtwork.setImageResource(R.drawable.default_cover)
+        setDefaultArtwork()
 
         lifecycleScope.launch {
             // 先查磁盘缓存
@@ -433,7 +487,7 @@ class PlaybackActivity : BaseActivity() {
             }
             if (diskHit != null) {
                 if (currentArtworkKey != artworkKey) return@launch
-                ivArtwork.setImageBitmap(diskHit)
+                setCurrentArtworkBitmap(diskHit)
                 PlaybackArtworkCache.put(artworkKey, diskHit)
                 return@launch
             }
@@ -444,13 +498,65 @@ class PlaybackActivity : BaseActivity() {
             }
             if (currentArtworkKey != artworkKey) return@launch
             if (bitmap != null) {
-                ivArtwork.setImageBitmap(bitmap)
+                setCurrentArtworkBitmap(bitmap)
                 PlaybackArtworkCache.put(artworkKey, bitmap)
                 PlaybackArtworkCache.saveAsync(applicationContext, artworkKey, bitmap)
             } else {
-                ivArtwork.setImageResource(R.drawable.default_cover)
+                setDefaultArtwork()
             }
         }
+    }
+
+    private fun setCurrentArtworkBitmap(bitmap: Bitmap) {
+        currentArtworkBitmap = bitmap
+        ivArtwork.setImageBitmap(bitmap)
+        if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
+            renderArtworkFullscreen(bitmap)
+        }
+    }
+
+    private fun setDefaultArtwork() {
+        currentArtworkBitmap = null
+        ivArtwork.setImageResource(R.drawable.default_cover)
+        if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
+            hideArtworkFullscreen()
+        }
+    }
+
+    private fun showArtworkFullscreen() {
+        val bitmap = currentArtworkBitmap ?: run {
+            Toast.makeText(this, "暂无可全屏显示的图片", Toast.LENGTH_SHORT).show()
+            return
+        }
+        renderArtworkFullscreen(bitmap)
+        layoutArtworkFullscreen.visibility = View.VISIBLE
+        layoutArtworkFullscreen.bringToFront()
+        btnCloseArtworkFullscreen.requestFocus()
+    }
+
+    private fun renderArtworkFullscreen(bitmap: Bitmap) {
+        ivArtworkFullscreen.setImageBitmap(bitmap)
+        val blurSource = createScaledBlurSource(bitmap)
+        val blurred = BitmapBlur.blur(blurSource, radius = 14)
+        if (blurSource !== bitmap) {
+            blurSource.recycle()
+        }
+        ivArtworkFullscreenBlur.setImageBitmap(blurred)
+    }
+
+    private fun hideArtworkFullscreen() {
+        layoutArtworkFullscreen.visibility = View.GONE
+        ivArtwork.requestFocus()
+    }
+
+    private fun createScaledBlurSource(bitmap: Bitmap): Bitmap {
+        val maxEdge = 320
+        val largestEdge = maxOf(bitmap.width, bitmap.height)
+        if (largestEdge <= maxEdge) return bitmap
+        val scale = maxEdge.toFloat() / largestEdge.toFloat()
+        val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
+        val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 
     private fun maybeLoadTagInfo(player: Player) {
