@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.SpannableStringBuilder
@@ -125,6 +126,7 @@ class PlaybackActivity : BaseActivity() {
         applyUiSettings()
         bindActions()
         bindBackHandling()
+        pbProgress.post { pbProgress.requestFocus() }
     }
 
     override fun onResume() {
@@ -521,10 +523,7 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun showArtworkFullscreen() {
-        val bitmap = currentArtworkBitmap ?: run {
-            Toast.makeText(this, "暂无可全屏显示的图片", Toast.LENGTH_SHORT).show()
-            return
-        }
+        val bitmap = currentArtworkBitmap ?: defaultArtworkBitmap()
         renderArtworkFullscreen(bitmap)
         layoutArtworkFullscreen.visibility = View.VISIBLE
         layoutArtworkFullscreen.bringToFront()
@@ -554,6 +553,18 @@ class PlaybackActivity : BaseActivity() {
         val width = (bitmap.width * scale).toInt().coerceAtLeast(1)
         val height = (bitmap.height * scale).toInt().coerceAtLeast(1)
         return Bitmap.createScaledBitmap(bitmap, width, height, true)
+    }
+
+    private fun defaultArtworkBitmap(): Bitmap {
+        val drawable = ContextCompat.getDrawable(this, R.drawable.default_cover)
+            ?: return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 512
+        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 512
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
     }
 
     private fun maybeLoadTagInfo(player: Player) {
