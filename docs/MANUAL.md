@@ -74,6 +74,9 @@ tsm-player/
 # Release（规避 lintVital 依赖下载问题）
 .\gradlew.bat clean assembleRelease -x lintVitalAnalyzeRelease
 
+# 发版（默认读取 app/build.gradle 当前版本，创建 v<versionName> Release 并上传两个 ABI APK）
+.\scripts\release.ps1
+
 # 清理
 .\gradlew.bat clean
 ```
@@ -167,4 +170,35 @@ Release:
 应用启动进入主界面时会在本进程内自动检查一次 GitHub 最新 Release；设置页“关于”分类下也提供“检查更新”手动入口。检测逻辑直接解析公开 Release 页面：先访问 `/releases/latest` 获取最新 tag，再访问 `/releases/expanded_assets/<tag>` 读取 assets HTML，不依赖 `api.github.com` REST API。随后读取当前 `BuildConfig.VERSION_NAME` 与设备 ABI，在 Release assets 中匹配命名为 `tsm-player-release-<abi>-<versionName>.apk` 且版本号更高的安装包。
 
 若发现新版本，会弹窗询问是否下载；用户确认后前台显示下载进度条，下载完成后通过系统 APK 安装页面继续安装。APK 临时保存在 `cacheDir/updates/`，并通过 `FileProvider` 只授权该缓存目录给系统安装器读取。
+
+## 13. GitHub Release 发版脚本
+
+项目根目录提供 `scripts/release.ps1`。脚本会读取 `app/build.gradle` 中的 `versionName/versionCode`，默认执行：
+
+```powershell
+.\gradlew.bat clean assembleRelease -x lintVitalAnalyzeRelease
+```
+
+随后校验以下两个 Release APK 存在且非空，并通过已登录的 `gh` 创建 `v<versionName>` Release：
+
+```text
+app\build\outputs\apk\release\tsm-player-release-armeabi-v7a-<versionName>.apk
+app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
+```
+
+常用参数：
+
+```powershell
+# 标准发版
+.\scripts\release.ps1
+
+# 只上传已有构建产物
+.\scripts\release.ps1 -SkipBuild
+
+# 更新已存在 Release 的 APK 资产
+.\scripts\release.ps1 -SkipBuild -Clobber
+
+# 指定自定义 tag 或标题
+.\scripts\release.ps1 -TagName v1.0.7 -Title "v1.0.7"
+```
 
