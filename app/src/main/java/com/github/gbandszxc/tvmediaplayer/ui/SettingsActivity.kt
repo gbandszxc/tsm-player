@@ -14,11 +14,13 @@ import android.widget.TextView
 import android.widget.Toast
 import android.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import com.github.gbandszxc.tvmediaplayer.BuildConfig
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
+import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 import kotlinx.coroutines.launch
 
 class SettingsActivity : BaseActivity() {
@@ -198,20 +200,31 @@ class SettingsActivity : BaseActivity() {
                     listOf(
                         SettingsItem(
                             title = "项目描述",
-                            descriptionProvider = { "一款适配安卓TV，基于遥控器操作的本地SMB网络音乐播放器。" }
+                            descriptionProvider = {
+                                "一款适配安卓TV，基于遥控器操作的本地SMB网络音乐播放器。"
+                            },
+                            valueProvider = { "v${BuildConfig.VERSION_NAME} / ${AppUpdateManager.currentAbi()}" }
+                        ),
+                        SettingsItem(
+                            title = "检查更新",
+                            descriptionProvider = { "从 GitHub Release 查找适用于当前设备架构的新版本安装包" },
+                            action = {
+                                AppUpdateManager.checkAndPrompt(this, silentWhenNoUpdate = false)
+                            }
                         ),
                         SettingsItem(
                             title = "GitHub",
                             descriptionProvider = { "项目主页" },
-                            iconResId = R.drawable.ic_github
-                        ) {
-                            startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://github.com/gbandszxc/tsm-player")
+                            iconResId = R.drawable.ic_github,
+                            action = {
+                                startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://github.com/gbandszxc/tsm-player")
+                                    )
                                 )
-                            )
-                        }
+                            }
+                        )
                     )
                 }
             )

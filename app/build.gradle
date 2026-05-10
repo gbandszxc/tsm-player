@@ -66,6 +66,10 @@ android {
         unitTests.includeAndroidResources = true
     }
 
+    buildFeatures {
+        buildConfig true
+    }
+
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             def buildTypeName = variant.buildType.name

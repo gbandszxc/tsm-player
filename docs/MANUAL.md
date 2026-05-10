@@ -161,3 +161,9 @@ Release:
 ## 11. 单测基线状态
 截至 `2026-04-06`，此前记录在长列表导航计划中的 3 个 `Track9` 相关“基线失败”已不再复现，当前 `.\gradlew.bat testDebugUnitTest` 可通过，不再将它们视为已知失败项。
 
+## 12. 应用内更新检测
+
+应用启动进入主界面时会在本进程内自动检查一次 GitHub 最新 Release；设置页“关于”分类下也提供“检查更新”手动入口。检测逻辑直接解析公开 Release 页面：先访问 `/releases/latest` 获取最新 tag，再访问 `/releases/expanded_assets/<tag>` 读取 assets HTML，不依赖 `api.github.com` REST API。随后读取当前 `BuildConfig.VERSION_NAME` 与设备 ABI，在 Release assets 中匹配命名为 `tsm-player-release-<abi>-<versionName>.apk` 且版本号更高的安装包。
+
+若发现新版本，会弹窗询问是否下载；用户确认后前台显示下载进度条，下载完成后通过系统 APK 安装页面继续安装。APK 临时保存在 `cacheDir/updates/`，并通过 `FileProvider` 只授权该缓存目录给系统安装器读取。
+

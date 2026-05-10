@@ -8,6 +8,7 @@ import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.ui.BaseActivity
 import com.github.gbandszxc.tvmediaplayer.ui.TvBrowseFragment
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
+import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 
 class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,6 +21,7 @@ class MainActivity : BaseActivity() {
                 .commitNow()
         }
         deliverPlaybackLocateTarget()
+        AppUpdateManager.maybeCheckOnAppStart(this)
     }
 
     override fun onResume() {
