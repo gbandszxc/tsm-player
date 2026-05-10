@@ -18,6 +18,12 @@
       "prompt": "根据最近提交帮我智能总结更新日志并发布下一版。",
       "expected_output": "应读取最新 Release/tag 后的 git log，总结用户可见更新，确认或使用该说明，随后执行完整发版流程并上传 armeabi-v7a 与 arm64-v8a 两个 APK。",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "当前版本不变，基于最新代码重新打包并覆盖 GitHub Release 里的两个 APK 附件，不用更新 release 说明。",
+      "expected_output": "应识别为覆盖同版本附件流程，不要求更新日志，不递增 versionName/versionCode，确保工作区干净或先提交最新代码，然后运行 .\\scripts\\release.ps1 -Clobber 重新构建并覆盖上传两个 ABI APK，最后用 gh release view 校验资产。",
+      "files": []
     }
   ]
 }
