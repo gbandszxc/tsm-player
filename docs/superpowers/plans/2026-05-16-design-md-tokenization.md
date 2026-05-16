@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 `docs/spec/design.md` 按 Google Labs Code 的 `design.md` 规范升级并迁移为根目录 `DESIGN.md`，同步最新 UI 状态，并把 Android XML 中的通用颜色、圆角、描边、间距等抽取为公共 token / style 资源后统一引用。
+**Goal:** 将旧设计草图按 Google Labs Code 的 `design.md` 规范升级并迁移为根目录 `DESIGN.md`，同步最新 UI 状态，并把 Android XML 中的通用颜色、圆角、描边、间距等抽取为公共 token / style 资源后统一引用。
 
 **Architecture:** 以根目录 `DESIGN.md` 作为当前 UI/交互设计规范，文件格式遵循 <https://github.com/google-labs-code/design.md>：YAML front matter 提供机器可读 token，正文按 Overview、Colors、Typography、Layout、Elevation & Depth、Shapes、Components、Do's and Don'ts 的固定顺序说明设计理由。Android 资源层新增语义化 token：`colors.xml` 管颜色，`dimens.xml` 管尺寸/圆角/描边/字号，`styles.xml` 管可复用文本与控件样式；现有 drawable/layout/theme 改为引用这些 token，避免后续直接写硬编码样式值。
 
@@ -50,14 +50,14 @@ Expected: show current direct references, including `docs/MANUAL.md`, `docs/spec
 Use a git-aware move:
 
 ```powershell
-git mv docs/spec/design.md DESIGN.md
+git mv <旧设计草图路径> DESIGN.md
 ```
 
-Expected: `git status --short` shows `R  docs/spec/design.md -> DESIGN.md`.
+Expected: `git status --short` shows the old design sketch renamed to `DESIGN.md`.
 
 - [ ] **Step 3: Rewrite `DESIGN.md` to the Google Labs Code `design.md` format**
 
-Replace the old free-form document header with YAML front matter followed by ordered Markdown sections. Use this skeleton exactly as the target shape; fill the page sketches from the old `docs/spec/design.md` into the `Components` section instead of creating extra top-level sections:
+Replace the old free-form document header with YAML front matter followed by ordered Markdown sections. Use this skeleton exactly as the target shape; fill the page sketches from the old design sketch into the `Components` section instead of creating extra top-level sections:
 
 ```markdown
 ---
@@ -237,8 +237,8 @@ Expected: no lint errors. If the command needs to download the package, allow `n
 Replace direct references:
 
 ```text
-docs/spec/design.md -> DESIGN.md
-@docs/spec/design.md -> @DESIGN.md
+旧设计草图路径 -> DESIGN.md
+旧设计草图引用 -> @DESIGN.md
 ```
 
 Update these known files:
@@ -257,7 +257,7 @@ returns no active direct references, except historical text intentionally left u
 
 - [ ] **Step 7: Update `docs/MANUAL.md` file tree**
 
-Change the file structure section so `DESIGN.md` appears at repo root and `docs/spec/design.md` is removed. Also correct the stale `docs/spec/plan.md` entry to `docs/spec/plan/plan.md` if present.
+Change the file structure section so `DESIGN.md` appears at repo root and the old design sketch entry is removed. Also correct the stale plan entry to `docs/spec/plan/plan.md` if present.
 
 - [ ] **Step 8: Run documentation reference check**
 
@@ -273,7 +273,7 @@ Expected: only `DESIGN.md` references remain for the current design spec.
 
 ```powershell
 git add DESIGN.md docs/MANUAL.md docs/spec/problem/v1.0.0.md docs/spec/plan/2026-04-06-playback-locate-plan.md docs/spec/prompt/ReqInit.txt
-git commit -m "docs: 迁移设计规范到根目录" -m "- 将 docs/spec/design.md 更名为 DESIGN.md`n- 按 Google design.md 规范组织设计文档`n- 同步当前 UI、焦点与缓存行为说明`n- 更新旧设计文档引用路径"
+git commit -m "docs: 迁移设计规范到根目录" -m "- 将旧设计草图更名为 DESIGN.md`n- 按 Google design.md 规范组织设计文档`n- 同步当前 UI、焦点与缓存行为说明`n- 更新旧设计文档引用路径"
 ```
 
 ---
@@ -747,7 +747,7 @@ Insert after current MANUAL maintenance rules and before commit-log rules:
 ```text
 4. 涉及 UI、交互、遥控器焦点、页面布局、视觉样式、设置页结构、播放页/浏览页行为变更时，务必先读取并同步维护根目录 @DESIGN.md。该文件作为当前 UI/交互设计规范，格式遵循 https://github.com/google-labs-code/design.md；历史方案、计划和问题记录仍保留在 @docs/spec/ 下。
 5. 设计样式时必须优先使用 @DESIGN.md YAML front matter 和正文中注明的公共样式 token：颜色使用 @color/ui_*，尺寸/圆角/描边/字号使用 @dimen/ui_*，可复用文本和按钮样式使用 @style/Tsm*，背景优先复用 @drawable/bg_*。除图标、launcher、一次性插画或确有说明的特殊尺寸外，不要在 XML 中新增通用硬编码颜色、圆角、描边、字号。
-6. 文档迁移后，不再新增对 @docs/spec/design.md 的引用；需要引用设计规范时统一使用 @DESIGN.md。
+6. 文档迁移后，不再新增对旧设计草图路径的引用；需要引用设计规范时统一使用 @DESIGN.md。
 ```
 
 Renumber the existing commit-log rule after these additions.
@@ -772,7 +772,7 @@ Get-ChildItem -Path app\src\main\res -Recurse -Include *.xml | Select-String -Pa
 
 Expected:
 
-- First command returns no current design-doc references to `docs/spec/design.md`.
+- First command returns no current design-doc references to the old design sketch path.
 - `DESIGN.md` lint returns no errors.
 - Second command returns only accepted exceptions: launcher/vector/icon assets, intentionally one-off layout measurements, or values explicitly documented in `DESIGN.md`.
 
@@ -818,7 +818,7 @@ Expected: clean working tree, unless the implementer intentionally keeps uncommi
 
 ## Acceptance Criteria
 
-- 根目录存在 `DESIGN.md`，且 `docs/spec/design.md` 不再存在。
+- 根目录存在 `DESIGN.md`，且旧设计草图路径不再存在。
 - `DESIGN.md` 遵循 Google Labs Code `design.md` 规范：包含 YAML front matter，正文顶级章节按 Overview、Colors、Typography、Layout、Elevation & Depth、Shapes、Components、Do's and Don'ts 顺序组织，并通过 `npx @google/design.md lint DESIGN.md`。
 - `DESIGN.md` 同步当前 UI：浏览页快速定位、目录焦点锚点、播放页封面全屏预览、设置页当前分类竖线与焦点框、清缓存影响、应用内更新入口。
 - `AGENTS.md` 明确要求 UI 设计先读 `DESIGN.md`，并要求 XML 样式使用公共 token。
