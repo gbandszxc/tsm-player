@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="TsmTextPrimary">
+        <item name="android:textColor">@color/ui_text_primary</item>
+        <item name="android:fontFamily">@font/misans_regular</item>
+    </style>
+
+    <style name="TsmTextSecondary">
+        <item name="android:textColor">@color/ui_text_secondary</item>
+        <item name="android:fontFamily">@font/misans_regular</item>
+    </style>
+
+    <style name="TsmTextPageTitle">
+        <item name="android:textColor">@color/ui_accent_blue_text</item>
+        <item name="android:textSize">@dimen/ui_text_screen_title</item>
+        <item name="android:fontFamily">@font/misans_bold</item>
+    </style>
+
+    <style name="TsmTextSectionTitle">
+        <item name="android:textColor">@color/ui_accent_blue_text</item>
+        <item name="android:textSize">@dimen/ui_text_page_title</item>
+        <item name="android:fontFamily">@font/misans_bold</item>
+    </style>
+
+    <style name="TsmButtonBase">
+        <item name="android:minHeight">44dp</item>
+        <item name="android:paddingStart">@dimen/ui_space_3xl</item>
+        <item name="android:paddingEnd">@dimen/ui_space_3xl</item>
+        <item name="android:paddingTop">@dimen/ui_space_lg</item>
+        <item name="android:paddingBottom">@dimen/ui_space_lg</item>
+        <item name="android:textSize">@dimen/ui_text_body_large</item>
+        <item name="android:fontFamily">@font/misans_medium</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
+
+    <style name="TsmButtonPrimary" parent="TsmButtonBase">
+        <item name="android:background">@drawable/bg_button_primary</item>
+        <item name="android:textColor">@color/ui_text_on_accent</item>
+    </style>
+
+    <style name="TsmButtonDark" parent="TsmButtonBase">
+        <item name="android:background">@drawable/bg_button_dark</item>
+        <item name="android:textColor">@color/ui_text_on_accent</item>
+    </style>
+
+    <style name="TsmButtonSuccess" parent="TsmButtonBase">
+        <item name="android:background">@drawable/bg_button_green</item>
+        <item name="android:textColor">@color/ui_text_on_accent</item>
+    </style>
+
+    <style name="TsmButtonWarning" parent="TsmButtonBase">
+        <item name="android:background">@drawable/bg_button_light_yellow</item>
+        <item name="android:textColor">@color/ui_text_warning_dark</item>
+    </style>
+</resources>

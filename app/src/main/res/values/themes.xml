@@ -1,8 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.TvMediaPlayer" parent="Theme.Leanback">
-        <item name="android:windowBackground">#0F0F23</item>
-        <item name="defaultBrandColor">#22C55E</item>
-        <item name="defaultSearchColor">#4338CA</item>
+        <item name="android:windowBackground">@color/ui_bg_app</item>
+        <item name="defaultBrandColor">@color/ui_accent_green</item>
+        <item name="defaultSearchColor">@color/ui_accent_blue_focus</item>
         <item name="android:fontFamily">@font/misans_family</item>
         <item name="fontFamily">@font/misans_family</item>
     </style>

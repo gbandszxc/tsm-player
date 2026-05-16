@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="ui_radius_indicator">2dp</dimen>
+    <dimen name="ui_radius_tag">3dp</dimen>
+    <dimen name="ui_radius_item">4dp</dimen>
+    <dimen name="ui_radius_button">6dp</dimen>
+    <dimen name="ui_radius_panel">8dp</dimen>
+
+    <dimen name="ui_stroke_focus">2dp</dimen>
+    <dimen name="ui_stroke_artwork_focus">3dp</dimen>
+    <dimen name="ui_indicator_width">4dp</dimen>
+
+    <dimen name="ui_space_xs">4dp</dimen>
+    <dimen name="ui_space_sm">6dp</dimen>
+    <dimen name="ui_space_md">8dp</dimen>
+    <dimen name="ui_space_lg">10dp</dimen>
+    <dimen name="ui_space_xl">12dp</dimen>
+    <dimen name="ui_space_2xl">14dp</dimen>
+    <dimen name="ui_space_3xl">16dp</dimen>
+    <dimen name="ui_space_4xl">20dp</dimen>
+    <dimen name="ui_space_5xl">24dp</dimen>
+    <dimen name="ui_space_screen">28dp</dimen>
+
+    <dimen name="ui_text_caption">12sp</dimen>
+    <dimen name="ui_text_body">14sp</dimen>
+    <dimen name="ui_text_body_large">16sp</dimen>
+    <dimen name="ui_text_title">18sp</dimen>
+    <dimen name="ui_text_section_title">20sp</dimen>
+    <dimen name="ui_text_page_title">22sp</dimen>
+    <dimen name="ui_text_screen_title">26sp</dimen>
+    <dimen name="ui_text_hero">28sp</dimen>
+</resources>

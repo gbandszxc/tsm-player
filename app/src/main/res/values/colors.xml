@@ -1,4 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#213547</color>
+
+    <color name="ui_bg_app">#0F0F23</color>
+    <color name="ui_bg_app_deep">#0B1220</color>
+    <color name="ui_bg_sidebar">#0D1A2E</color>
+    <color name="ui_bg_panel">#1B2437</color>
+    <color name="ui_bg_panel_deep">#111827</color>
+    <color name="ui_bg_panel_muted">#14233A</color>
+    <color name="ui_bg_item">#2A2E39</color>
+    <color name="ui_bg_item_focus">#2B3548</color>
+    <color name="ui_bg_overlay">#DD0F172A</color>
+    <color name="ui_transparent">#00000000</color>
+
+    <color name="ui_text_primary">#EAF2FF</color>
+    <color name="ui_text_on_accent">#FFFFFF</color>
+    <color name="ui_text_secondary">#CBD5E1</color>
+    <color name="ui_text_muted">#94A3B8</color>
+    <color name="ui_text_warning_dark">#3A2A00</color>
+
+    <color name="ui_accent_blue">#2563EB</color>
+    <color name="ui_accent_blue_focus">#1D4ED8</color>
+    <color name="ui_accent_blue_text">#60A5FA</color>
+    <color name="ui_accent_blue_stroke">#93C5FD</color>
+    <color name="ui_accent_blue_stroke_soft">#BFDBFE</color>
+    <color name="ui_accent_green">#16A34A</color>
+    <color name="ui_accent_green_focus">#059669</color>
+    <color name="ui_accent_green_stroke">#10B981</color>
+    <color name="ui_accent_green_text">#A7F3D0</color>
+    <color name="ui_accent_amber">#F59E0B</color>
+    <color name="ui_accent_amber_focus">#D97706</color>
+    <color name="ui_accent_amber_stroke">#FDE68A</color>
+    <color name="ui_accent_yellow">#FCD34D</color>
+    <color name="ui_accent_yellow_focus">#F59E0B</color>
+    <color name="ui_accent_yellow_stroke">#FEF3C7</color>
+
+    <color name="ui_divider">#1E3A5F</color>
+    <color name="ui_tag_dir">#1E3A5F</color>
+    <color name="ui_tag_audio">#064E3B</color>
 </resources>
