@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 当前分类同时获得遥控器焦点：焦点框优先，左侧指示条由子 View 保留 -->
+    <item android:state_focused="true" android:state_selected="true">
+        <shape>
+            <corners android:radius="8dp" />
+            <solid android:color="#1D4ED8" />
+            <stroke android:width="2dp" android:color="#93C5FD" />
+        </shape>
+    </item>
     <!-- 遥控器焦点在此项 -->
     <item android:state_focused="true">
         <shape>
@@ -12,8 +20,7 @@
     <item android:state_selected="true">
         <shape>
             <corners android:radius="8dp" />
-            <solid android:color="#1E3A5F" />
-            <stroke android:width="2dp" android:color="#3B82F6" />
+            <solid android:color="#14233A" />
         </shape>
     </item>
     <!-- 默认 -->

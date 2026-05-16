@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 当前已进入的分类：用形状而不是整框表达，避免和遥控器焦点混淆 -->
+    <item android:state_selected="true">
+        <shape>
+            <corners android:radius="2dp" />
+            <solid android:color="#60A5FA" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="2dp" />
+            <solid android:color="#00000000" />
+        </shape>
+    </item>
+</selector>
