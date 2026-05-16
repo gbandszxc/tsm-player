@@ -106,7 +106,7 @@
                     android:nextFocusUp="@id/layout_artwork_frame"
                     android:nextFocusDown="@id/btn_prev"
                     android:nextFocusLeft="@id/layout_artwork_frame"
-                    android:max="1000"
+                    android:max="10000"
                     android:progressTint="@color/ui_accent_green_text"
                     android:progressBackgroundTint="@color/ui_bg_track"
                     android:thumbTint="@color/ui_text_primary" />

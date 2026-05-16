@@ -8,6 +8,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Typeface
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
@@ -74,6 +75,9 @@ class PlaybackActivity : BaseActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private var progressJob: Job? = null
+    private var seekIdleCommitJob: Job? = null
+    private var playerProgressHoldUntilMs: Long = 0L
+    private val playbackSeekController = PlaybackSeekController()
     private val lyricsRepository = SmbLyricsRepository()
     private lateinit var configStore: SmbConfigStore
 
@@ -202,8 +206,8 @@ class PlaybackActivity : BaseActivity() {
         btnLocate.setOnClickListener { locateCurrentPlayback() }
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
-            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
                 val controller = mediaController ?: return@setOnKeyListener false
                 if (controller.isPlaying) controller.pause() else controller.play()
                 renderPlayerState(controller)
@@ -216,18 +220,27 @@ class PlaybackActivity : BaseActivity() {
             val duration = controller.duration
             if (duration <= 0 || duration == C.TIME_UNSET) return@setOnKeyListener true
 
-            val step = seekStepMs(event.repeatCount)
-            val delta = if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) step else -step
-            val target = (controller.currentPosition + delta).coerceIn(0L, duration)
-            controller.seekTo(target)
-            renderProgress(target, duration)
-            renderLyrics(target)
-            true
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> {
+                    handleProgressDirectionKeyDown(controller, keyCode, event.repeatCount, duration)
+                    true
+                }
+
+                KeyEvent.ACTION_UP -> {
+                    commitPendingProgressSeek(controller, duration, restartTicker = true)
+                    true
+                }
+
+                else -> true
+            }
         }
 
         pbProgress.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onStartTrackingTouch(seekBar: SeekBar) {
                 // 拖动开始时暂停进度自动刷新，避免进度条被播放器覆盖
+                seekIdleCommitJob?.cancel()
+                seekIdleCommitJob = null
+                playbackSeekController.reset()
                 progressJob?.cancel()
             }
 
@@ -236,7 +249,7 @@ class PlaybackActivity : BaseActivity() {
                 val controller = mediaController ?: return
                 val duration = controller.duration
                 if (duration <= 0 || duration == C.TIME_UNSET) return
-                val targetMs = (progress.toLong() * duration) / 1000L
+                val targetMs = (progress.toLong() * duration) / seekBar.max.toLong()
                 renderProgress(targetMs, duration)
                 renderLyrics(targetMs)
             }
@@ -247,7 +260,7 @@ class PlaybackActivity : BaseActivity() {
                 }
                 val duration = controller.duration
                 if (duration > 0 && duration != C.TIME_UNSET) {
-                    val targetMs = (seekBar.progress.toLong() * duration) / 1000L
+                    val targetMs = (seekBar.progress.toLong() * duration) / seekBar.max.toLong()
                     controller.seekTo(targetMs)
                 }
                 startProgressTicker()
@@ -322,10 +335,11 @@ class PlaybackActivity : BaseActivity() {
             btnPlayPause.setBackgroundResource(R.drawable.bg_button_green)
         }
 
-        renderProgress(player.currentPosition, player.duration)
         maybeLoadLyrics(player)
         maybeLoadArtwork(player)
         maybeLoadTagInfo(player)
+        if (shouldDeferPlayerProgressRender()) return
+        renderProgress(player.currentPosition, player.duration)
         renderLyrics(player.currentPosition)
     }
 
@@ -334,7 +348,7 @@ class PlaybackActivity : BaseActivity() {
         progressJob = lifecycleScope.launch {
             while (isActive) {
                 val player = mediaController
-                if (player != null) {
+                if (player != null && !shouldDeferPlayerProgressRender()) {
                     renderProgress(player.currentPosition, player.duration)
                     renderLyrics(player.currentPosition)
                 }
@@ -343,13 +357,79 @@ class PlaybackActivity : BaseActivity() {
         }
     }
 
+    private fun handleProgressDirectionKeyDown(
+        controller: MediaController,
+        keyCode: Int,
+        repeatCount: Int,
+        durationMs: Long,
+    ) {
+        progressJob?.cancel()
+        val direction = if (keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) 1 else -1
+        val update = playbackSeekController.onDirectionKeyDown(
+            direction = direction,
+            repeatCount = repeatCount,
+            currentPositionMs = controller.currentPosition,
+            durationMs = durationMs,
+            nowMs = SystemClock.elapsedRealtime(),
+        )
+        renderProgress(update.previewPositionMs, durationMs)
+        update.commitPositionMs?.let { position ->
+            controller.seekTo(position)
+            renderLyrics(position)
+        }
+        schedulePendingProgressSeekCommit(controller, durationMs)
+    }
+
+    private fun schedulePendingProgressSeekCommit(controller: MediaController, durationMs: Long) {
+        seekIdleCommitJob?.cancel()
+        seekIdleCommitJob = lifecycleScope.launch {
+            delay(PlaybackSeekController.DEFAULT_IDLE_COMMIT_DELAY_MS)
+            val commit = playbackSeekController.commitIfIdle(SystemClock.elapsedRealtime()) ?: return@launch
+            holdPlayerProgressRender()
+            controller.seekTo(commit.positionMs)
+            renderProgress(commit.positionMs, durationMs)
+            renderLyrics(commit.positionMs)
+            startProgressTicker()
+        }
+    }
+
+    private fun commitPendingProgressSeek(
+        controller: MediaController,
+        durationMs: Long,
+        restartTicker: Boolean,
+    ) {
+        seekIdleCommitJob?.cancel()
+        seekIdleCommitJob = null
+        val commit = playbackSeekController.commitPending()
+        if (commit != null) {
+            holdPlayerProgressRender()
+            controller.seekTo(commit.positionMs)
+            renderProgress(commit.positionMs, durationMs)
+            renderLyrics(commit.positionMs)
+        }
+        if (restartTicker) {
+            startProgressTicker()
+        }
+    }
+
+    private fun shouldDeferPlayerProgressRender(): Boolean {
+        return playbackSeekController.isPreviewActive ||
+            SystemClock.elapsedRealtime() < playerProgressHoldUntilMs
+    }
+
+    private fun holdPlayerProgressRender() {
+        playerProgressHoldUntilMs = SystemClock.elapsedRealtime() + PLAYER_PROGRESS_RENDER_HOLD_MS
+    }
+
     private fun renderProgress(positionMs: Long, durationMs: Long) {
         val safeDuration = if (durationMs <= 0 || durationMs == C.TIME_UNSET) 0L else durationMs
         tvTime.text = "${formatMs(positionMs)} / ${formatMs(safeDuration)}"
         pbProgress.progress = if (safeDuration <= 0L) {
             0
         } else {
-            ((positionMs.coerceAtLeast(0L) * 1000L) / safeDuration).toInt().coerceIn(0, 1000)
+            ((positionMs.coerceAtLeast(0L) * pbProgress.max.toLong()) / safeDuration)
+                .toInt()
+                .coerceIn(0, pbProgress.max)
         }
     }
 
@@ -756,6 +836,10 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun releaseController() {
+        seekIdleCommitJob?.cancel()
+        seekIdleCommitJob = null
+        playerProgressHoldUntilMs = 0L
+        playbackSeekController.reset()
         progressJob?.cancel()
         progressJob = null
         mediaController?.removeListener(playerListener)
@@ -770,16 +854,6 @@ class PlaybackActivity : BaseActivity() {
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
         return String.format("%02d:%02d", minutes, seconds)
-    }
-
-    private fun seekStepMs(repeatCount: Int): Long {
-        return when {
-            repeatCount < 5 -> 5_000L
-            repeatCount < 12 -> 10_000L
-            repeatCount < 25 -> 30_000L
-            repeatCount < 40 -> 60_000L
-            else -> 90_000L
-        }
     }
 
     private suspend fun loadLyricsWithRetry(entry: SmbEntry): LyricsLoadOutcome {
@@ -822,5 +896,9 @@ class PlaybackActivity : BaseActivity() {
     private fun mediaCacheKey(mediaItem: MediaItem): String {
         val uri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
         return if (uri.isNotBlank()) uri else mediaItem.mediaId
+    }
+
+    private companion object {
+        const val PLAYER_PROGRESS_RENDER_HOLD_MS = 350L
     }
 }
