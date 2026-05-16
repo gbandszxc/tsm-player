@@ -21,6 +21,7 @@
 
 ```text
 tsm-player/
+├─ DESIGN.md
 ├─ docs/MANUAL.md
 ├─ settings.gradle
 ├─ build.gradle
@@ -54,9 +55,8 @@ tsm-player/
 │        ├─ drawable/{ic_launcher_foreground.xml,tv_banner.xml}
 │        └─ mipmap-anydpi-v26/{ic_launcher.xml,ic_launcher_round.xml}
 └─ docs/spec/
-   ├─ plan.md
+   ├─ plan/plan.md
    ├─ next-steps.md
-   ├─ design.md
    └─ release-checklist.md
 ```
 

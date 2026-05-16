@@ -24,7 +24,7 @@
 - Create: `app/src/test/java/com/github/gbandszxc/tvmediaplayer/playback/PlaybackLocationResolverTest.kt`
 - Modify: `app/src/test/java/com/github/gbandszxc/tvmediaplayer/ui/TvBrowserViewModelTest.kt`
 - Create: `app/src/test/java/com/github/gbandszxc/tvmediaplayer/playback/LastPlaybackStoreSnapshotTest.kt`
-- Modify: `docs/spec/design.md`
+- Modify: `DESIGN.md`
 - Modify: `docs/MANUAL.md`
 
 ### Task 1: 路径解析与快照模型
@@ -72,12 +72,11 @@
 ### Task 4: 文档同步与整体验证
 
 **Files:**
-- Modify: `docs/spec/design.md`
+- Modify: `DESIGN.md`
 - Modify: `docs/MANUAL.md`
 
-- [ ] Step 1: 更新 `docs/spec/design.md` 中浏览页和播放页 ASCII 设计
+- [ ] Step 1: 更新 `DESIGN.md` 中浏览页和播放页 ASCII 设计
 - [ ] Step 2: 更新 `docs/MANUAL.md`，记录“播放目录定位”和浏览页布局变化
 - [ ] Step 3: 运行完整单测命令
 - [ ] Step 4: 运行 Debug 打包命令
 - [ ] Step 5: 检查结果并整理风险说明
-
