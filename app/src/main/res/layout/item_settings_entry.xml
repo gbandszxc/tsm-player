@@ -2,13 +2,13 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_marginBottom="@dimen/ui_space_lg"
     android:background="@drawable/bg_settings_entry"
     android:clickable="true"
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="@dimen/ui_space_3xl">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -22,26 +22,26 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:fontFamily="@font/misans_medium"
-            android:textColor="#EAF2FF"
-            android:textSize="18sp" />
+            android:textColor="@color/ui_text_primary"
+            android:textSize="@dimen/ui_text_title" />
 
         <TextView
             android:id="@+id/tv_settings_value"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="@dimen/ui_space_xl"
             android:fontFamily="@font/misans_medium"
-            android:textColor="#60A5FA"
-            android:textSize="16sp"
+            android:textColor="@color/ui_accent_blue_text"
+            android:textSize="@dimen/ui_text_body_large"
             android:visibility="gone" />
 
         <ImageView
             android:id="@+id/iv_settings_action_icon"
             android:layout_width="20dp"
             android:layout_height="20dp"
-            android:layout_marginStart="10dp"
+            android:layout_marginStart="@dimen/ui_space_lg"
             android:contentDescription="GitHub"
-            android:tint="#EAF2FF"
+            android:tint="@color/ui_text_primary"
             android:visibility="gone" />
     </LinearLayout>
 
@@ -49,10 +49,10 @@
         android:id="@+id/tv_settings_desc"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="@dimen/ui_space_sm"
         android:fontFamily="@font/misans_regular"
-        android:textColor="#94A3B8"
-        android:textSize="14sp"
+        android:textColor="@color/ui_text_muted"
+        android:textSize="@dimen/ui_text_body"
         android:visibility="gone" />
 
 </LinearLayout>

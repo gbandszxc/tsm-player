@@ -5,12 +5,16 @@
     <color name="ui_bg_app">#0F0F23</color>
     <color name="ui_bg_app_deep">#0B1220</color>
     <color name="ui_bg_sidebar">#0D1A2E</color>
+    <color name="ui_bg_tv_blue">#172554</color>
+    <color name="ui_bg_artwork">#25324A</color>
+    <color name="ui_bg_black">#000000</color>
     <color name="ui_bg_panel">#1B2437</color>
     <color name="ui_bg_panel_deep">#111827</color>
     <color name="ui_bg_panel_muted">#14233A</color>
     <color name="ui_bg_item">#2A2E39</color>
     <color name="ui_bg_item_focus">#2B3548</color>
     <color name="ui_bg_overlay">#DD0F172A</color>
+    <color name="ui_bg_track">#334155</color>
     <color name="ui_transparent">#00000000</color>
 
     <color name="ui_text_primary">#EAF2FF</color>
@@ -18,12 +22,14 @@
     <color name="ui_text_secondary">#CBD5E1</color>
     <color name="ui_text_muted">#94A3B8</color>
     <color name="ui_text_warning_dark">#3A2A00</color>
+    <color name="ui_text_error">#FCA5A5</color>
 
     <color name="ui_accent_blue">#2563EB</color>
     <color name="ui_accent_blue_focus">#1D4ED8</color>
     <color name="ui_accent_blue_text">#60A5FA</color>
     <color name="ui_accent_blue_stroke">#93C5FD</color>
     <color name="ui_accent_blue_stroke_soft">#BFDBFE</color>
+    <color name="ui_accent_cyan">#38BDF8</color>
     <color name="ui_accent_green">#16A34A</color>
     <color name="ui_accent_green_focus">#059669</color>
     <color name="ui_accent_green_stroke">#10B981</color>

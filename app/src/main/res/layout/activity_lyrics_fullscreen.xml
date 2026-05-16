@@ -3,16 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0B1220"
-    android:padding="24dp">
+    android:background="@color/ui_bg_app_deep"
+    android:padding="@dimen/ui_space_5xl">
 
     <TextView
         android:id="@+id/tv_fullscreen_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="歌词全屏"
-        android:textColor="#EAF2FF"
-        android:textSize="28sp"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="@dimen/ui_text_hero"
         android:maxLines="2"
         android:ellipsize="end"
         android:fontFamily="@font/misans_bold" />
@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/ui_space_3xl"
         android:fadeScrollbars="false"
         android:focusable="false"
         android:focusableInTouchMode="false"
@@ -32,23 +32,20 @@
             android:id="@+id/tv_fullscreen_lyrics"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#CBD5E1"
-            android:textSize="28sp"
-            android:lineSpacingExtra="8dp"
+            android:textColor="@color/ui_text_secondary"
+            android:textSize="@dimen/ui_text_hero"
+            android:lineSpacingExtra="@dimen/ui_space_md"
             android:fontFamily="@font/misans_regular"
             android:focusable="false" />
     </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
     <Button
         android:id="@+id/btn_close_fullscreen_lyrics"
+        style="@style/TsmButtonPrimary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/ui_space_3xl"
         android:text="返回播放页"
-        android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        android:textSize="16sp"
-        android:background="@drawable/bg_button_primary"
-        android:fontFamily="@font/misans_medium" />
+        android:textAllCaps="false" />
 
 </LinearLayout>

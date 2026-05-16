@@ -3,25 +3,23 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0F0F23"
+    android:background="@color/ui_bg_app"
     android:orientation="horizontal">
 
     <!-- 左侧：分类面板（固定宽度，方便遥控器聚焦） -->
     <LinearLayout
         android:layout_width="260dp"
         android:layout_height="match_parent"
-        android:background="#0D1A2E"
+        android:background="@color/ui_bg_sidebar"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="@dimen/ui_space_4xl">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="设置"
-            android:textColor="#60A5FA"
-            android:textSize="26sp"
-            android:fontFamily="@font/misans_bold"
-            android:paddingBottom="20dp" />
+            android:paddingBottom="@dimen/ui_space_4xl"
+            style="@style/TsmTextPageTitle" />
 
         <!-- 分类列表（动态填充） -->
         <LinearLayout
@@ -36,7 +34,7 @@
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="#1E3A5F" />
+        android:background="@color/ui_divider" />
 
     <!-- 右侧：详情面板（自适应剩余宽度） -->
     <ScrollView
@@ -51,7 +49,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="28dp" />
+            android:padding="@dimen/ui_space_screen" />
 
     </ScrollView>
 

@@ -3,11 +3,11 @@
     android:id="@+id/item_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="6dp"
+    android:layout_marginTop="@dimen/ui_space_sm"
     android:background="@drawable/bg_file_item"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:padding="10dp"
+    android:padding="@dimen/ui_space_lg"
     android:focusable="true"
     android:focusableInTouchMode="true">
 
@@ -15,24 +15,24 @@
         android:id="@+id/tv_tag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingLeft="8dp"
+        android:paddingLeft="@dimen/ui_space_md"
         android:paddingTop="3dp"
-        android:paddingRight="8dp"
+        android:paddingRight="@dimen/ui_space_md"
         android:paddingBottom="3dp"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
+        android:textColor="@color/ui_text_on_accent"
+        android:textSize="@dimen/ui_text_body"
         android:fontFamily="@font/misans_bold" />
 
     <TextView
         android:id="@+id/tv_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
+        android:layout_marginStart="@dimen/ui_space_lg"
         android:layout_weight="1"
         android:ellipsize="end"
         android:maxLines="1"
-        android:textColor="#F8FAFC"
-        android:textSize="18sp"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="@dimen/ui_text_title"
         android:fontFamily="@font/misans_medium" />
 
 </LinearLayout>

@@ -9,17 +9,17 @@
     android:focusableInTouchMode="true"
     android:orientation="horizontal"
     android:minHeight="58dp"
-    android:paddingStart="10dp"
-    android:paddingTop="10dp"
-    android:paddingEnd="14dp"
-    android:paddingBottom="10dp"
-    android:layout_marginBottom="6dp">
+    android:paddingStart="@dimen/ui_space_lg"
+    android:paddingTop="@dimen/ui_space_lg"
+    android:paddingEnd="@dimen/ui_space_2xl"
+    android:paddingBottom="@dimen/ui_space_lg"
+    android:layout_marginBottom="@dimen/ui_space_sm">
 
     <View
-        android:layout_width="4dp"
+        android:layout_width="@dimen/ui_indicator_width"
         android:layout_height="30dp"
         android:layout_gravity="center_vertical"
-        android:layout_marginEnd="12dp"
+        android:layout_marginEnd="@dimen/ui_space_xl"
         android:background="@drawable/bg_settings_category_indicator"
         android:duplicateParentState="true" />
 
@@ -29,8 +29,8 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:layout_weight="1"
-        android:textColor="#CBD5E1"
-        android:textSize="18sp"
+        android:textColor="@color/ui_text_secondary"
+        android:textSize="@dimen/ui_text_title"
         android:fontFamily="@font/misans_medium" />
 
 </LinearLayout>

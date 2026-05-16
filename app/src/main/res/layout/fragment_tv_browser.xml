@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#172554">
+    android:background="@color/ui_bg_tv_blue">
 
     <ScrollView
         android:id="@+id/root_scroll"
@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:padding="@dimen/ui_space_4xl">
 
             <LinearLayout
                 android:id="@+id/panel_connection"
@@ -25,72 +25,69 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
-                android:padding="16dp">
+                android:padding="@dimen/ui_space_3xl">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="连接管理"
-                    android:textColor="#60A5FA"
-                    android:textSize="20sp"
+                    android:textColor="@color/ui_accent_blue_text"
+                    android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
 
                 <TextView
                     android:id="@+id/tv_connection"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="#EAF2FF"
-                    android:textSize="18sp"
+                    android:layout_marginTop="@dimen/ui_space_md"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_title"
                     android:fontFamily="@font/misans_medium" />
 
                 <TextView
                     android:id="@+id/tv_saved_count"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="#CBD5E1"
-                    android:textSize="16sp"
+                    android:layout_marginTop="@dimen/ui_space_xs"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="@dimen/ui_text_body_large"
                     android:fontFamily="@font/misans_regular" />
 
                 <Button
                     android:id="@+id/btn_manage"
+                    style="@style/TsmButtonPrimary"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="@dimen/ui_space_xl"
                     android:minWidth="180dp"
                     android:gravity="center"
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:text="管理连接"
-                    android:textAllCaps="false"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:background="@drawable/bg_button_primary"
-                    android:fontFamily="@font/misans_medium" />
+                    android:textAllCaps="false" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/panel_playback"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/ui_space_3xl"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
-                android:padding="16dp">
+                android:padding="@dimen/ui_space_3xl">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="播放控制"
-                    android:textColor="#60A5FA"
-                    android:textSize="20sp"
+                    android:textColor="@color/ui_accent_blue_text"
+                    android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="@dimen/ui_space_lg"
                     android:orientation="horizontal">
 
                     <HorizontalScrollView
@@ -106,6 +103,7 @@
 
                             <Button
                                 android:id="@+id/btn_play_all"
+                                style="@style/TsmButtonSuccess"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:minWidth="130dp"
@@ -113,48 +111,38 @@
                                 android:maxLines="1"
                                 android:ellipsize="end"
                                 android:text="顺序播放"
-                                android:textAllCaps="false"
-                                android:textColor="#FFFFFF"
-                                android:textSize="16sp"
-                                android:background="@drawable/bg_button_green"
-                                android:fontFamily="@font/misans_medium" />
+                                android:textAllCaps="false" />
 
                             <Button
                                 android:id="@+id/btn_play_shuffle"
+                                style="@style/TsmButtonSuccess"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:minWidth="130dp"
-                                android:layout_marginStart="10dp"
+                                android:layout_marginStart="@dimen/ui_space_lg"
                                 android:gravity="center"
                                 android:maxLines="1"
                                 android:ellipsize="end"
                                 android:text="随机播放"
-                                android:textAllCaps="false"
-                                android:textColor="#FFFFFF"
-                                android:textSize="16sp"
-                                android:background="@drawable/bg_button_green"
-                                android:fontFamily="@font/misans_medium" />
+                                android:textAllCaps="false" />
                         </LinearLayout>
                     </HorizontalScrollView>
 
                     <Button
                         android:id="@+id/btn_now_playing"
+                        style="@style/TsmButtonWarning"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:layout_marginStart="10dp"
-                        android:paddingStart="14dp"
-                        android:paddingEnd="14dp"
+                        android:layout_marginStart="@dimen/ui_space_lg"
+                        android:paddingStart="@dimen/ui_space_2xl"
+                        android:paddingEnd="@dimen/ui_space_2xl"
                         android:gravity="center"
                         android:singleLine="true"
                         android:ellipsize="marquee"
                         android:marqueeRepeatLimit="marquee_forever"
                         android:text="回到当前播放"
                         android:textAllCaps="false"
-                        android:textColor="#3A2A00"
-                        android:textSize="16sp"
-                        android:background="@drawable/bg_button_light_yellow"
-                        android:fontFamily="@font/misans_medium"
                         android:visibility="gone" />
                 </LinearLayout>
             </LinearLayout>
@@ -163,34 +151,34 @@
                 android:id="@+id/panel_files"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="@dimen/ui_space_3xl"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
-                android:padding="16dp">
+                android:padding="@dimen/ui_space_3xl">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="文件浏览"
-                    android:textColor="#60A5FA"
-                    android:textSize="20sp"
+                    android:textColor="@color/ui_accent_blue_text"
+                    android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
 
                 <TextView
                     android:id="@+id/tv_path"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="#25324A"
-                    android:padding="10dp"
-                    android:textColor="#EAF2FF"
-                    android:textSize="18sp"
+                    android:layout_marginTop="@dimen/ui_space_md"
+                    android:background="@color/ui_bg_artwork"
+                    android:padding="@dimen/ui_space_lg"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_title"
                     android:fontFamily="@font/misans_medium" />
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="@dimen/ui_space_xl"
                     android:scrollbars="none"
                     android:fillViewport="false">
 
@@ -201,6 +189,7 @@
 
                         <Button
                             android:id="@+id/btn_refresh"
+                            style="@style/TsmButtonDark"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:minWidth="130dp"
@@ -208,27 +197,20 @@
                             android:maxLines="1"
                             android:ellipsize="end"
                             android:text="刷新当前目录"
-                            android:textAllCaps="false"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:background="@drawable/bg_button_dark"
-                            android:fontFamily="@font/misans_medium" />
+                            android:textAllCaps="false" />
 
                         <Button
                             android:id="@+id/btn_retry"
+                            style="@style/TsmButtonDark"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:minWidth="110dp"
-                            android:layout_marginStart="10dp"
+                            android:layout_marginStart="@dimen/ui_space_lg"
                             android:gravity="center"
                             android:maxLines="1"
                             android:ellipsize="end"
                             android:text="重试连接"
-                            android:textAllCaps="false"
-                            android:textColor="#FFFFFF"
-                            android:textSize="16sp"
-                            android:background="@drawable/bg_button_dark"
-                            android:fontFamily="@font/misans_medium" />
+                            android:textAllCaps="false" />
                     </LinearLayout>
                 </HorizontalScrollView>
 
@@ -236,9 +218,9 @@
                     android:id="@+id/tv_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:textColor="#FCA5A5"
-                    android:textSize="15sp"
+                    android:layout_marginTop="@dimen/ui_space_lg"
+                    android:textColor="@color/ui_text_error"
+                    android:textSize="@dimen/ui_text_body_medium"
                     android:fontFamily="@font/misans_regular"
                     android:visibility="gone" />
 
@@ -246,7 +228,7 @@
                     android:id="@+id/container_files"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="@dimen/ui_space_lg"
                     android:orientation="vertical" />
             </LinearLayout>
 
@@ -255,54 +237,48 @@
 
     <Button
         android:id="@+id/btn_back_top"
+        style="@style/TsmButtonDark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginStart="@dimen/ui_space_4xl"
+        android:layout_marginTop="@dimen/ui_space_xl"
         android:minWidth="130dp"
         android:gravity="center"
         android:maxLines="1"
         android:ellipsize="end"
         android:text="⬅ 返回上一级"
-        android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        android:textSize="15sp"
-        android:background="@drawable/bg_button_dark"
-        android:fontFamily="@font/misans_medium" />
+        android:textAllCaps="false" />
 
     <Button
         android:id="@+id/btn_settings"
+        style="@style/TsmButtonDark"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginEnd="@dimen/ui_space_4xl"
+        android:layout_marginTop="@dimen/ui_space_xl"
         android:minWidth="100dp"
         android:gravity="center"
         android:maxLines="1"
         android:text="设置"
-        android:textAllCaps="false"
-        android:textColor="#FFFFFF"
-        android:textSize="15sp"
-        android:background="@drawable/bg_button_dark"
-        android:fontFamily="@font/misans_medium" />
+        android:textAllCaps="false" />
 
     <LinearLayout
         android:id="@+id/panel_fast_locate"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="20dp"
-        android:background="#DD0F172A"
+        android:layout_marginEnd="@dimen/ui_space_4xl"
+        android:layout_marginBottom="@dimen/ui_space_4xl"
+        android:background="@color/ui_bg_overlay"
         android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="14dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="12dp"
+        android:paddingStart="@dimen/ui_space_2xl"
+        android:paddingTop="@dimen/ui_space_xl"
+        android:paddingEnd="@dimen/ui_space_xl"
+        android:paddingBottom="@dimen/ui_space_xl"
         android:visibility="gone">
 
         <LinearLayout
@@ -315,18 +291,18 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="快速定位模式 42%"
-                android:textColor="#EAF2FF"
-                android:textSize="16sp"
+                android:textColor="@color/ui_text_primary"
+                android:textSize="@dimen/ui_text_body_large"
                 android:fontFamily="@font/misans_bold" />
 
             <TextView
                 android:id="@+id/tv_fast_locate_target"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="@dimen/ui_space_md"
                 android:lineSpacingExtra="2dp"
-                android:textColor="#BFDBFE"
-                android:textSize="14sp"
+                android:textColor="@color/ui_accent_blue_stroke_soft"
+                android:textSize="@dimen/ui_text_body"
                 android:fontFamily="@font/misans_medium" />
         </LinearLayout>
 
@@ -334,15 +310,15 @@
             android:id="@+id/view_fast_locate_track"
             android:layout_width="18dp"
             android:layout_height="136dp"
-            android:layout_marginStart="14dp"
-            android:background="#334155">
+            android:layout_marginStart="@dimen/ui_space_2xl"
+            android:background="@color/ui_bg_track">
 
             <View
                 android:id="@+id/view_fast_locate_indicator"
                 android:layout_width="match_parent"
                 android:layout_height="18dp"
                 android:layout_gravity="top"
-                android:background="#38BDF8" />
+                android:background="@color/ui_accent_cyan" />
         </FrameLayout>
     </LinearLayout>
 
