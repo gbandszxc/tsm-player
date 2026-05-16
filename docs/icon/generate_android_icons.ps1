@@ -1,5 +1,5 @@
 param(
-    [string]$SourcePath = "docs/spec/icon/icon_raw.png",
+    [string]$SourcePath = "docs/icon/icon_raw.png",
     [string]$ResRoot = "app/src/main/res"
 )
 

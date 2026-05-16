@@ -54,10 +54,9 @@ tsm-player/
 │        ├─ values/{strings.xml,colors.xml,themes.xml}
 │        ├─ drawable/{ic_launcher_foreground.xml,tv_banner.xml}
 │        └─ mipmap-anydpi-v26/{ic_launcher.xml,ic_launcher_round.xml}
-└─ docs/spec/
+└─ docs/archive/
    ├─ plan/plan.md
-   ├─ next-steps.md
-   └─ release-checklist.md
+   └─ prompt/ReqInit.txt
 ```
 
 ## 3. 常用命令
@@ -147,6 +146,7 @@ Release:
 3. 播放页默认进入时焦点停在播放进度条，进度条按上可选中封面图；封面选中时会显示 3px 高亮直角边框，也支持点击/确认键进入图片全屏预览。播放页非全屏封面仍保留方形 `centerCrop` 裁切；全屏预览改用独立覆盖层，背景为同图铺满屏幕后的模糊图层，前景为原图 `fitCenter` 适应屏幕显示，不裁切原图内容。音频无封面时会全屏显示缺省封面图，触屏点击全屏图片任意位置可退出预览，遥控器返回键可退出预览。
 4. 设置页左侧分类已区分“当前已进入分类”和“遥控器焦点”：当前分类显示左侧蓝色竖线与低亮底色，焦点项显示亮蓝填充与描边；当两者重合时同时保留竖线和焦点框，避免用户把未确认的焦点移动误认为已切换菜单。
 5. 根目录 `DESIGN.md` 现在是当前 UI/交互设计规范，Android XML 样式已抽取为 `@color/ui_*`、`@dimen/ui_*`、`@style/Tsm*` 与可复用 `@drawable/bg_*`。后续 UI 修改需优先引用这些 token，避免新增通用硬编码样式。
+6. 播放页 SeekBar 长按左右键快进/快退已改为“轻量预览 + 节流提交”：进度条与时间文本会跟随遥控 repeat 连续更新，实际 `seekTo` 会合并为约 250ms 一次，并在松手或短暂停顿后提交最终位置；进度条精度提升到 10000 档，以改善一小时以上长音频在低配电视上的跳变感。
 
 ## 10. 浏览导航增强
 
