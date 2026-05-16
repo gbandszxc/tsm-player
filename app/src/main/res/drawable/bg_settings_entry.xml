@@ -3,16 +3,16 @@
     <!-- 遥控器焦点在此项 -->
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#1D4ED8" />
-            <stroke android:width="2dp" android:color="#93C5FD" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_accent_blue_focus" />
+            <stroke android:width="@dimen/ui_stroke_focus" android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>
     <!-- 默认 -->
     <item>
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#111827" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_bg_panel_deep" />
         </shape>
     </item>
 </selector>

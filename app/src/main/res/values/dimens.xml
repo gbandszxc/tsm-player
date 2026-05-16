@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <dimen name="ui_radius_none">0dp</dimen>
     <dimen name="ui_radius_indicator">2dp</dimen>
     <dimen name="ui_radius_tag">3dp</dimen>
     <dimen name="ui_radius_item">4dp</dimen>

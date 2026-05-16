@@ -3,14 +3,14 @@
     <!-- 当前已进入的分类：用形状而不是整框表达，避免和遥控器焦点混淆 -->
     <item android:state_selected="true">
         <shape>
-            <corners android:radius="2dp" />
-            <solid android:color="#60A5FA" />
+            <corners android:radius="@dimen/ui_radius_indicator" />
+            <solid android:color="@color/ui_accent_blue_text" />
         </shape>
     </item>
     <item>
         <shape>
-            <corners android:radius="2dp" />
-            <solid android:color="#00000000" />
+            <corners android:radius="@dimen/ui_radius_indicator" />
+            <solid android:color="@color/ui_transparent" />
         </shape>
     </item>
 </selector>

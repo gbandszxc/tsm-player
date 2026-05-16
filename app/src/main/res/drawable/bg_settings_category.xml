@@ -3,31 +3,31 @@
     <!-- 当前分类同时获得遥控器焦点：焦点框优先，左侧指示条由子 View 保留 -->
     <item android:state_focused="true" android:state_selected="true">
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#1D4ED8" />
-            <stroke android:width="2dp" android:color="#93C5FD" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_accent_blue_focus" />
+            <stroke android:width="@dimen/ui_stroke_focus" android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>
     <!-- 遥控器焦点在此项 -->
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#1D4ED8" />
-            <stroke android:width="2dp" android:color="#93C5FD" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_accent_blue_focus" />
+            <stroke android:width="@dimen/ui_stroke_focus" android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>
     <!-- 当前选中分类 -->
     <item android:state_selected="true">
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#14233A" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_bg_panel_muted" />
         </shape>
     </item>
     <!-- 默认 -->
     <item>
         <shape>
-            <corners android:radius="8dp" />
-            <solid android:color="#00000000" />
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_transparent" />
         </shape>
     </item>
 </selector>

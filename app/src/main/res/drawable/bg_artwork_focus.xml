@@ -2,22 +2,22 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="0dp" />
-            <solid android:color="@android:color/transparent" />
-            <stroke android:width="4px" android:color="#38BDF8" />
+            <corners android:radius="@dimen/ui_radius_none" />
+            <solid android:color="@color/ui_transparent" />
+            <stroke android:width="@dimen/ui_stroke_artwork_focus" android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape>
-            <corners android:radius="0dp" />
-            <solid android:color="@android:color/transparent" />
-            <stroke android:width="4px" android:color="#7DD3FC" />
+            <corners android:radius="@dimen/ui_radius_none" />
+            <solid android:color="@color/ui_transparent" />
+            <stroke android:width="@dimen/ui_stroke_artwork_focus" android:color="@color/ui_accent_blue_stroke_soft" />
         </shape>
     </item>
     <item>
         <shape>
-            <corners android:radius="0dp" />
-            <solid android:color="@android:color/transparent" />
+            <corners android:radius="@dimen/ui_radius_none" />
+            <solid android:color="@color/ui_transparent" />
         </shape>
     </item>
 </selector>
