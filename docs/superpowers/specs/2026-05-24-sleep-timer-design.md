@@ -100,12 +100,13 @@ MainActivity
 
 - 预设按钮（15/30/60/120 分）：点击直接开启/更新定时，Toast 提示。
 - 自定义按钮：点击后收起四个预设，仅保留自定义按钮（选中态），下方展开时间选择滚轮。再次点击或按返回键恢复预设行。
+- 自定义时间只保存最近一次成功开启/更新的自定义时长；未开启睡眠定时时，再次点击自定义默认回显该历史时长。
 - 时间选择滚轮：小时 0-23（±1），分钟 0-59（±1），均支持长按/滑动加速。
 - 滚轮视觉：3 行（上一行弱化、当前行高亮蓝填充+描边、下一行弱化）。
 - 遥控器：上下键逐行滚动（长按加速），左右键切换小时/分钟滚轮焦点。
 - 触屏：单指上下滑动，惯性滚动，松手吸附最近项。
 - 自定义模式下按返回键：取消自定义，恢复预设行显示。
-- 已开启定时后进入页面：显示剩余时间，自定义滚轮回显当前设定值（如设定 2小时30分，小时滚轮停在 02，分钟滚轮停在 30）。
+- 已开启定时后进入页面：显示剩余时间，自定义滚轮回显当前设定值（如设定 2小时30分，小时滚轮停在 02，分钟滚轮停在 30），优先于最近一次自定义历史。
 - 开启/更新按钮：保持"开启睡眠"（未开启时）/"更新睡眠"（已开启时）文字。
 - 关闭睡眠按钮：红色背景（`TsmButtonDanger`），点击后取消定时。
 
@@ -122,6 +123,7 @@ MainActivity
 ```text
 sleep/
 ├─ SleepTimerStore
+├─ SleepTimerCustomDurationStore
 ├─ SleepTimerManager
 ├─ SleepDeviceAdminReceiver
 ├─ SleepDeviceController
@@ -141,7 +143,17 @@ targetEpochMillis: Long
 durationMinutes: Int
 ```
 
-持久化使用 `SharedPreferences` 即可。读取时如果 `targetEpochMillis` 已过期，由 manager 清理并执行或视调用场景返回已过期状态。
+持久化使用 `SharedPreferences` 即可。普通读取到过期目标时间时仅返回关闭状态给 UI，不清理底层状态；到点动作由 `SleepTimerManager.executeIfDue()` 使用 raw 状态消费并清理，避免播放页刷新提前清空定时，导致服务错过执行。
+
+### SleepTimerCustomDurationStore
+
+负责持久化最近一次成功开启/更新的自定义时长：
+
+```text
+durationMinutes: Int
+```
+
+该状态独立于当前睡眠倒计时，只用于自定义滚轮默认回显。默认值为 30 分钟，只保存最近一次，写入时对小于 1 分钟的值兜底为 1 分钟。
 
 ### SleepTimerManager
 
@@ -234,7 +246,7 @@ SleepAppExitController.finishAll()
 
 3. 目标时间已过：
    - 服务检查到期时执行睡眠流程。
-   - Activity 读取到过期状态时应触发 manager 清理，避免显示负数。
+   - Activity 读取到过期状态时仅显示未开启，避免显示负数，不消费服务执行动作所需状态。
 
 4. App 进程被杀：
    - 不恢复执行已错过的睡眠动作。
@@ -253,7 +265,12 @@ SleepAppExitController.finishAll()
 2. `SleepTimerStore`：
    - start 后可读取目标时间和时长。
    - cancel 后状态为空。
-   - 过期状态可被清理。
+   - 普通读取过期状态不会消费到点动作状态。
+
+3. `SleepTimerCustomDurationStore`：
+   - 未保存时返回默认 30 分钟。
+   - 多次保存后只读取最近一次自定义时长。
+   - 小于 1 分钟的写入值按 1 分钟兜底。
 
 ### 手动回归
 
@@ -264,11 +281,13 @@ SleepAppExitController.finishAll()
 5. 再次点击睡眠按钮进入 `SleepTimerActivity` 并可关闭倒计时。
 6. 后台播放时倒计时继续，到点后停止播放、退出应用并尝试睡眠/息屏。
 7. 未授权时到点仍停止播放并退出应用。
-8. 修改完成后执行 Debug 打包验证。
+8. 自定义开启/更新后关闭页面，未开启睡眠定时时再次进入自定义模式应回显最近一次自定义时长。
+9. 已有睡眠定时时进入自定义模式应优先回显当前定时值，而不是历史自定义时长。
+10. 修改完成后执行 Debug 打包验证。
 
 ## 文档维护
 
 实现该功能时需同步更新：
 
-1. `DESIGN.md`：记录睡眠按钮、`SleepTimerActivity`、设置页授权入口和焦点规则。
+1. `DESIGN.md`：记录睡眠按钮、`SleepTimerActivity`、自定义时间持久化、设置页授权入口和焦点规则。
 2. `docs/MANUAL.md`：记录睡眠定时器能力、运行边界和权限说明。

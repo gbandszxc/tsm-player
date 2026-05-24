@@ -11,12 +11,14 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerCustomDurationStore
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerState
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
 
 class SleepTimerActivity : BaseActivity() {
     private lateinit var manager: SleepTimerManager
+    private lateinit var customDurationStore: SleepTimerCustomDurationStore
     private lateinit var tvStatus: TextView
     private lateinit var layoutPresets: LinearLayout
     private lateinit var layoutWheel: LinearLayout
@@ -64,6 +66,7 @@ class SleepTimerActivity : BaseActivity() {
         setContentView(R.layout.activity_sleep_timer)
         UiSettingsApplier.applyAll(this)
         manager = SleepTimerManager(SleepTimerStore(this))
+        customDurationStore = SleepTimerCustomDurationStore(this)
         bindViews()
         bindActions()
         restoreFromCurrentTimer()
@@ -117,7 +120,7 @@ class SleepTimerActivity : BaseActivity() {
                     Toast.makeText(this, getString(R.string.sleep_timer_toast_min_duration), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                setDurationAndStart(duration)
+                setDurationAndStart(duration, rememberCustomDuration = true)
             } else {
                 // 非自定义模式下，如果已有定时则重新用当前值更新
                 val duration = wheelController.durationMinutes()
@@ -137,6 +140,7 @@ class SleepTimerActivity : BaseActivity() {
     private fun toggleCustomMode() {
         customMode = !customMode
         if (customMode) {
+            restoreCustomDuration()
             layoutPresets.visibility = View.GONE
             layoutWheel.visibility = View.VISIBLE
             renderWheel()
@@ -149,6 +153,11 @@ class SleepTimerActivity : BaseActivity() {
         render()
     }
 
+    private fun restoreCustomDuration() {
+        if (manager.currentState() is SleepTimerState.Enabled) return
+        wheelController.setDuration(customDurationStore.loadDurationMinutes())
+    }
+
     private fun restoreFromCurrentTimer() {
         val state = manager.currentState()
         if (state is SleepTimerState.Enabled) {
@@ -156,7 +165,10 @@ class SleepTimerActivity : BaseActivity() {
         }
     }
 
-    private fun setDurationAndStart(durationMinutes: Int) {
+    private fun setDurationAndStart(durationMinutes: Int, rememberCustomDuration: Boolean = false) {
+        if (rememberCustomDuration) {
+            customDurationStore.saveDurationMinutes(durationMinutes)
+        }
         manager.start(durationMinutes)
         Toast.makeText(this, getString(R.string.sleep_timer_toast_started, durationMinutes), Toast.LENGTH_SHORT).show()
         render()
