@@ -82,10 +82,19 @@ tsm-player/
 .\gradlew.bat clean
 ```
 
-若当前终端未切到 JDK 17，可临时指定：
+构建需要使用 JDK 17。推荐把本机 JDK 路径写入用户级 Gradle 配置：
 
 ```powershell
-cmd /c "set JAVA_HOME=C:\D\Develop\Java\jdk-17.0.16+8&& set PATH=%JAVA_HOME%\bin;%PATH%&& .\gradlew.bat assembleDebug"
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.gradle"
+Add-Content "$env:USERPROFILE\.gradle\gradle.properties" "org.gradle.java.home=<本机 JDK 17 目录>"
+```
+
+也可以只在当前 PowerShell 会话临时指定：
+
+```powershell
+$env:JAVA_HOME="<本机 JDK 17 目录>"
+$env:PATH="$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew.bat assembleDebug
 ```
 
 ## 4. 产物位置
