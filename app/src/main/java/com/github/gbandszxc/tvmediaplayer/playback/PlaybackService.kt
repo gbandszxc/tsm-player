@@ -120,13 +120,15 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun executeSleepTimerAction() {
-        saveSnapshotFromPlayer()
-        mediaSession?.player?.run {
-            pause()
-            stop()
+        runCatching { saveSnapshotFromPlayer() }
+        runCatching {
+            mediaSession?.player?.run {
+                pause()
+                stop()
+            }
         }
-        SleepAppExitController.finishAll()
-        sleepDeviceController.sleepNow()
+        runCatching { SleepAppExitController.finishAll() }
+        runCatching { sleepDeviceController.sleepNow() }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
