@@ -206,7 +206,7 @@
 
                 <Button
                     android:id="@+id/btn_sleep_timer"
-                    style="@style/TsmButtonSuccess"
+                    style="@style/TsmButtonDark"
                     android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"

@@ -437,47 +437,40 @@ class PlaybackActivity : BaseActivity() {
 
     private fun renderSleepTimerButton(force: Boolean = false) {
         val remaining = sleepTimerManager.remainingMinutesCeil()
-        val label = remaining?.toString().orEmpty()
+        val label = if (remaining != null) "睡眠 ${remaining}分" else "睡眠定时"
         val focused = btnSleepTimer.hasFocus()
         if (!force && renderedSleepTimerLabel == label && renderedSleepTimerFocused == focused) return
         renderedSleepTimerLabel = label
         renderedSleepTimerFocused = focused
 
-        btnSleepTimer.setBackgroundResource(R.drawable.bg_button_amber)
+        btnSleepTimer.text = if (focused) label else ""
+        btnSleepTimer.contentDescription = label
+        btnSleepTimer.setBackgroundResource(R.drawable.bg_button_dark)
         btnSleepTimer.minWidth = resources.getDimensionPixelSize(
-            if (remaining == null) R.dimen.ui_playback_mode_button_collapsed_width
-            else R.dimen.ui_playback_sleep_button_expanded_min_width
+            if (focused) R.dimen.ui_playback_sleep_button_expanded_min_width
+            else R.dimen.ui_playback_mode_button_collapsed_width
         )
-        val targetWidth = if (remaining == null) {
-            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
-        } else {
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        }
         val layoutParams = btnSleepTimer.layoutParams
+        val targetWidth = if (focused) {
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        } else {
+            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+        }
         if (layoutParams.width != targetWidth) {
             layoutParams.width = targetWidth
             btnSleepTimer.layoutParams = layoutParams
         }
-
         btnSleepTimer.overlay.clear()
-        val icon = ContextCompat.getDrawable(this, R.drawable.ic_sleep_timer)?.mutate()
-        val wrapped = icon?.let(DrawableCompat::wrap)
-        if (wrapped != null) {
-            DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_on_accent))
-            wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        }
-
-        if (remaining == null) {
-            btnSleepTimer.text = ""
-            btnSleepTimer.setCompoundDrawables(null, null, null, null)
-            wrapped?.let { iconDrawable ->
-                btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, iconDrawable) }
-            }
-        } else {
-            btnSleepTimer.text = label
+        val icon = ContextCompat.getDrawable(this, R.drawable.ic_sleep_timer)?.mutate() ?: return
+        val wrapped = DrawableCompat.wrap(icon)
+        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_primary))
+        wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
+        if (focused) {
             btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
+        } else {
+            btnSleepTimer.setCompoundDrawables(null, null, null, null)
+            btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, wrapped) }
         }
-        btnSleepTimer.contentDescription = if (remaining == null) "睡眠定时" else "睡眠定时，剩余 ${remaining} 分钟"
     }
 
     private fun renderCompactIconButton(
