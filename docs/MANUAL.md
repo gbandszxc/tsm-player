@@ -237,3 +237,25 @@ app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
 
 首次启动应用时会弹窗提示授权设备管理权限，用户可选择"去授权"或"暂不授权"。未授权时仍可正常使用播放器和睡眠定时功能（仅不能息屏）。设置页"应用设置"分类下提供"睡眠权限"条目，可查看当前授权状态并重新打开授权页面。
 
+## 16. Launcher 图标资源
+
+当前优化版图标源图为 `docs/icon/icon_raw_v2.png`，保留了“TV 音乐播放器 + 可爱看板娘 + 二次元手游图标”的主旨，并将看板娘、耳机、遥控器和云朵主体收进 Android adaptive icon 安全区，减少电视 Launcher 圆形或圆角遮罩裁切。原始 Gemini 版本仍保留在 `docs/icon/icon_raw.png`，便于回退或对比。
+
+图标候选和裁切预览保存在：
+
+```text
+docs/icon/icon_candidate_1.png
+docs/icon/icon_candidate_2.png
+docs/icon/icon_candidate_3.png
+docs/icon/icon_candidates_preview.png
+docs/icon/icon_final_preview.png
+```
+
+重新生成 Android 图标资源时，在项目根目录执行：
+
+```powershell
+.\docs\icon\generate_android_icons.ps1 -SourcePath docs/icon/icon_raw_v2.png -ResRoot app/src/main/res
+```
+
+脚本会更新 `mipmap-mdpi` 到 `mipmap-xxxhdpi` 下的 `ic_launcher.png`、`ic_launcher_round.png` 和 `ic_launcher_foreground.png`。生成后需至少执行 `.\gradlew.bat assembleDebug` 确认 Debug APK 可打包。
+
