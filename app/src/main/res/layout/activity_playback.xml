@@ -229,12 +229,14 @@
                 <Button
                     android:id="@+id/btn_locate"
                     style="@style/TsmButtonWarning"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"
-                    android:minWidth="120dp"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="定位"
+                    android:text=""
                     android:textAllCaps="false" />
             </LinearLayout>
         </HorizontalScrollView>

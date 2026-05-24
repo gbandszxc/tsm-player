@@ -116,6 +116,7 @@ class PlaybackActivity : BaseActivity() {
     private var playbackMode: PlaybackMode = PlaybackMode.ORDER
     private var renderedPlaybackMode: PlaybackMode? = null
     private var renderedPlaybackModeFocused: Boolean? = null
+    private var renderedLocateFocused: Boolean? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -182,6 +183,7 @@ class PlaybackActivity : BaseActivity() {
         btnLocate = findViewById(R.id.btn_locate)
         tvPlaybackToast = findViewById(R.id.tv_playback_toast)
         renderPlaybackModeButton()
+        renderLocateButton()
     }
 
     private fun bindActions() {
@@ -222,6 +224,7 @@ class PlaybackActivity : BaseActivity() {
         }
         btnBack.setOnClickListener { finish() }
         btnLocate.setOnClickListener { locateCurrentPlayback() }
+        btnLocate.setOnFocusChangeListener { _, _ -> renderLocateButton() }
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -391,51 +394,85 @@ class PlaybackActivity : BaseActivity() {
         }
         renderedPlaybackMode = playbackMode
         renderedPlaybackModeFocused = focused
-        btnPlayMode.text = if (focused) playbackMode.label else ""
-        btnPlayMode.contentDescription = playbackMode.label
-        btnPlayMode.setBackgroundResource(R.drawable.bg_button_amber)
-        btnPlayMode.minWidth = resources.getDimensionPixelSize(
-            if (focused) {
-                R.dimen.ui_playback_mode_button_expanded_min_width
-            } else {
-                R.dimen.ui_playback_mode_button_collapsed_width
-            }
+        renderCompactIconButton(
+            button = btnPlayMode,
+            label = playbackMode.label,
+            iconResId = playbackMode.iconResId,
+            focused = focused,
+            backgroundResId = R.drawable.bg_button_amber,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
         )
-        val layoutParams = btnPlayMode.layoutParams
+    }
+
+    private fun renderLocateButton() {
+        val focused = btnLocate.hasFocus()
+        if (renderedLocateFocused == focused) return
+        renderedLocateFocused = focused
+        renderCompactIconButton(
+            button = btnLocate,
+            label = "定位",
+            iconResId = R.drawable.ic_locate_crosshair,
+            focused = focused,
+            backgroundResId = R.drawable.bg_button_light_yellow,
+            iconColorResId = R.color.ui_text_warning_dark,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_locate_button_expanded_min_width,
+        )
+    }
+
+    private fun renderCompactIconButton(
+        button: Button,
+        label: String,
+        iconResId: Int,
+        focused: Boolean,
+        backgroundResId: Int,
+        iconColorResId: Int,
+        collapsedWidthResId: Int,
+        expandedMinWidthResId: Int,
+    ) {
+        button.text = if (focused) label else ""
+        button.contentDescription = label
+        button.setBackgroundResource(backgroundResId)
+        button.minWidth = resources.getDimensionPixelSize(
+            if (focused) expandedMinWidthResId else collapsedWidthResId
+        )
+        val layoutParams = button.layoutParams
         val targetWidth = if (focused) {
             ViewGroup.LayoutParams.WRAP_CONTENT
         } else {
-            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+            resources.getDimensionPixelSize(collapsedWidthResId)
         }
         if (layoutParams.width != targetWidth) {
             layoutParams.width = targetWidth
-            btnPlayMode.layoutParams = layoutParams
+            button.layoutParams = layoutParams
         }
-        btnPlayMode.overlay.clear()
-        val icon = ContextCompat.getDrawable(this, playbackMode.iconResId)?.mutate() ?: return
+        button.overlay.clear()
+        val icon = ContextCompat.getDrawable(this, iconResId)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)
         DrawableCompat.setTint(
             wrapped,
-            ContextCompat.getColor(this, R.color.ui_text_on_accent)
+            ContextCompat.getColor(this, iconColorResId)
         )
         wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
         if (focused) {
-            btnPlayMode.setCompoundDrawables(wrapped, null, null, null)
+            button.setCompoundDrawables(wrapped, null, null, null)
         } else {
-            btnPlayMode.setCompoundDrawables(null, null, null, null)
-            btnPlayMode.post { drawCenteredPlaybackModeIcon(wrapped) }
+            button.setCompoundDrawables(null, null, null, null)
+            button.post { drawCenteredButtonIcon(button, wrapped) }
         }
     }
 
-    private fun drawCenteredPlaybackModeIcon(icon: Drawable) {
-        if (btnPlayMode.hasFocus()) return
-        btnPlayMode.overlay.clear()
+    private fun drawCenteredButtonIcon(button: Button, icon: Drawable) {
+        if (button.hasFocus()) return
+        button.overlay.clear()
         val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
         val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
-        val left = (btnPlayMode.width - iconWidth) / 2
-        val top = (btnPlayMode.height - iconHeight) / 2
+        val left = (button.width - iconWidth) / 2
+        val top = (button.height - iconHeight) / 2
         icon.setBounds(left, top, left + iconWidth, top + iconHeight)
-        btnPlayMode.overlay.add(icon)
+        button.overlay.add(icon)
     }
 
     private fun showPlaybackToast(message: String) {
