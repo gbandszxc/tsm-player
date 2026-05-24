@@ -60,14 +60,14 @@ class SleepTimerActivity : BaseActivity() {
         btnStart.setOnClickListener {
             val duration = selectedHours * 60 + selectedMinutes
             if (duration <= 0) {
-                Toast.makeText(this, "请至少选择 1 分钟", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.sleep_timer_toast_min_duration), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             setDurationAndStart(duration)
         }
         btnCancel.setOnClickListener {
             manager.cancel()
-            Toast.makeText(this, "已关闭睡眠定时", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.sleep_timer_toast_cancelled), Toast.LENGTH_SHORT).show()
             render()
         }
         findViewById<Button>(R.id.btn_sleep_back).setOnClickListener { finish() }
@@ -75,7 +75,7 @@ class SleepTimerActivity : BaseActivity() {
 
     private fun setDurationAndStart(durationMinutes: Int) {
         manager.start(durationMinutes)
-        Toast.makeText(this, "将在 ${durationMinutes} 分钟后睡眠", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.sleep_timer_toast_started, durationMinutes), Toast.LENGTH_SHORT).show()
         render()
     }
 
@@ -83,18 +83,18 @@ class SleepTimerActivity : BaseActivity() {
         val remaining = manager.remainingMinutesCeil()
         val state = manager.currentState()
         tvStatus.text = when {
-            remaining != null -> "当前已开启，剩余约 ${remaining} 分钟"
-            state is SleepTimerState.Disabled -> "当前未开启"
-            else -> "当前未开启"
+            remaining != null -> getString(R.string.sleep_timer_status_on, remaining)
+            state is SleepTimerState.Disabled -> getString(R.string.sleep_timer_status_off)
+            else -> getString(R.string.sleep_timer_status_off)
         }
-        btnStart.text = if (remaining != null) "更新睡眠" else "开启睡眠"
+        btnStart.text = if (remaining != null) getString(R.string.sleep_timer_update) else getString(R.string.sleep_timer_start)
         btnCancel.isEnabled = remaining != null
         renderManualSelection()
     }
 
     private fun renderManualSelection() {
-        btnHours.text = "${selectedHours} 小时"
-        btnMinutes.text = "${selectedMinutes} 分钟"
+        btnHours.text = getString(R.string.sleep_timer_hours, selectedHours)
+        btnMinutes.text = getString(R.string.sleep_timer_minutes, selectedMinutes)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {

@@ -1,4 +1,23 @@
 <resources>
     <string name="app_name">TSM Player</string>
     <string name="sleep_device_admin_description">用于睡眠定时结束时让电视进入睡眠或息屏。</string>
+    <string name="sleep_timer_title">睡眠定时</string>
+    <string name="sleep_timer_status_off">当前未开启</string>
+    <string name="sleep_timer_status_on">当前已开启，剩余约 %d 分钟</string>
+    <string name="sleep_timer_presets">预设时间</string>
+    <string name="sleep_timer_manual">手动指定</string>
+    <string name="sleep_timer_start">开启睡眠</string>
+    <string name="sleep_timer_update">更新睡眠</string>
+    <string name="sleep_timer_cancel">关闭睡眠</string>
+    <string name="sleep_timer_back">返回</string>
+    <string name="sleep_timer_preset_15">15 分钟</string>
+    <string name="sleep_timer_preset_30">30 分钟</string>
+    <string name="sleep_timer_preset_60">60 分钟</string>
+    <string name="sleep_timer_preset_120">120 分钟</string>
+    <string name="sleep_timer_hours">%d 小时</string>
+    <string name="sleep_timer_minutes">%d 分钟</string>
+    <string name="sleep_timer_toast_started">将在 %d 分钟后睡眠</string>
+    <string name="sleep_timer_toast_cancelled">已关闭睡眠定时</string>
+    <string name="sleep_timer_toast_min_duration">请至少选择 1 分钟</string>
+    <string name="sleep_timer_hint">焦点停在小时或分钟时，按确认增加。</string>
 </resources>

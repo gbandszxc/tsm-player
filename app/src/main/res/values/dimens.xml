@@ -14,6 +14,10 @@
     <dimen name="ui_playback_mode_button_expanded_min_width">132dp</dimen>
     <dimen name="ui_playback_locate_button_expanded_min_width">96dp</dimen>
     <dimen name="ui_sleep_stepper_width">132dp</dimen>
+    <dimen name="ui_sleep_preset_min_width">112dp</dimen>
+    <dimen name="ui_sleep_preset_wide_min_width">128dp</dimen>
+    <dimen name="ui_sleep_action_min_width">132dp</dimen>
+    <dimen name="ui_sleep_back_min_width">100dp</dimen>
 
     <dimen name="ui_space_xs">4dp</dimen>
     <dimen name="ui_space_sm">6dp</dimen>
