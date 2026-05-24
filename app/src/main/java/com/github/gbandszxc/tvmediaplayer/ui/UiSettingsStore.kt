@@ -11,6 +11,7 @@ object UiSettingsStore {
     private const val KEY_REMEMBER_LAST_PLAYBACK = "remember_last_playback"
     private const val KEY_PLAYBACK_LYRICS_LINE_SPACING = "playback_lyrics_line_spacing"
     private const val KEY_FULLSCREEN_LYRICS_LINE_SPACING = "fullscreen_lyrics_line_spacing"
+    private const val KEY_SLEEP_ADMIN_PROMPT_SHOWN = "sleep_admin_prompt_shown"
 
     val globalScalePresets: IntArray = intArrayOf(90, 95, 100, 105, 110)
     const val defaultGlobalScalePercent: Int = 100
@@ -100,6 +101,14 @@ object UiSettingsStore {
         prefs(context).edit()
             .putFloat(KEY_FULLSCREEN_LYRICS_LINE_SPACING, value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing))
             .apply()
+    }
+
+    fun sleepAdminPromptShown(context: Context): Boolean {
+        return prefs(context).getBoolean(KEY_SLEEP_ADMIN_PROMPT_SHOWN, false)
+    }
+
+    fun setSleepAdminPromptShown(context: Context, shown: Boolean) {
+        prefs(context).edit().putBoolean(KEY_SLEEP_ADMIN_PROMPT_SHOWN, shown).apply()
     }
 
     private fun prefs(context: Context) =

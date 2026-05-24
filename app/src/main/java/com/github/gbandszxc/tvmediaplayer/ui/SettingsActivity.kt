@@ -20,6 +20,7 @@ import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
 import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 import kotlinx.coroutines.launch
 
@@ -157,6 +158,15 @@ class SettingsActivity : BaseActivity() {
                                 Toast.LENGTH_SHORT
                             ).show()
                             rebuildCurrentCategory(moveFocusToDetail = false)
+                        },
+                        SettingsItem(
+                            title = "睡眠权限",
+                            descriptionProvider = { "用于睡眠定时结束时让电视进入睡眠或息屏；未授权时仍会停播并退出应用" },
+                            valueProvider = {
+                                if (SleepDeviceController(this).isDeviceAdminActive()) "已授权" else "未授权"
+                            }
+                        ) {
+                            SleepDeviceController(this).openDeviceAdminSettings(this)
                         }
                     )
                 }

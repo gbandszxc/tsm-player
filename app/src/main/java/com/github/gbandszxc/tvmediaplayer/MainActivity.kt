@@ -1,13 +1,16 @@
 package com.github.gbandszxc.tvmediaplayer
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
 import com.github.gbandszxc.tvmediaplayer.ui.BaseActivity
 import com.github.gbandszxc.tvmediaplayer.ui.TvBrowseFragment
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
+import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsStore
 import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 
 class MainActivity : BaseActivity() {
@@ -22,6 +25,7 @@ class MainActivity : BaseActivity() {
         }
         deliverPlaybackLocateTarget()
         AppUpdateManager.maybeCheckOnAppStart(this)
+        maybePromptSleepDeviceAdmin()
     }
 
     override fun onResume() {
@@ -33,6 +37,19 @@ class MainActivity : BaseActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         deliverPlaybackLocateTarget()
+    }
+
+    private fun maybePromptSleepDeviceAdmin() {
+        val controller = SleepDeviceController(this)
+        if (controller.isDeviceAdminActive()) return
+        if (UiSettingsStore.sleepAdminPromptShown(this)) return
+        UiSettingsStore.setSleepAdminPromptShown(this, true)
+        AlertDialog.Builder(this)
+            .setTitle("开启睡眠权限")
+            .setMessage("授权后，睡眠定时结束时可以让电视进入睡眠或息屏。暂不授权也可以继续使用播放器，并可之后在设置页重新授权。")
+            .setPositiveButton("去授权") { _, _ -> controller.openDeviceAdminSettings(this) }
+            .setNegativeButton("暂不授权", null)
+            .show()
     }
 
     private fun deliverPlaybackLocateTarget() {
