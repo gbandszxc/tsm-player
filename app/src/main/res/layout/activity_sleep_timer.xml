@@ -28,6 +28,7 @@
         android:text="@string/sleep_timer_presets" />
 
     <LinearLayout
+        android:id="@+id/layout_presets"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/ui_space_lg"
@@ -71,45 +72,132 @@
             android:minWidth="@dimen/ui_sleep_preset_wide_min_width"
             android:text="@string/sleep_timer_preset_120"
             android:textAllCaps="false" />
-    </LinearLayout>
-
-    <TextView
-        style="@style/TsmTextSectionTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_5xl"
-        android:text="@string/sleep_timer_manual" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_lg"
-        android:orientation="horizontal">
 
         <Button
-            android:id="@+id/btn_sleep_hours"
+            android:id="@+id/btn_sleep_custom"
             style="@style/TsmButtonPrimary"
-            android:layout_width="@dimen/ui_sleep_stepper_width"
-            android:layout_height="wrap_content"
-            android:text="@string/sleep_timer_hours"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/btn_sleep_minutes"
-            style="@style/TsmButtonPrimary"
-            android:layout_width="@dimen/ui_sleep_stepper_width"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/ui_space_lg"
-            android:text="@string/sleep_timer_minutes"
+            android:minWidth="@dimen/ui_sleep_preset_min_width"
+            android:text="@string/sleep_timer_custom"
             android:textAllCaps="false" />
     </LinearLayout>
 
-    <TextView
-        style="@style/TsmTextSecondary"
-        android:layout_width="match_parent"
+    <!-- 时间选择滚轮区域 -->
+    <LinearLayout
+        android:id="@+id/layout_wheel"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_lg"
-        android:text="@string/sleep_timer_hint" />
+        android:layout_marginTop="@dimen/ui_space_3xl"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <!-- 小时滚轮 -->
+        <LinearLayout
+            android:id="@+id/layout_wheel_hours"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_button_dark"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:padding="@dimen/ui_space_md">
+
+            <TextView
+                android:id="@+id/tv_wheel_hours_prev"
+                android:layout_width="88dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:text="23"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_body" />
+
+            <TextView
+                android:id="@+id/tv_wheel_hours_current"
+                android:layout_width="88dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="@dimen/ui_space_sm"
+                android:layout_marginBottom="@dimen/ui_space_sm"
+                android:background="@drawable/bg_wheel_selected"
+                android:gravity="center"
+                android:text="00"
+                android:textColor="@color/ui_text_on_accent"
+                android:textSize="@dimen/ui_text_title"
+                android:fontFamily="@font/misans_bold" />
+
+            <TextView
+                android:id="@+id/tv_wheel_hours_next"
+                android:layout_width="88dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:text="01"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_body" />
+
+            <TextView
+                android:layout_width="88dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_sm"
+                android:gravity="center"
+                android:text="小时"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="@dimen/ui_text_caption" />
+        </LinearLayout>
+
+        <!-- 分钟滚轮 -->
+        <LinearLayout
+            android:id="@+id/layout_wheel_minutes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_xl"
+            android:background="@drawable/bg_button_dark"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:orientation="vertical"
+            android:padding="@dimen/ui_space_md">
+
+            <TextView
+                android:id="@+id/tv_wheel_minutes_prev"
+                android:layout_width="88dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:text="59"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_body" />
+
+            <TextView
+                android:id="@+id/tv_wheel_minutes_current"
+                android:layout_width="88dp"
+                android:layout_height="44dp"
+                android:layout_marginTop="@dimen/ui_space_sm"
+                android:layout_marginBottom="@dimen/ui_space_sm"
+                android:background="@drawable/bg_wheel_selected"
+                android:gravity="center"
+                android:text="00"
+                android:textColor="@color/ui_text_on_accent"
+                android:textSize="@dimen/ui_text_title"
+                android:fontFamily="@font/misans_bold" />
+
+            <TextView
+                android:id="@+id/tv_wheel_minutes_next"
+                android:layout_width="88dp"
+                android:layout_height="36dp"
+                android:gravity="center"
+                android:text="01"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_body" />
+
+            <TextView
+                android:layout_width="88dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_sm"
+                android:gravity="center"
+                android:text="分钟"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="@dimen/ui_text_caption" />
+        </LinearLayout>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"

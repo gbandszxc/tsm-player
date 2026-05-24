@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/ui_radius_button" />
+    <solid android:color="@color/ui_accent_blue" />
+    <stroke
+        android:width="@dimen/ui_stroke_focus"
+        android:color="@color/ui_accent_blue_stroke_soft" />
+</shape>

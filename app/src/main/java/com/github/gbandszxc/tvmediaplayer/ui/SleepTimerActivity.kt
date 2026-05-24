@@ -1,8 +1,11 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.KeyEvent
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.github.gbandszxc.tvmediaplayer.R
@@ -13,12 +16,23 @@ import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
 class SleepTimerActivity : BaseActivity() {
     private lateinit var manager: SleepTimerManager
     private lateinit var tvStatus: TextView
-    private lateinit var btnHours: Button
-    private lateinit var btnMinutes: Button
+    private lateinit var layoutPresets: LinearLayout
+    private lateinit var layoutWheel: LinearLayout
+    private lateinit var layoutWheelHours: LinearLayout
+    private lateinit var layoutWheelMinutes: LinearLayout
+    private lateinit var tvHoursPrev: TextView
+    private lateinit var tvHoursCurrent: TextView
+    private lateinit var tvHoursNext: TextView
+    private lateinit var tvMinutesPrev: TextView
+    private lateinit var tvMinutesCurrent: TextView
+    private lateinit var tvMinutesNext: TextView
     private lateinit var btnStart: Button
     private lateinit var btnCancel: Button
     private var selectedHours = 0
     private var selectedMinutes = 30
+    private var customMode = false
+    private var lastKeyDownTime = 0L
+    private var keyRepeatCount = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,6 +41,7 @@ class SleepTimerActivity : BaseActivity() {
         manager = SleepTimerManager(SleepTimerStore(this))
         bindViews()
         bindActions()
+        restoreFromCurrentTimer()
         render()
         findViewById<Button>(R.id.btn_sleep_30).requestFocus()
     }
@@ -38,8 +53,16 @@ class SleepTimerActivity : BaseActivity() {
 
     private fun bindViews() {
         tvStatus = findViewById(R.id.tv_sleep_status)
-        btnHours = findViewById(R.id.btn_sleep_hours)
-        btnMinutes = findViewById(R.id.btn_sleep_minutes)
+        layoutPresets = findViewById(R.id.layout_presets)
+        layoutWheel = findViewById(R.id.layout_wheel)
+        layoutWheelHours = findViewById(R.id.layout_wheel_hours)
+        layoutWheelMinutes = findViewById(R.id.layout_wheel_minutes)
+        tvHoursPrev = findViewById(R.id.tv_wheel_hours_prev)
+        tvHoursCurrent = findViewById(R.id.tv_wheel_hours_current)
+        tvHoursNext = findViewById(R.id.tv_wheel_hours_next)
+        tvMinutesPrev = findViewById(R.id.tv_wheel_minutes_prev)
+        tvMinutesCurrent = findViewById(R.id.tv_wheel_minutes_current)
+        tvMinutesNext = findViewById(R.id.tv_wheel_minutes_next)
         btnStart = findViewById(R.id.btn_sleep_start)
         btnCancel = findViewById(R.id.btn_sleep_cancel)
     }
@@ -49,21 +72,22 @@ class SleepTimerActivity : BaseActivity() {
         findViewById<Button>(R.id.btn_sleep_30).setOnClickListener { setDurationAndStart(30) }
         findViewById<Button>(R.id.btn_sleep_60).setOnClickListener { setDurationAndStart(60) }
         findViewById<Button>(R.id.btn_sleep_120).setOnClickListener { setDurationAndStart(120) }
-        btnHours.setOnClickListener {
-            selectedHours = (selectedHours + 1) % 24
-            renderManualSelection()
-        }
-        btnMinutes.setOnClickListener {
-            selectedMinutes = (selectedMinutes + 5) % 60
-            renderManualSelection()
-        }
+        findViewById<Button>(R.id.btn_sleep_custom).setOnClickListener { toggleCustomMode() }
         btnStart.setOnClickListener {
-            val duration = selectedHours * 60 + selectedMinutes
-            if (duration <= 0) {
-                Toast.makeText(this, getString(R.string.sleep_timer_toast_min_duration), Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
+            if (customMode) {
+                val duration = selectedHours * 60 + selectedMinutes
+                if (duration <= 0) {
+                    Toast.makeText(this, getString(R.string.sleep_timer_toast_min_duration), Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                setDurationAndStart(duration)
+            } else {
+                // 非自定义模式下，如果已有定时则重新用当前值更新
+                val duration = selectedHours * 60 + selectedMinutes
+                if (duration > 0) {
+                    setDurationAndStart(duration)
+                }
             }
-            setDurationAndStart(duration)
         }
         btnCancel.setOnClickListener {
             manager.cancel()
@@ -71,6 +95,30 @@ class SleepTimerActivity : BaseActivity() {
             render()
         }
         findViewById<Button>(R.id.btn_sleep_back).setOnClickListener { finish() }
+    }
+
+    private fun toggleCustomMode() {
+        customMode = !customMode
+        if (customMode) {
+            layoutPresets.visibility = View.GONE
+            layoutWheel.visibility = View.VISIBLE
+            renderWheel()
+            layoutWheelHours.requestFocus()
+        } else {
+            layoutWheel.visibility = View.GONE
+            layoutPresets.visibility = View.VISIBLE
+            findViewById<Button>(R.id.btn_sleep_custom).requestFocus()
+        }
+        render()
+    }
+
+    private fun restoreFromCurrentTimer() {
+        val state = manager.currentState()
+        if (state is SleepTimerState.Enabled) {
+            val totalMinutes = state.durationMinutes
+            selectedHours = totalMinutes / 60
+            selectedMinutes = totalMinutes % 60
+        }
     }
 
     private fun setDurationAndStart(durationMinutes: Int) {
@@ -89,16 +137,95 @@ class SleepTimerActivity : BaseActivity() {
         }
         btnStart.text = if (remaining != null) getString(R.string.sleep_timer_update) else getString(R.string.sleep_timer_start)
         btnCancel.isEnabled = remaining != null
-        renderManualSelection()
+        if (customMode) {
+            renderWheel()
+        }
     }
 
-    private fun renderManualSelection() {
-        btnHours.text = getString(R.string.sleep_timer_hours, selectedHours)
-        btnMinutes.text = getString(R.string.sleep_timer_minutes, selectedMinutes)
+    private fun renderWheel() {
+        val hoursPrev = (selectedHours - 1 + 24) % 24
+        val hoursNext = (selectedHours + 1) % 24
+        val minutesPrev = (selectedMinutes - 1 + 60) % 60
+        val minutesNext = (selectedMinutes + 1) % 60
+
+        tvHoursPrev.text = String.format("%02d", hoursPrev)
+        tvHoursCurrent.text = String.format("%02d", selectedHours)
+        tvHoursNext.text = String.format("%02d", hoursNext)
+        tvMinutesPrev.text = String.format("%02d", minutesPrev)
+        tvMinutesCurrent.text = String.format("%02d", selectedMinutes)
+        tvMinutesNext.text = String.format("%02d", minutesNext)
+    }
+
+    private fun adjustWheelValue(direction: Int) {
+        val focusedView = currentFocus
+        if (focusedView == layoutWheelHours) {
+            selectedHours = (selectedHours + direction + 24) % 24
+            renderWheel()
+        } else if (focusedView == layoutWheelMinutes) {
+            selectedMinutes = (selectedMinutes + direction + 60) % 60
+            renderWheel()
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (!customMode) {
+            return super.onKeyDown(keyCode, event)
+        }
+
+        val focusedView = currentFocus
+        val isWheelFocused = focusedView == layoutWheelHours || focusedView == layoutWheelMinutes
+
+        if (!isWheelFocused) {
+            return super.onKeyDown(keyCode, event)
+        }
+
+        when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_UP -> {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastKeyDownTime < 200) {
+                    keyRepeatCount++
+                } else {
+                    keyRepeatCount = 0
+                }
+                lastKeyDownTime = now
+                val step = if (keyRepeatCount > 3) 5 else 1
+                adjustWheelValue(step)
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastKeyDownTime < 200) {
+                    keyRepeatCount++
+                } else {
+                    keyRepeatCount = 0
+                }
+                lastKeyDownTime = now
+                val step = if (keyRepeatCount > 3) 5 else 1
+                adjustWheelValue(-step)
+                return true
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (focusedView == layoutWheelMinutes) {
+                    layoutWheelHours.requestFocus()
+                    return true
+                }
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (focusedView == layoutWheelHours) {
+                    layoutWheelMinutes.requestFocus()
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (customMode) {
+                toggleCustomMode()
+                return true
+            }
             finish()
             return true
         }
