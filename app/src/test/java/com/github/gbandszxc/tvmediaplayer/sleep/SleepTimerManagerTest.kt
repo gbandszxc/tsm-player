@@ -11,6 +11,7 @@ class SleepTimerManagerTest {
     private class FakeStore : SleepTimerStoreContract {
         var state: SleepTimerState = SleepTimerState.Disabled
         override fun load(nowMs: Long): SleepTimerState = state
+        override fun loadRaw(): SleepTimerState = state
         override fun saveEnabled(targetEpochMillis: Long, durationMinutes: Int) {
             state = SleepTimerState.Enabled(targetEpochMillis, durationMinutes)
         }

@@ -10,12 +10,29 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepAppExitController
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
 import com.github.gbandszxc.tvmediaplayer.ui.PlaybackActivity
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var sleepTimerJob: Job? = null
+    private lateinit var sleepTimerManager: SleepTimerManager
+    private lateinit var sleepDeviceController: SleepDeviceController
 
     /**
      * 监听歌曲切换事件，在服务侧（player 状态永远最新）立即保存快照。
@@ -29,6 +46,10 @@ class PlaybackService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
+        sleepTimerManager = SleepTimerManager(SleepTimerStore(this))
+        sleepDeviceController = SleepDeviceController(this)
+        startSleepTimerChecker()
+
         val mediaSourceFactory = DefaultMediaSourceFactory(
             SmbDataSource.Factory { PlaybackConfigStore.current() }
         )
@@ -86,6 +107,28 @@ class PlaybackService : MediaSessionService() {
         )
     }
 
+    private fun startSleepTimerChecker() {
+        sleepTimerJob?.cancel()
+        sleepTimerJob = serviceScope.launch {
+            while (isActive) {
+                sleepTimerManager.executeIfDue {
+                    executeSleepTimerAction()
+                }
+                delay(SLEEP_TIMER_CHECK_INTERVAL_MS)
+            }
+        }
+    }
+
+    private fun executeSleepTimerAction() {
+        saveSnapshotFromPlayer()
+        mediaSession?.player?.run {
+            pause()
+            stop()
+        }
+        SleepAppExitController.finishAll()
+        sleepDeviceController.sleepNow()
+    }
+
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -96,6 +139,8 @@ class PlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        sleepTimerJob?.cancel()
+        serviceScope.coroutineContext.cancelChildren()
         mediaSession?.run {
             player.release()
             release()
@@ -114,5 +159,9 @@ class PlaybackService : MediaSessionService() {
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+    }
+
+    companion object {
+        private const val SLEEP_TIMER_CHECK_INTERVAL_MS = 30_000L
     }
 }

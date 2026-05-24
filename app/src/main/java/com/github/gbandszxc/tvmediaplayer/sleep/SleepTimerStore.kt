@@ -4,6 +4,7 @@ import android.content.Context
 
 interface SleepTimerStoreContract {
     fun load(nowMs: Long = System.currentTimeMillis()): SleepTimerState
+    fun loadRaw(): SleepTimerState
     fun saveEnabled(targetEpochMillis: Long, durationMinutes: Int)
     fun clear()
 }
@@ -11,16 +12,22 @@ interface SleepTimerStoreContract {
 class SleepTimerStore(context: Context) : SleepTimerStoreContract {
     private val prefs = context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
-    override fun load(nowMs: Long): SleepTimerState {
+    override fun loadRaw(): SleepTimerState {
         val enabled = prefs.getBoolean(KEY_ENABLED, false)
         if (!enabled) return SleepTimerState.Disabled
         val target = prefs.getLong(KEY_TARGET_EPOCH_MILLIS, 0L)
         val duration = prefs.getInt(KEY_DURATION_MINUTES, 0)
-        if (target <= nowMs || duration <= 0) {
+        if (target <= 0L || duration <= 0) return SleepTimerState.Disabled
+        return SleepTimerState.Enabled(target, duration)
+    }
+
+    override fun load(nowMs: Long): SleepTimerState {
+        val state = loadRaw()
+        if (state is SleepTimerState.Enabled && state.targetEpochMillis <= nowMs) {
             clear()
             return SleepTimerState.Disabled
         }
-        return SleepTimerState.Enabled(target, duration)
+        return state
     }
 
     override fun saveEnabled(targetEpochMillis: Long, durationMinutes: Int) {

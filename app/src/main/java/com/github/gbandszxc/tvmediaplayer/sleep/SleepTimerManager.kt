@@ -31,7 +31,7 @@ class SleepTimerManager(
     }
 
     fun executeIfDue(nowMs: Long = System.currentTimeMillis(), action: () -> Unit): Boolean {
-        val state = store.load(Long.MIN_VALUE) as? SleepTimerState.Enabled ?: return false
+        val state = store.loadRaw() as? SleepTimerState.Enabled ?: return false
         if (state.targetEpochMillis > nowMs) return false
         store.clear()
         action()
