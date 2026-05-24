@@ -124,6 +124,7 @@ MainActivity
 sleep/
 ├─ SleepTimerStore
 ├─ SleepTimerCustomDurationStore
+├─ SleepTimerStartupCoordinator
 ├─ SleepTimerManager
 ├─ SleepDeviceAdminReceiver
 ├─ SleepDeviceController
@@ -154,6 +155,16 @@ durationMinutes: Int
 ```
 
 该状态独立于当前睡眠倒计时，只用于自定义滚轮默认回显。默认值为 30 分钟，只保存最近一次，写入时对小于 1 分钟的值兜底为 1 分钟。
+
+### SleepTimerStartupCoordinator
+
+负责应用进程启动时的一次性睡眠状态清理：
+
+```text
+clearActiveTimerOnce(store)
+```
+
+`MainActivity.onCreate()` 调用进程级 `SleepTimerStartup.clearActiveTimerOnProcessStart()`。该逻辑在当前进程内只执行一次，清除未完成的睡眠倒计时，避免应用完全退出后重新打开仍显示上次睡眠状态；它不清理 `SleepTimerCustomDurationStore`，因此最近一次自定义时长继续保留。
 
 ### SleepTimerManager
 
@@ -250,7 +261,8 @@ SleepAppExitController.finishAll()
 
 4. App 进程被杀：
    - 不恢复执行已错过的睡眠动作。
-   - 下次启动时如果存储中存在过期目标时间，直接清除。
+   - 下次冷启动进入主界面时清除未完成或已过期的睡眠倒计时。
+   - 最近一次自定义时长不随冷启动清理。
 
 ## 测试计划
 
@@ -272,6 +284,10 @@ SleepAppExitController.finishAll()
    - 多次保存后只读取最近一次自定义时长。
    - 小于 1 分钟的写入值按 1 分钟兜底。
 
+4. `SleepTimerStartupCoordinator`：
+   - 进程启动清理只执行一次。
+   - 清理未完成睡眠倒计时时保留最近一次自定义时长。
+
 ### 手动回归
 
 1. 首次启动未授权时出现说明弹窗。
@@ -283,7 +299,9 @@ SleepAppExitController.finishAll()
 7. 未授权时到点仍停止播放并退出应用。
 8. 自定义开启/更新后关闭页面，未开启睡眠定时时再次进入自定义模式应回显最近一次自定义时长。
 9. 已有睡眠定时时进入自定义模式应优先回显当前定时值，而不是历史自定义时长。
-10. 修改完成后执行 Debug 打包验证。
+10. 设置睡眠定时后完全退出应用，再重新打开，睡眠状态应为未开启。
+11. 完全退出重开后，点击自定义仍应回显最近一次自定义时长。
+12. 修改完成后执行 Debug 打包验证。
 
 ## 文档维护
 

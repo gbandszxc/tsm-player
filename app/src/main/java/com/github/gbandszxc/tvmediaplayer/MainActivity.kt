@@ -7,6 +7,7 @@ import android.os.Bundle
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStartup
 import com.github.gbandszxc.tvmediaplayer.ui.BaseActivity
 import com.github.gbandszxc.tvmediaplayer.ui.TvBrowseFragment
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
@@ -16,6 +17,7 @@ import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 class MainActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SleepTimerStartup.clearActiveTimerOnProcessStart(this)
         setContentView(R.layout.activity_main)
         UiSettingsApplier.applyAll(this)
         if (savedInstanceState == null) {
