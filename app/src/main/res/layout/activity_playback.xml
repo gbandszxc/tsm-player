@@ -192,6 +192,19 @@
                     android:textAllCaps="false" />
 
                 <Button
+                    android:id="@+id/btn_play_mode"
+                    style="@style/TsmButtonSuccess"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_lg"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                    android:nextFocusUp="@id/pb_playback"
+                    android:text=""
+                    android:textAllCaps="false" />
+
+                <Button
                     android:id="@+id/btn_lyrics_fullscreen"
                     style="@style/TsmButtonPrimary"
                     android:layout_width="wrap_content"
@@ -251,4 +264,21 @@
             android:adjustViewBounds="true"
             android:scaleType="fitCenter" />
     </FrameLayout>
+
+    <TextView
+        android:id="@+id/tv_playback_toast"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="@dimen/ui_space_4xl"
+        android:layout_marginEnd="@dimen/ui_space_4xl"
+        android:background="@drawable/bg_playback_toast"
+        android:fontFamily="@font/misans_medium"
+        android:paddingStart="@dimen/ui_space_3xl"
+        android:paddingTop="@dimen/ui_space_lg"
+        android:paddingEnd="@dimen/ui_space_3xl"
+        android:paddingBottom="@dimen/ui_space_lg"
+        android:textColor="@color/ui_text_primary"
+        android:textSize="@dimen/ui_text_body_large"
+        android:visibility="gone" />
 </FrameLayout>

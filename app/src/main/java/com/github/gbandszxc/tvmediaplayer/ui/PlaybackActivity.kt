@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.SystemClock
 import android.text.SpannableStringBuilder
@@ -16,6 +17,7 @@ import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -25,6 +27,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -76,6 +79,7 @@ class PlaybackActivity : BaseActivity() {
     private var mediaController: MediaController? = null
     private var progressJob: Job? = null
     private var seekIdleCommitJob: Job? = null
+    private var playbackToastJob: Job? = null
     private var playerProgressHoldUntilMs: Long = 0L
     private val playbackSeekController = PlaybackSeekController()
     private val lyricsRepository = SmbLyricsRepository()
@@ -104,9 +108,12 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var btnPrevious: Button
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
+    private lateinit var btnPlayMode: Button
     private lateinit var btnLyricsFullscreen: Button
     private lateinit var btnBack: Button
     private lateinit var btnLocate: Button
+    private lateinit var tvPlaybackToast: TextView
+    private var playbackMode: PlaybackMode = PlaybackMode.ORDER
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -115,7 +122,9 @@ class PlaybackActivity : BaseActivity() {
                 events.contains(Player.EVENT_MEDIA_METADATA_CHANGED) ||
                 events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED) ||
                 events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) ||
-                events.contains(Player.EVENT_POSITION_DISCONTINUITY)
+                events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                events.contains(Player.EVENT_REPEAT_MODE_CHANGED) ||
+                events.contains(Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED)
             ) {
                 renderPlayerState(player)
             }
@@ -165,9 +174,12 @@ class PlaybackActivity : BaseActivity() {
         btnPrevious = findViewById(R.id.btn_prev)
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
+        btnPlayMode = findViewById(R.id.btn_play_mode)
         btnLyricsFullscreen = findViewById(R.id.btn_lyrics_fullscreen)
         btnBack = findViewById(R.id.btn_back_to_browser)
         btnLocate = findViewById(R.id.btn_locate)
+        tvPlaybackToast = findViewById(R.id.tv_playback_toast)
+        renderPlaybackModeButton()
     }
 
     private fun bindActions() {
@@ -199,6 +211,10 @@ class PlaybackActivity : BaseActivity() {
             renderPlayerState(controller)
         }
         btnNext.setOnClickListener { mediaController?.seekToNextMediaItem() }
+        btnPlayMode.setOnClickListener {
+            applyPlaybackMode(playbackMode.next(), showNotice = true)
+        }
+        btnPlayMode.setOnFocusChangeListener { _, _ -> renderPlaybackModeButton() }
         btnLyricsFullscreen.setOnClickListener {
             startActivity(Intent(this, LyricsFullscreenActivity::class.java))
         }
@@ -306,6 +322,7 @@ class PlaybackActivity : BaseActivity() {
                     .onSuccess { controller ->
                         mediaController = controller
                         controller.addListener(playerListener)
+                        playbackMode = PlaybackMode.fromPlayer(controller)
                         renderPlayerState(controller)
                         startProgressTicker()
                     }
@@ -319,6 +336,9 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun renderPlayerState(player: Player) {
+        playbackMode = PlaybackMode.fromPlayer(player)
+        renderPlaybackModeButton()
+
         val title = player.mediaMetadata.title?.toString().orEmpty()
         tvTitle.text = "歌曲：" + if (title.isBlank()) "暂无播放内容" else title
 
@@ -341,6 +361,77 @@ class PlaybackActivity : BaseActivity() {
         if (shouldDeferPlayerProgressRender()) return
         renderProgress(player.currentPosition, player.duration)
         renderLyrics(player.currentPosition)
+    }
+
+    private fun applyPlaybackMode(mode: PlaybackMode, showNotice: Boolean) {
+        playbackMode = mode
+        mediaController?.let { controller ->
+            controller.setShuffleModeEnabled(mode.shuffleEnabled)
+            controller.repeatMode = mode.repeatMode
+        }
+        renderPlaybackModeButton()
+        if (showNotice) {
+            showPlaybackToast("已切换为：${mode.label}")
+        }
+    }
+
+    private fun renderPlaybackModeButton() {
+        val focused = btnPlayMode.hasFocus()
+        btnPlayMode.text = if (focused) playbackMode.label else ""
+        btnPlayMode.contentDescription = playbackMode.label
+        btnPlayMode.setBackgroundResource(R.drawable.bg_button_amber)
+        btnPlayMode.minWidth = resources.getDimensionPixelSize(
+            if (focused) {
+                R.dimen.ui_playback_mode_button_expanded_min_width
+            } else {
+                R.dimen.ui_playback_mode_button_collapsed_width
+            }
+        )
+        val layoutParams = btnPlayMode.layoutParams
+        val targetWidth = if (focused) {
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        } else {
+            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+        }
+        if (layoutParams.width != targetWidth) {
+            layoutParams.width = targetWidth
+            btnPlayMode.layoutParams = layoutParams
+        }
+        btnPlayMode.overlay.clear()
+        val icon = ContextCompat.getDrawable(this, playbackMode.iconResId)?.mutate() ?: return
+        val wrapped = DrawableCompat.wrap(icon)
+        DrawableCompat.setTint(
+            wrapped,
+            ContextCompat.getColor(this, R.color.ui_text_on_accent)
+        )
+        wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
+        if (focused) {
+            btnPlayMode.setCompoundDrawables(wrapped, null, null, null)
+        } else {
+            btnPlayMode.setCompoundDrawables(null, null, null, null)
+            btnPlayMode.post { drawCenteredPlaybackModeIcon(wrapped) }
+        }
+    }
+
+    private fun drawCenteredPlaybackModeIcon(icon: Drawable) {
+        if (btnPlayMode.hasFocus()) return
+        btnPlayMode.overlay.clear()
+        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
+        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
+        val left = (btnPlayMode.width - iconWidth) / 2
+        val top = (btnPlayMode.height - iconHeight) / 2
+        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
+        btnPlayMode.overlay.add(icon)
+    }
+
+    private fun showPlaybackToast(message: String) {
+        playbackToastJob?.cancel()
+        tvPlaybackToast.text = message
+        tvPlaybackToast.visibility = View.VISIBLE
+        playbackToastJob = lifecycleScope.launch {
+            delay(PLAYBACK_TOAST_DURATION_MS)
+            tvPlaybackToast.visibility = View.GONE
+        }
     }
 
     private fun startProgressTicker() {
@@ -836,6 +927,9 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun releaseController() {
+        playbackToastJob?.cancel()
+        playbackToastJob = null
+        tvPlaybackToast.visibility = View.GONE
         seekIdleCommitJob?.cancel()
         seekIdleCommitJob = null
         playerProgressHoldUntilMs = 0L
@@ -900,5 +994,6 @@ class PlaybackActivity : BaseActivity() {
 
     private companion object {
         const val PLAYER_PROGRESS_RENDER_HOLD_MS = 350L
+        const val PLAYBACK_TOAST_DURATION_MS = 2_000L
     }
 }

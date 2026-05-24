@@ -472,6 +472,8 @@ class TvBrowseFragment : Fragment() {
                 val existingUris = currentQueueUris(controller)
 
                 if (existingUris == queueUris && controller.currentMediaItem?.localConfiguration?.uri.toString() == targetUri) {
+                    controller.repeatMode = Player.REPEAT_MODE_OFF
+                    controller.setShuffleModeEnabled(shuffle)
                     if (!controller.isPlaying) {
                         controller.play()
                     }
@@ -479,6 +481,7 @@ class TvBrowseFragment : Fragment() {
                 }
 
                 if (existingUris == queueUris) {
+                    controller.repeatMode = Player.REPEAT_MODE_OFF
                     controller.setShuffleModeEnabled(shuffle)
                     controller.seekToDefaultPosition(startIndex.coerceIn(0, controller.mediaItemCount - 1))
                     controller.play()
@@ -488,6 +491,7 @@ class TvBrowseFragment : Fragment() {
                 val mediaItems = withContext(Dispatchers.IO) {
                     mediaItemFactory.create(config, queue)
                 }
+                controller.repeatMode = Player.REPEAT_MODE_OFF
                 controller.setShuffleModeEnabled(shuffle)
                 controller.setMediaItems(mediaItems, startIndex.coerceIn(0, mediaItems.lastIndex), 0L)
                 controller.prepare()
@@ -604,6 +608,8 @@ class TvBrowseFragment : Fragment() {
                         .build()
                 }
                 val index = snapshot.currentIndex.coerceIn(0, mediaItems.lastIndex)
+                controller.repeatMode = Player.REPEAT_MODE_OFF
+                controller.setShuffleModeEnabled(false)
                 controller.setMediaItems(mediaItems, index, snapshot.positionMs)
                 controller.prepare()
             }.onSuccess {

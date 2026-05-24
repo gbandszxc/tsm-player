@@ -10,6 +10,8 @@
     <dimen name="ui_stroke_focus">2dp</dimen>
     <dimen name="ui_stroke_artwork_focus">3dp</dimen>
     <dimen name="ui_indicator_width">4dp</dimen>
+    <dimen name="ui_playback_mode_button_collapsed_width">64dp</dimen>
+    <dimen name="ui_playback_mode_button_expanded_min_width">132dp</dimen>
 
     <dimen name="ui_space_xs">4dp</dimen>
     <dimen name="ui_space_sm">6dp</dimen>
