@@ -114,6 +114,8 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var btnLocate: Button
     private lateinit var tvPlaybackToast: TextView
     private var playbackMode: PlaybackMode = PlaybackMode.ORDER
+    private var renderedPlaybackMode: PlaybackMode? = null
+    private var renderedPlaybackModeFocused: Boolean? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -322,7 +324,7 @@ class PlaybackActivity : BaseActivity() {
                     .onSuccess { controller ->
                         mediaController = controller
                         controller.addListener(playerListener)
-                        playbackMode = PlaybackMode.fromPlayer(controller)
+                        updatePlaybackModeFromPlayer(controller)
                         renderPlayerState(controller)
                         startProgressTicker()
                     }
@@ -336,8 +338,7 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun renderPlayerState(player: Player) {
-        playbackMode = PlaybackMode.fromPlayer(player)
-        renderPlaybackModeButton()
+        updatePlaybackModeFromPlayer(player)
 
         val title = player.mediaMetadata.title?.toString().orEmpty()
         tvTitle.text = "歌曲：" + if (title.isBlank()) "暂无播放内容" else title
@@ -365,6 +366,7 @@ class PlaybackActivity : BaseActivity() {
 
     private fun applyPlaybackMode(mode: PlaybackMode, showNotice: Boolean) {
         playbackMode = mode
+        renderedPlaybackMode = null
         mediaController?.let { controller ->
             controller.setShuffleModeEnabled(mode.shuffleEnabled)
             controller.repeatMode = mode.repeatMode
@@ -375,8 +377,20 @@ class PlaybackActivity : BaseActivity() {
         }
     }
 
+    private fun updatePlaybackModeFromPlayer(player: Player) {
+        val mode = PlaybackMode.fromPlayer(player)
+        if (mode == playbackMode && renderedPlaybackMode == mode) return
+        playbackMode = mode
+        renderPlaybackModeButton()
+    }
+
     private fun renderPlaybackModeButton() {
         val focused = btnPlayMode.hasFocus()
+        if (renderedPlaybackMode == playbackMode && renderedPlaybackModeFocused == focused) {
+            return
+        }
+        renderedPlaybackMode = playbackMode
+        renderedPlaybackModeFocused = focused
         btnPlayMode.text = if (focused) playbackMode.label else ""
         btnPlayMode.contentDescription = playbackMode.label
         btnPlayMode.setBackgroundResource(R.drawable.bg_button_amber)
