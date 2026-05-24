@@ -66,12 +66,6 @@ import kotlinx.coroutines.withContext
 
 class PlaybackActivity : BaseActivity() {
 
-    private data class AudioTagInfo(
-        val title: String?,
-        val artist: String?,
-        val albumTitle: String?
-    )
-
     private data class LyricsLoadOutcome(
         val timeline: LrcTimeline?,
         val isMiss: Boolean,
@@ -92,7 +86,7 @@ class PlaybackActivity : BaseActivity() {
     private var currentArtworkKey: String? = null
     private var currentArtworkBitmap: Bitmap? = null
     private var currentTagKey: String? = null
-    private val tagInfoCache = mutableMapOf<String, AudioTagInfo>()
+    private val trackInfoStore = PlaybackTrackInfoStore.shared
     private var fallbackConfig: SmbConfig = SmbConfig.Empty
 
     private lateinit var layoutArtworkFrame: FrameLayout
@@ -355,15 +349,7 @@ class PlaybackActivity : BaseActivity() {
 
     private fun renderPlayerState(player: Player) {
         updatePlaybackModeFromPlayer(player)
-
-        val title = player.mediaMetadata.title?.toString().orEmpty()
-        tvTitle.text = "歌曲：" + if (title.isBlank()) "暂无播放内容" else title
-
-        // 先用 mediaMetadata 回退值填充，等 tag 异步读完后再覆盖
-        val artist = player.mediaMetadata.artist?.toString().orEmpty().ifBlank { "-" }
-        val album = player.mediaMetadata.albumTitle?.toString().orEmpty().ifBlank { "-" }
-        tvArtist.text = "艺术家：$artist"
-        tvAlbum.text = "专辑：$album"
+        renderTrackInfo(player)
         if (player.isPlaying) {
             btnPlayPause.text = "暂停"
             btnPlayPause.setBackgroundResource(R.drawable.bg_button_amber)
@@ -378,6 +364,23 @@ class PlaybackActivity : BaseActivity() {
         if (shouldDeferPlayerProgressRender()) return
         renderProgress(player.currentPosition, player.duration)
         renderLyrics(player.currentPosition)
+    }
+
+    private fun renderTrackInfo(player: Player) {
+        val mediaItem = player.currentMediaItem
+        val key = mediaItem?.let(::mediaCacheKey)
+        val fallbackTitle = player.mediaMetadata.title?.toString().orEmpty()
+        val fallbackArtist = player.mediaMetadata.artist?.toString().orEmpty().ifBlank { "-" }
+        val fallbackAlbum = player.mediaMetadata.albumTitle?.toString().orEmpty().ifBlank { "-" }
+        val display = trackInfoStore.displayFor(
+            key = key,
+            fallbackTitle = if (fallbackTitle.isBlank()) "暂无播放内容" else fallbackTitle,
+            fallbackArtist = fallbackArtist,
+            fallbackAlbumTitle = fallbackAlbum
+        )
+        tvTitle.text = "歌曲：${display.title}"
+        tvArtist.text = "艺术家：${display.artist}"
+        tvAlbum.text = "专辑：${display.albumTitle}"
     }
 
     private fun applyPlaybackMode(mode: PlaybackMode, showNotice: Boolean) {
@@ -848,39 +851,22 @@ class PlaybackActivity : BaseActivity() {
         if (key == currentTagKey) return
         currentTagKey = key
 
-        tagInfoCache[key]?.let { info ->
-            applyTagInfo(info)
-            return
-        }
-
         lifecycleScope.launch {
             val config = resolvePlaybackConfig()
             val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
             val info = withContext(Dispatchers.IO) { loadAudioTagInfo(mediaUri, config) }
             if (currentTagKey != key) return@launch
             if (info != null) {
-                tagInfoCache[key] = info
-                applyTagInfo(info)
+                trackInfoStore.remember(key, info)
+                renderTrackInfo(player)
             }
         }
     }
 
-    private fun applyTagInfo(info: AudioTagInfo) {
-        if (!info.title.isNullOrBlank()) {
-            tvTitle.text = "歌曲：${info.title}"
-        }
-        if (!info.artist.isNullOrBlank()) {
-            tvArtist.text = "艺术家：${info.artist}"
-        }
-        if (!info.albumTitle.isNullOrBlank()) {
-            tvAlbum.text = "专辑：${info.albumTitle}"
-        }
-    }
-
-    private suspend fun loadAudioTagInfo(mediaUri: String, config: SmbConfig): AudioTagInfo? = runCatching {
+    private suspend fun loadAudioTagInfo(mediaUri: String, config: SmbConfig): PlaybackTrackInfo? = runCatching {
         val metadata = SmbAudioMetadataProbe.probe(config, mediaUri) ?: return@runCatching null
         if (metadata.title == null && metadata.artist == null && metadata.album == null) return@runCatching null
-        AudioTagInfo(
+        PlaybackTrackInfo(
             title = metadata.title,
             artist = metadata.artist,
             albumTitle = metadata.album,

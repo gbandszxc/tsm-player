@@ -544,10 +544,11 @@ class TvBrowseFragment : Fragment() {
 
     private fun updateNowPlayingButton() {
         val controller = mediaController
-        val hasActivePlaying = controller?.currentMediaItem != null
+        val currentMediaItem = controller?.currentMediaItem
+        val hasActivePlaying = currentMediaItem != null
 
         if (hasActivePlaying) {
-            val title = controller?.mediaMetadata?.title?.toString().orEmpty()
+            val title = activeNowPlayingTitle(requireNotNull(controller), requireNotNull(currentMediaItem))
             showNowPlayingButton(if (title.isBlank()) "回到当前播放" else "回到当前播放：$title")
             return
         }
@@ -569,6 +570,18 @@ class TvBrowseFragment : Fragment() {
         btnNowPlaying.text = text
         btnNowPlaying.isSelected = true
         btnNowPlaying.visibility = View.VISIBLE
+    }
+
+    private fun activeNowPlayingTitle(controller: MediaController, mediaItem: MediaItem): String {
+        val key = mediaItem.localConfiguration?.uri?.toString().orEmpty().ifBlank {
+            mediaItem.mediaId
+        }
+        return PlaybackTrackInfoStore.shared.displayFor(
+            key = key,
+            fallbackTitle = controller.mediaMetadata.title?.toString().orEmpty(),
+            fallbackArtist = controller.mediaMetadata.artist?.toString().orEmpty(),
+            fallbackAlbumTitle = controller.mediaMetadata.albumTitle?.toString().orEmpty()
+        ).title.orEmpty()
     }
 
     private fun currentQueueUris(controller: MediaController): List<String> {
