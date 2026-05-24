@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import com.github.gbandszxc.tvmediaplayer.R
 
 class SleepDeviceController(private val context: Context) {
     private val appContext = context.applicationContext
@@ -21,7 +22,7 @@ class SleepDeviceController(private val context: Context) {
             putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
             putExtra(
                 DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "用于睡眠定时结束时让电视进入睡眠或息屏。"
+                appContext.getString(R.string.sleep_device_admin_description)
             )
         }
         activity.startActivity(intent)
