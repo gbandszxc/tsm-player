@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TSM Player</string>
+    <string name="sleep_device_admin_description">用于睡眠定时结束时让电视进入睡眠或息屏。</string>
 </resources>
