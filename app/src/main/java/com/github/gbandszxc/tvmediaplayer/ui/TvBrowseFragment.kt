@@ -25,7 +25,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -33,6 +32,7 @@ import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
+import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackResumeBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
@@ -607,24 +607,15 @@ class TvBrowseFragment : Fragment() {
 
         lifecycleScope.launch {
             runCatching {
-                val mediaItems = snapshot.queueUris.mapIndexed { i, uri ->
-                    val mediaId = snapshot.queueMediaIds.getOrElse(i) { "" }
-                    val title = mediaId.substringAfterLast('/').substringBeforeLast('.')
-                    MediaItem.Builder()
-                        .setUri(uri)
-                        .setMediaId(mediaId)
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(title.ifBlank { null })
-                                .build()
-                        )
-                        .build()
-                }
-                val index = snapshot.currentIndex.coerceIn(0, mediaItems.lastIndex)
+                val request = LastPlaybackResumeBuilder.fromSnapshot(snapshot)
+                    ?: error("上次播放队列为空")
                 controller.repeatMode = Player.REPEAT_MODE_OFF
                 controller.setShuffleModeEnabled(false)
-                controller.setMediaItems(mediaItems, index, snapshot.positionMs)
+                controller.setMediaItems(request.mediaItems, request.startIndex, request.positionMs)
                 controller.prepare()
+                if (request.playWhenReady) {
+                    controller.play()
+                }
             }.onSuccess {
                 startActivity(Intent(requireContext(), PlaybackActivity::class.java))
             }.onFailure { ex ->
