@@ -4,8 +4,7 @@
     <string name="sleep_timer_title">睡眠定时</string>
     <string name="sleep_timer_status_off">当前未开启</string>
     <string name="sleep_timer_status_on">当前已开启，剩余约 %d 分钟</string>
-    <string name="sleep_timer_presets">预设时间</string>
-    <string name="sleep_timer_manual">手动指定</string>
+    <string name="sleep_timer_section">睡眠时间</string>
     <string name="sleep_timer_start">开启睡眠</string>
     <string name="sleep_timer_update">更新睡眠</string>
     <string name="sleep_timer_cancel">关闭睡眠</string>

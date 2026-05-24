@@ -2,7 +2,9 @@ package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.os.Bundle
 import android.os.SystemClock
+import android.view.GestureDetector
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
@@ -33,6 +35,39 @@ class SleepTimerActivity : BaseActivity() {
     private var customMode = false
     private var lastKeyDownTime = 0L
     private var keyRepeatCount = 0
+    private var currentWheelTarget: LinearLayout? = null
+    private val gestureDetector by lazy {
+        GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onScroll(
+                e1: MotionEvent?,
+                e2: MotionEvent,
+                distanceX: Float,
+                distanceY: Float
+            ): Boolean {
+                // 触屏反向：上滑增加，下滑减少
+                val target = currentWheelTarget ?: return false
+                if (distanceY < -20f) {
+                    if (target == layoutWheelHours) {
+                        selectedHours = (selectedHours + 1) % 24
+                    } else {
+                        selectedMinutes = (selectedMinutes + 1) % 60
+                    }
+                    renderWheel()
+                    return true
+                }
+                if (distanceY > 20f) {
+                    if (target == layoutWheelHours) {
+                        selectedHours = (selectedHours - 1 + 24) % 24
+                    } else {
+                        selectedMinutes = (selectedMinutes - 1 + 60) % 60
+                    }
+                    renderWheel()
+                    return true
+                }
+                return false
+            }
+        })
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,6 +100,13 @@ class SleepTimerActivity : BaseActivity() {
         tvMinutesNext = findViewById(R.id.tv_wheel_minutes_next)
         btnStart = findViewById(R.id.btn_sleep_start)
         btnCancel = findViewById(R.id.btn_sleep_cancel)
+
+        val touchListener = View.OnTouchListener { view, event ->
+            currentWheelTarget = view as LinearLayout
+            gestureDetector.onTouchEvent(event)
+        }
+        layoutWheelHours.setOnTouchListener(touchListener)
+        layoutWheelMinutes.setOnTouchListener(touchListener)
     }
 
     private fun bindActions() {
@@ -189,7 +231,8 @@ class SleepTimerActivity : BaseActivity() {
                 }
                 lastKeyDownTime = now
                 val step = if (keyRepeatCount > 3) 5 else 1
-                adjustWheelValue(step)
+                // 遥控器正向：下键增加、上键减少
+                adjustWheelValue(-step)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -201,7 +244,7 @@ class SleepTimerActivity : BaseActivity() {
                 }
                 lastKeyDownTime = now
                 val step = if (keyRepeatCount > 3) 5 else 1
-                adjustWheelValue(-step)
+                adjustWheelValue(step)
                 return true
             }
             KeyEvent.KEYCODE_DPAD_LEFT -> {
