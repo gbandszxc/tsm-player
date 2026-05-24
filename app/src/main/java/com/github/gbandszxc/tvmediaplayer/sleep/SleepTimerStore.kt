@@ -24,7 +24,6 @@ class SleepTimerStore(context: Context) : SleepTimerStoreContract {
     override fun load(nowMs: Long): SleepTimerState {
         val state = loadRaw()
         if (state is SleepTimerState.Enabled && state.targetEpochMillis <= nowMs) {
-            clear()
             return SleepTimerState.Disabled
         }
         return state

@@ -21,13 +21,13 @@ class SleepTimerStoreTest {
     }
 
     @Test
-    fun `load clears expired timer`() {
+    fun `load hides expired timer without consuming due action state`() {
         val context = RuntimeEnvironment.getApplication()
         val store = SleepTimerStore(context)
         store.clear()
         store.saveEnabled(targetEpochMillis = 120_000L, durationMinutes = 2)
 
         assertEquals(SleepTimerState.Disabled, store.load(nowMs = 120_000L))
-        assertEquals(SleepTimerState.Disabled, store.load(nowMs = 121_000L))
+        assertEquals(SleepTimerState.Enabled(120_000L, 2), store.loadRaw())
     }
 }
