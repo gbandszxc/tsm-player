@@ -461,7 +461,8 @@ class PlaybackActivity : BaseActivity() {
             btnSleepTimer.layoutParams = layoutParams
         }
         btnSleepTimer.overlay.clear()
-        val icon = ContextCompat.getDrawable(this, R.drawable.ic_sleep_timer)?.mutate() ?: return
+        val iconRes = if (remaining != null) R.drawable.ic_sleep_timer_active else R.drawable.ic_sleep_timer
+        val icon = ContextCompat.getDrawable(this, iconRes)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)
         DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_primary))
         wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
