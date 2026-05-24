@@ -4,7 +4,7 @@
 > 
 > 一款专为 Android TV 设计的媒体播放器，支持通过 SMB 协议播放局域网共享媒体文件。
 
-![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.7-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android%20TV-green.svg)
 ![API](https://img.shields.io/badge/API-21%2B-brightgreen.svg)
 
