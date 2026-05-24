@@ -30,38 +30,28 @@ class SleepTimerActivity : BaseActivity() {
     private lateinit var tvMinutesNext: TextView
     private lateinit var btnStart: Button
     private lateinit var btnCancel: Button
-    private var selectedHours = 0
-    private var selectedMinutes = 30
+    private val wheelController = SleepTimerWheelController()
     private var customMode = false
     private var lastKeyDownTime = 0L
     private var keyRepeatCount = 0
     private var currentWheelTarget: LinearLayout? = null
     private val gestureDetector by lazy {
         GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
             override fun onScroll(
                 e1: MotionEvent?,
                 e2: MotionEvent,
                 distanceX: Float,
                 distanceY: Float
             ): Boolean {
-                // 触屏反向：上滑增加，下滑减少
                 val target = currentWheelTarget ?: return false
-                if (distanceY < -20f) {
-                    if (target == layoutWheelHours) {
-                        selectedHours = (selectedHours + 1) % 24
-                    } else {
-                        selectedMinutes = (selectedMinutes + 1) % 60
-                    }
-                    renderWheel()
+                if (distanceY > TOUCH_SCROLL_THRESHOLD) {
+                    adjustWheelValue(target.toWheelTarget(), direction = 1)
                     return true
                 }
-                if (distanceY > 20f) {
-                    if (target == layoutWheelHours) {
-                        selectedHours = (selectedHours - 1 + 24) % 24
-                    } else {
-                        selectedMinutes = (selectedMinutes - 1 + 60) % 60
-                    }
-                    renderWheel()
+                if (distanceY < -TOUCH_SCROLL_THRESHOLD) {
+                    adjustWheelValue(target.toWheelTarget(), direction = -1)
                     return true
                 }
                 return false
@@ -102,8 +92,13 @@ class SleepTimerActivity : BaseActivity() {
         btnCancel = findViewById(R.id.btn_sleep_cancel)
 
         val touchListener = View.OnTouchListener { view, event ->
-            currentWheelTarget = view as LinearLayout
+            val wheel = view as LinearLayout
+            currentWheelTarget = wheel
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                wheel.requestFocus()
+            }
             gestureDetector.onTouchEvent(event)
+            true
         }
         layoutWheelHours.setOnTouchListener(touchListener)
         layoutWheelMinutes.setOnTouchListener(touchListener)
@@ -117,7 +112,7 @@ class SleepTimerActivity : BaseActivity() {
         findViewById<Button>(R.id.btn_sleep_custom).setOnClickListener { toggleCustomMode() }
         btnStart.setOnClickListener {
             if (customMode) {
-                val duration = selectedHours * 60 + selectedMinutes
+                val duration = wheelController.durationMinutes()
                 if (duration <= 0) {
                     Toast.makeText(this, getString(R.string.sleep_timer_toast_min_duration), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -125,7 +120,7 @@ class SleepTimerActivity : BaseActivity() {
                 setDurationAndStart(duration)
             } else {
                 // 非自定义模式下，如果已有定时则重新用当前值更新
-                val duration = selectedHours * 60 + selectedMinutes
+                val duration = wheelController.durationMinutes()
                 if (duration > 0) {
                     setDurationAndStart(duration)
                 }
@@ -157,9 +152,7 @@ class SleepTimerActivity : BaseActivity() {
     private fun restoreFromCurrentTimer() {
         val state = manager.currentState()
         if (state is SleepTimerState.Enabled) {
-            val totalMinutes = state.durationMinutes
-            selectedHours = totalMinutes / 60
-            selectedMinutes = totalMinutes % 60
+            wheelController.setDuration(state.durationMinutes)
         }
     }
 
@@ -185,27 +178,37 @@ class SleepTimerActivity : BaseActivity() {
     }
 
     private fun renderWheel() {
-        val hoursPrev = (selectedHours - 1 + 24) % 24
-        val hoursNext = (selectedHours + 1) % 24
-        val minutesPrev = (selectedMinutes - 1 + 60) % 60
-        val minutesNext = (selectedMinutes + 1) % 60
+        val hoursPrev = (wheelController.hours - 1 + 24) % 24
+        val hoursNext = (wheelController.hours + 1) % 24
+        val minutesPrev = (wheelController.minutes - 1 + 60) % 60
+        val minutesNext = (wheelController.minutes + 1) % 60
 
         tvHoursPrev.text = String.format("%02d", hoursPrev)
-        tvHoursCurrent.text = String.format("%02d", selectedHours)
+        tvHoursCurrent.text = String.format("%02d", wheelController.hours)
         tvHoursNext.text = String.format("%02d", hoursNext)
         tvMinutesPrev.text = String.format("%02d", minutesPrev)
-        tvMinutesCurrent.text = String.format("%02d", selectedMinutes)
+        tvMinutesCurrent.text = String.format("%02d", wheelController.minutes)
         tvMinutesNext.text = String.format("%02d", minutesNext)
+    }
+
+    private fun LinearLayout.toWheelTarget(): SleepTimerWheelController.Target =
+        if (this == layoutWheelHours) {
+            SleepTimerWheelController.Target.Hours
+        } else {
+            SleepTimerWheelController.Target.Minutes
+        }
+
+    private fun adjustWheelValue(target: SleepTimerWheelController.Target, direction: Int) {
+        wheelController.adjust(target, direction)
+        renderWheel()
     }
 
     private fun adjustWheelValue(direction: Int) {
         val focusedView = currentFocus
         if (focusedView == layoutWheelHours) {
-            selectedHours = (selectedHours + direction + 24) % 24
-            renderWheel()
+            adjustWheelValue(SleepTimerWheelController.Target.Hours, direction)
         } else if (focusedView == layoutWheelMinutes) {
-            selectedMinutes = (selectedMinutes + direction + 60) % 60
-            renderWheel()
+            adjustWheelValue(SleepTimerWheelController.Target.Minutes, direction)
         }
     }
 
@@ -273,5 +276,9 @@ class SleepTimerActivity : BaseActivity() {
             return true
         }
         return super.onKeyUp(keyCode, event)
+    }
+
+    private companion object {
+        const val TOUCH_SCROLL_THRESHOLD = 20f
     }
 }
