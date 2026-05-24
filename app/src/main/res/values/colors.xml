@@ -40,6 +40,10 @@
     <color name="ui_accent_yellow">#FCD34D</color>
     <color name="ui_accent_yellow_focus">#F59E0B</color>
     <color name="ui_accent_yellow_stroke">#FEF3C7</color>
+    <color name="ui_accent_red">#DC2626</color>
+    <color name="ui_accent_red_focus">#B91C1C</color>
+    <color name="ui_accent_red_stroke">#FCA5A5</color>
+    <color name="ui_accent_red_text">#FEE2E2</color>
 
     <color name="ui_divider">#1E3A5F</color>
     <color name="ui_tag_dir">#1E3A5F</color>

@@ -53,4 +53,9 @@
         <item name="android:background">@drawable/bg_button_light_yellow</item>
         <item name="android:textColor">@color/ui_text_warning_dark</item>
     </style>
+
+    <style name="TsmButtonDanger" parent="TsmButtonBase">
+        <item name="android:background">@drawable/bg_button_red</item>
+        <item name="android:textColor">@color/ui_text_on_accent</item>
+    </style>
 </resources>

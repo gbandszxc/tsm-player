@@ -128,7 +128,7 @@
 
         <Button
             android:id="@+id/btn_sleep_cancel"
-            style="@style/TsmButtonWarning"
+            style="@style/TsmButtonDanger"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/ui_space_lg"
