@@ -51,6 +51,8 @@ import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
 import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
+import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import jcifs.smb.SmbFile
@@ -117,6 +119,10 @@ class PlaybackActivity : BaseActivity() {
     private var renderedPlaybackMode: PlaybackMode? = null
     private var renderedPlaybackModeFocused: Boolean? = null
     private var renderedLocateFocused: Boolean? = null
+    private lateinit var sleepTimerManager: SleepTimerManager
+    private lateinit var btnSleepTimer: Button
+    private var renderedSleepTimerLabel: String? = null
+    private var renderedSleepTimerFocused: Boolean? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -137,6 +143,7 @@ class PlaybackActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         configStore = SmbConfigStore(applicationContext)
+        sleepTimerManager = SleepTimerManager(SleepTimerStore(applicationContext))
         setContentView(R.layout.activity_playback)
         bindViews()
         applyUiSettings()
@@ -181,9 +188,11 @@ class PlaybackActivity : BaseActivity() {
         btnLyricsFullscreen = findViewById(R.id.btn_lyrics_fullscreen)
         btnBack = findViewById(R.id.btn_back_to_browser)
         btnLocate = findViewById(R.id.btn_locate)
+        btnSleepTimer = findViewById(R.id.btn_sleep_timer)
         tvPlaybackToast = findViewById(R.id.tv_playback_toast)
         renderPlaybackModeButton()
         renderLocateButton()
+        renderSleepTimerButton()
     }
 
     private fun bindActions() {
@@ -225,6 +234,10 @@ class PlaybackActivity : BaseActivity() {
         btnBack.setOnClickListener { finish() }
         btnLocate.setOnClickListener { locateCurrentPlayback() }
         btnLocate.setOnFocusChangeListener { _, _ -> renderLocateButton() }
+        btnSleepTimer.setOnClickListener {
+            startActivity(Intent(this, SleepTimerActivity::class.java))
+        }
+        btnSleepTimer.setOnFocusChangeListener { _, _ -> renderSleepTimerButton(force = true) }
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -422,6 +435,51 @@ class PlaybackActivity : BaseActivity() {
         )
     }
 
+    private fun renderSleepTimerButton(force: Boolean = false) {
+        val remaining = sleepTimerManager.remainingMinutesCeil()
+        val label = remaining?.toString().orEmpty()
+        val focused = btnSleepTimer.hasFocus()
+        if (!force && renderedSleepTimerLabel == label && renderedSleepTimerFocused == focused) return
+        renderedSleepTimerLabel = label
+        renderedSleepTimerFocused = focused
+
+        btnSleepTimer.setBackgroundResource(R.drawable.bg_button_amber)
+        btnSleepTimer.minWidth = resources.getDimensionPixelSize(
+            if (remaining == null) R.dimen.ui_playback_mode_button_collapsed_width
+            else R.dimen.ui_playback_sleep_button_expanded_min_width
+        )
+        val targetWidth = if (remaining == null) {
+            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+        } else {
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+        val layoutParams = btnSleepTimer.layoutParams
+        if (layoutParams.width != targetWidth) {
+            layoutParams.width = targetWidth
+            btnSleepTimer.layoutParams = layoutParams
+        }
+
+        btnSleepTimer.overlay.clear()
+        val icon = ContextCompat.getDrawable(this, R.drawable.ic_sleep_timer)?.mutate()
+        val wrapped = icon?.let(DrawableCompat::wrap)
+        if (wrapped != null) {
+            DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_on_accent))
+            wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
+        }
+
+        if (remaining == null) {
+            btnSleepTimer.text = ""
+            btnSleepTimer.setCompoundDrawables(null, null, null, null)
+            wrapped?.let { iconDrawable ->
+                btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, iconDrawable) }
+            }
+        } else {
+            btnSleepTimer.text = label
+            btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
+        }
+        btnSleepTimer.contentDescription = if (remaining == null) "睡眠定时" else "睡眠定时，剩余 ${remaining} 分钟"
+    }
+
     private fun renderCompactIconButton(
         button: Button,
         label: String,
@@ -493,6 +551,7 @@ class PlaybackActivity : BaseActivity() {
                 if (player != null && !shouldDeferPlayerProgressRender()) {
                     renderProgress(player.currentPosition, player.duration)
                     renderLyrics(player.currentPosition)
+                    renderSleepTimerButton()
                 }
                 delay(300)
             }
