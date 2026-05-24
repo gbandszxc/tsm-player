@@ -51,6 +51,11 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:name=".ui.SleepTimerActivity"
+            android:exported="false"
+            android:screenOrientation="landscape" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

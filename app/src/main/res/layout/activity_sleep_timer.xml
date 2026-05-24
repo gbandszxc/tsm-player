@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ui_bg_app"
+    android:orientation="vertical"
+    android:padding="@dimen/ui_space_screen">
+
+    <TextView
+        style="@style/TsmTextPageTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="睡眠定时" />
+
+    <TextView
+        android:id="@+id/tv_sleep_status"
+        style="@style/TsmTextSecondary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_3xl"
+        android:text="当前未开启" />
+
+    <TextView
+        style="@style/TsmTextSectionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_4xl"
+        android:text="预设时间" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_lg"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_sleep_15"
+            style="@style/TsmButtonDark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="112dp"
+            android:text="15 分钟"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_30"
+            style="@style/TsmButtonDark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:minWidth="112dp"
+            android:text="30 分钟"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_60"
+            style="@style/TsmButtonDark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:minWidth="112dp"
+            android:text="60 分钟"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_120"
+            style="@style/TsmButtonDark"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:minWidth="128dp"
+            android:text="120 分钟"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <TextView
+        style="@style/TsmTextSectionTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_5xl"
+        android:text="手动指定" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_lg"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_sleep_hours"
+            style="@style/TsmButtonPrimary"
+            android:layout_width="@dimen/ui_sleep_stepper_width"
+            android:layout_height="wrap_content"
+            android:text="0 小时"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_minutes"
+            style="@style/TsmButtonPrimary"
+            android:layout_width="@dimen/ui_sleep_stepper_width"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:text="30 分钟"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <TextView
+        style="@style/TsmTextSecondary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_lg"
+        android:text="焦点停在小时或分钟时，按左右切换控件，按确认增加；长按确认快速增加。" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/ui_space_5xl"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_sleep_start"
+            style="@style/TsmButtonSuccess"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="132dp"
+            android:text="开启睡眠"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_cancel"
+            style="@style/TsmButtonWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:minWidth="132dp"
+            android:text="关闭睡眠"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btn_sleep_back"
+            style="@style/TsmButtonPrimary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ui_space_lg"
+            android:minWidth="100dp"
+            android:text="返回"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>
