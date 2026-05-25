@@ -273,6 +273,10 @@ class SleepTimerActivity : BaseActivity() {
                     layoutWheelMinutes.requestFocus()
                     return true
                 }
+                if (focusedView == layoutWheelMinutes) {
+                    btnStart.requestFocus()
+                    return true
+                }
             }
         }
         return super.onKeyDown(keyCode, event)

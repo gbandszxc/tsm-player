@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>播放页按钮 SVG 候选</title>
+  <style>
+    :root {
+      --ui-bg-tv-blue: #172554;
+      --ui-bg-panel: #1b2437;
+      --ui-bg-panel-deep: #111827;
+      --ui-bg-item: #2a2e39;
+      --ui-bg-item-focus: #2b3548;
+      --ui-text-primary: #eaf2ff;
+      --ui-text-secondary: #cbd5e1;
+      --ui-text-muted: #94a3b8;
+      --ui-text-warning-dark: #3a2a00;
+      --ui-blue: #2563eb;
+      --ui-blue-focus: #1d4ed8;
+      --ui-blue-stroke: #93c5fd;
+      --ui-green: #16a34a;
+      --ui-green-focus: #059669;
+      --ui-green-stroke: #10b981;
+      --ui-yellow: #fcd34d;
+      --ui-yellow-focus: #f59e0b;
+      --ui-yellow-stroke: #fef3c7;
+      --ui-divider: #1e3a5f;
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--ui-bg-tv-blue);
+      color: var(--ui-text-primary);
+      font-family: "MiSans", "Microsoft YaHei", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      color: #60a5fa;
+      font-size: 26px;
+      line-height: 1.2;
+    }
+
+    .note {
+      max-width: 560px;
+      margin: 0;
+      color: var(--ui-text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: right;
+    }
+
+    .screen {
+      padding: 20px;
+      border: 1px solid var(--ui-divider);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.38);
+    }
+
+    .player-top {
+      display: grid;
+      grid-template-columns: 3fr 7fr;
+      gap: 20px;
+      min-height: 280px;
+      margin-bottom: 16px;
+    }
+
+    .artwork {
+      aspect-ratio: 1 / 1;
+      align-self: center;
+      display: grid;
+      place-items: center;
+      background: #25324a;
+      color: var(--ui-text-muted);
+      font-size: 18px;
+    }
+
+    .meta {
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .line {
+      height: 18px;
+      width: 70%;
+      border-radius: 4px;
+      background: #334155;
+    }
+
+    .line.short {
+      width: 46%;
+    }
+
+    .seek {
+      position: relative;
+      height: 10px;
+      margin-top: 14px;
+      border-radius: 999px;
+      background: #334155;
+    }
+
+    .seek::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 34%;
+      border-radius: inherit;
+      background: #a7f3d0;
+    }
+
+    .seek::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 34%;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--ui-text-primary);
+      transform: translate(-50%, -50%);
+    }
+
+    .button-strip {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      overflow-x: auto;
+      padding: 2px 0;
+    }
+
+    .tv-button {
+      min-height: 44px;
+      min-width: 64px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border: 2px solid transparent;
+      border-radius: 6px;
+      padding: 10px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tv-button.icon-only {
+      width: 64px;
+      padding-inline: 0;
+    }
+
+    .tv-button.dark {
+      background: var(--ui-bg-item);
+    }
+
+    .tv-button.green {
+      background: var(--ui-green);
+    }
+
+    .tv-button.blue {
+      background: var(--ui-blue);
+    }
+
+    .tv-button.focus {
+      border-color: var(--ui-blue-stroke);
+      background: var(--ui-blue-focus);
+    }
+
+    .tv-button svg {
+      width: 24px;
+      height: 24px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.35;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .section {
+      margin-top: 24px;
+    }
+
+    .section h2 {
+      margin: 0 0 12px;
+      color: #60a5fa;
+      font-size: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .candidate {
+      padding: 14px;
+      border: 1px solid var(--ui-divider);
+      border-radius: 8px;
+      background: var(--ui-bg-panel);
+    }
+
+    .candidate h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      color: var(--ui-text-secondary);
+    }
+
+    .states {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pair {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .caption {
+      margin-top: 10px;
+      color: var(--ui-text-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .svg-defs {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 860px) {
+      header {
+        display: block;
+      }
+
+      .note {
+        margin-top: 10px;
+        text-align: left;
+      }
+
+      .player-top {
+        grid-template-columns: 1fr;
+      }
+
+      .artwork {
+        max-width: 260px;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true">
+    <symbol id="prev-a" viewBox="0 0 24 24">
+      <path d="M6 5v14" />
+      <path d="M19 6 9 12l10 6V6Z" />
+    </symbol>
+    <symbol id="prev-b" viewBox="0 0 24 24">
+      <path d="M7 6v12" />
+      <path d="m18 7-8 5 8 5" />
+      <path d="m14 7-8 5 8 5" />
+    </symbol>
+    <symbol id="prev-c" viewBox="0 0 24 24">
+      <path d="M7 5v14" />
+      <path d="M19 7 10 12l9 5" />
+      <path d="M18 12H8" />
+    </symbol>
+
+    <symbol id="next-a" viewBox="0 0 24 24">
+      <path d="M18 5v14" />
+      <path d="m5 6 10 6-10 6V6Z" />
+    </symbol>
+    <symbol id="next-b" viewBox="0 0 24 24">
+      <path d="M17 6v12" />
+      <path d="m6 7 8 5-8 5" />
+      <path d="m10 7 8 5-8 5" />
+    </symbol>
+    <symbol id="next-c" viewBox="0 0 24 24">
+      <path d="M17 5v14" />
+      <path d="m5 7 9 5-9 5" />
+      <path d="M6 12h10" />
+    </symbol>
+
+    <symbol id="play-a" viewBox="0 0 24 24">
+      <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+    </symbol>
+    <symbol id="pause-a" viewBox="0 0 24 24">
+      <path d="M8 6v12" />
+      <path d="M16 6v12" />
+    </symbol>
+    <symbol id="play-b" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M10 8.5v7l5.5-3.5L10 8.5Z" />
+    </symbol>
+    <symbol id="pause-b" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.5 8v8" />
+      <path d="M14.5 8v8" />
+    </symbol>
+    <symbol id="play-c" viewBox="0 0 24 24">
+      <path d="M7.5 6.5c0-1 1.1-1.6 2-1.1l8.6 5.2c.9.6.9 1.9 0 2.5l-8.6 5.2c-.9.5-2-.1-2-1.1V6.5Z" />
+      <path d="M4.5 7.5v9" />
+    </symbol>
+    <symbol id="pause-c" viewBox="0 0 24 24">
+      <path d="M7 7c0-1 .7-1.8 1.7-1.8h1.1c1 0 1.7.8 1.7 1.8v10c0 1-.7 1.8-1.7 1.8H8.7C7.7 18.8 7 18 7 17V7Z" />
+      <path d="M13.5 7c0-1 .7-1.8 1.7-1.8h1.1c1 0 1.7.8 1.7 1.8v10c0 1-.7 1.8-1.7 1.8h-1.1c-1 0-1.7-.8-1.7-1.8V7Z" />
+    </symbol>
+
+    <symbol id="lyrics-a" viewBox="0 0 24 24">
+      <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+      <path d="M8 8h8" />
+      <path d="M8 12h7" />
+      <path d="M8 16h5" />
+      <path d="M16 15.5h3.5V12" />
+    </symbol>
+    <symbol id="lyrics-b" viewBox="0 0 24 24">
+      <path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z" />
+      <path d="M9 8h6" />
+      <path d="M8.5 12h7" />
+      <path d="M10 16h4" />
+      <path d="M15 4v4h4" />
+    </symbol>
+    <symbol id="lyrics-c" viewBox="0 0 24 24">
+      <path d="M8 5h8" />
+      <path d="M6 9h12" />
+      <path d="M8 13h8" />
+      <path d="M10 17h4" />
+      <path d="M4 7V4h3" />
+      <path d="M20 7V4h-3" />
+      <path d="M4 17v3h3" />
+      <path d="M20 17v3h-3" />
+    </symbol>
+
+    <symbol id="folder-a" viewBox="0 0 24 24">
+      <path d="M3.5 7.5a2 2 0 0 1 2-2h5l2 2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-10Z" />
+      <path d="M10 12H5" />
+      <path d="m7 9.5-2.5 2.5L7 14.5" />
+    </symbol>
+    <symbol id="folder-b" viewBox="0 0 24 24">
+      <path d="M4 8a2 2 0 0 1 2-2h4.5l2 2H18a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+      <path d="M13 12H7" />
+      <path d="m9.5 9.5-2.5 2.5 2.5 2.5" />
+      <path d="M16.5 5.5 19 8" />
+    </symbol>
+    <symbol id="folder-c" viewBox="0 0 24 24">
+      <path d="M5 7h5l2 2h7v8.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 17.5V7Z" />
+      <path d="M5 7.5V6a1.5 1.5 0 0 1 1.5-1.5h4L13 7" />
+      <path d="M9 12.5h7" />
+      <path d="m12 9.5-3 3 3 3" />
+    </symbol>
+  </svg>
+
+  <main>
+    <header>
+      <h1>播放页按钮 SVG 候选</h1>
+      <p class="note">颜色沿用当前按钮 token，仅比较图标造型。上一首、播放/暂停、下一首按纯 icon 展示；歌词全屏、返回文件夹展示默认 icon 与聚焦展开状态。</p>
+    </header>
+
+    <section class="screen" aria-label="播放页按钮条预览">
+      <div class="player-top">
+        <div class="artwork">封面</div>
+        <div class="meta">
+          <div class="title">歌曲：夜に駆ける</div>
+          <div class="line"></div>
+          <div class="line short"></div>
+          <div>00:42 / 04:19</div>
+          <div class="seek"></div>
+        </div>
+      </div>
+      <div class="button-strip">
+        <div class="tv-button icon-only dark"><svg><use href="#prev-a" /></svg></div>
+        <div class="tv-button icon-only green"><svg><use href="#pause-a" /></svg></div>
+        <div class="tv-button icon-only dark"><svg><use href="#next-a" /></svg></div>
+        <div class="tv-button icon-only green"><svg><use href="#play-b" /></svg></div>
+        <div class="tv-button icon-only dark">☾</div>
+        <div class="tv-button icon-only blue"><svg><use href="#lyrics-a" /></svg></div>
+        <div class="tv-button focus"><svg><use href="#folder-a" /></svg><span>返回文件页</span></div>
+        <div class="tv-button icon-only" style="background: var(--ui-yellow); color: var(--ui-text-warning-dark);">⌖</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>上一首</h2>
+      <div class="grid">
+        <article class="candidate">
+          <h3>A. 标准跳转</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#prev-a" /></svg></div></div>
+          <p class="caption">竖线 + 回退三角，最接近媒体播放器通用语义。</p>
+        </article>
+        <article class="candidate">
+          <h3>B. 双箭头</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#prev-b" /></svg></div></div>
+          <p class="caption">更强调快速切换，但容易和快退产生一点语义重叠。</p>
+        </article>
+        <article class="candidate">
+          <h3>C. 返回到边界</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#prev-c" /></svg></div></div>
+          <p class="caption">箭头与边界线分离，远距离更硬朗。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>播放/暂停</h2>
+      <div class="grid">
+        <article class="candidate">
+          <h3>A. 极简媒体符号</h3>
+          <div class="states pair">
+            <div class="tv-button icon-only green"><svg><use href="#play-a" /></svg></div>
+            <div class="tv-button icon-only green"><svg><use href="#pause-a" /></svg></div>
+          </div>
+          <p class="caption">线条最少，和上一首/下一首放在一起最克制。</p>
+        </article>
+        <article class="candidate">
+          <h3>B. 圆形承载</h3>
+          <div class="states pair">
+            <div class="tv-button icon-only green"><svg><use href="#play-b" /></svg></div>
+            <div class="tv-button icon-only green"><svg><use href="#pause-b" /></svg></div>
+          </div>
+          <p class="caption">播放按钮更醒目，适合主操作，但在绿色按钮内会稍显重。</p>
+        </article>
+        <article class="candidate">
+          <h3>C. 实体块感</h3>
+          <div class="states pair">
+            <div class="tv-button icon-only green"><svg><use href="#play-c" /></svg></div>
+            <div class="tv-button icon-only green"><svg><use href="#pause-c" /></svg></div>
+          </div>
+          <p class="caption">电视距离下辨识度高，视觉重量也最大。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>下一首</h2>
+      <div class="grid">
+        <article class="candidate">
+          <h3>A. 标准跳转</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#next-a" /></svg></div></div>
+          <p class="caption">与上一首 A 成对，媒体语义最稳。</p>
+        </article>
+        <article class="candidate">
+          <h3>B. 双箭头</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#next-b" /></svg></div></div>
+          <p class="caption">动势强，按钮条扫视时比较活跃。</p>
+        </article>
+        <article class="candidate">
+          <h3>C. 前进到边界</h3>
+          <div class="states"><div class="tv-button icon-only dark"><svg><use href="#next-c" /></svg></div></div>
+          <p class="caption">和上一首 C 对称，线性图标感更强。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>歌词全屏</h2>
+      <div class="grid">
+        <article class="candidate">
+          <h3>A. 歌词页 + 展开角</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#lyrics-a" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#lyrics-a" /></svg><span>歌词全屏</span></div>
+          </div>
+          <p class="caption">同时表达“歌词”和“全屏”，我倾向这个。</p>
+        </article>
+        <article class="candidate">
+          <h3>B. 文档折角</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#lyrics-b" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#lyrics-b" /></svg><span>歌词全屏</span></div>
+          </div>
+          <p class="caption">更像歌词文件，少一点全屏感。</p>
+        </article>
+        <article class="candidate">
+          <h3>C. 四角全屏 + 文本</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#lyrics-c" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#lyrics-c" /></svg><span>歌词全屏</span></div>
+          </div>
+          <p class="caption">全屏语义最强，歌词语义稍弱。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>返回文件夹</h2>
+      <div class="grid">
+        <article class="candidate">
+          <h3>A. 文件夹 + 左箭头</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#folder-a" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#folder-a" /></svg><span>返回文件页</span></div>
+          </div>
+          <p class="caption">语义最直白，适合“回到浏览文件”的动作。</p>
+        </article>
+        <article class="candidate">
+          <h3>B. 文件夹 + 回退层级</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#folder-b" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#folder-b" /></svg><span>返回文件页</span></div>
+          </div>
+          <p class="caption">带一点目录层级感，但细节更多。</p>
+        </article>
+        <article class="candidate">
+          <h3>C. 文件夹 + 水平返回</h3>
+          <div class="states">
+            <div class="tv-button icon-only blue"><svg><use href="#folder-c" /></svg></div>
+            <div class="tv-button focus"><svg><use href="#folder-c" /></svg><span>返回文件页</span></div>
+          </div>
+          <p class="caption">形状较稳，箭头和文件夹不重叠，远距离较清楚。</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

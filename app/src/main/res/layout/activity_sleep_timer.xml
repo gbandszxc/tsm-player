@@ -101,6 +101,7 @@
             android:background="@drawable/bg_button_dark"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusRight="@id/layout_wheel_minutes"
             android:orientation="vertical"
             android:padding="@dimen/ui_space_md">
 
@@ -154,6 +155,8 @@
             android:background="@drawable/bg_button_dark"
             android:focusable="true"
             android:focusableInTouchMode="true"
+            android:nextFocusLeft="@id/layout_wheel_hours"
+            android:nextFocusRight="@id/btn_sleep_start"
             android:orientation="vertical"
             android:padding="@dimen/ui_space_md">
 
