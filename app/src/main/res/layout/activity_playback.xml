@@ -162,33 +162,36 @@
                 <Button
                     android:id="@+id/btn_prev"
                     style="@style/TsmButtonDark"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
-                    android:minWidth="100dp"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="上一首"
+                    android:text=""
                     android:textAllCaps="false" />
 
                 <Button
                     android:id="@+id/btn_play_pause"
                     style="@style/TsmButtonSuccess"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"
-                    android:minWidth="100dp"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="播放"
+                    android:text=""
                     android:textAllCaps="false" />
 
                 <Button
                     android:id="@+id/btn_next"
                     style="@style/TsmButtonDark"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"
-                    android:minWidth="100dp"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="下一首"
+                    android:text=""
                     android:textAllCaps="false" />
 
                 <Button
@@ -220,23 +223,27 @@
                 <Button
                     android:id="@+id/btn_lyrics_fullscreen"
                     style="@style/TsmButtonPrimary"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"
-                    android:minWidth="120dp"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="歌词全屏"
+                    android:text=""
                     android:textAllCaps="false" />
 
                 <Button
                     android:id="@+id/btn_back_to_browser"
                     style="@style/TsmButtonPrimary"
-                    android:layout_width="wrap_content"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="@dimen/ui_space_lg"
-                    android:minWidth="120dp"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
                     android:nextFocusUp="@id/pb_playback"
-                    android:text="返回文件页"
+                    android:text=""
                     android:textAllCaps="false" />
 
                 <Button

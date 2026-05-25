@@ -113,6 +113,9 @@ class PlaybackActivity : BaseActivity() {
     private var renderedPlaybackMode: PlaybackMode? = null
     private var renderedPlaybackModeFocused: Boolean? = null
     private var renderedLocateFocused: Boolean? = null
+    private var renderedPlayPausePlaying: Boolean? = null
+    private var renderedLyricsFullscreenFocused: Boolean? = null
+    private var renderedBackFocused: Boolean? = null
     private lateinit var sleepTimerManager: SleepTimerManager
     private lateinit var btnSleepTimer: Button
     private var renderedSleepTimerLabel: String? = null
@@ -184,7 +187,12 @@ class PlaybackActivity : BaseActivity() {
         btnLocate = findViewById(R.id.btn_locate)
         btnSleepTimer = findViewById(R.id.btn_sleep_timer)
         tvPlaybackToast = findViewById(R.id.tv_playback_toast)
+        renderPreviousButton()
+        renderPlayPauseButton(isPlaying = false)
+        renderNextButton()
         renderPlaybackModeButton()
+        renderLyricsFullscreenButton()
+        renderBackButton()
         renderLocateButton()
         renderSleepTimerButton()
     }
@@ -225,7 +233,9 @@ class PlaybackActivity : BaseActivity() {
         btnLyricsFullscreen.setOnClickListener {
             startActivity(Intent(this, LyricsFullscreenActivity::class.java))
         }
+        btnLyricsFullscreen.setOnFocusChangeListener { _, _ -> renderLyricsFullscreenButton() }
         btnBack.setOnClickListener { finish() }
+        btnBack.setOnFocusChangeListener { _, _ -> renderBackButton() }
         btnLocate.setOnClickListener { locateCurrentPlayback() }
         btnLocate.setOnFocusChangeListener { _, _ -> renderLocateButton() }
         btnSleepTimer.setOnClickListener {
@@ -350,13 +360,7 @@ class PlaybackActivity : BaseActivity() {
     private fun renderPlayerState(player: Player) {
         updatePlaybackModeFromPlayer(player)
         renderTrackInfo(player)
-        if (player.isPlaying) {
-            btnPlayPause.text = "暂停"
-            btnPlayPause.setBackgroundResource(R.drawable.bg_button_amber)
-        } else {
-            btnPlayPause.text = "播放"
-            btnPlayPause.setBackgroundResource(R.drawable.bg_button_green)
-        }
+        renderPlayPauseButton(player.isPlaying)
 
         maybeLoadLyrics(player)
         maybeLoadArtwork(player)
@@ -422,6 +426,41 @@ class PlaybackActivity : BaseActivity() {
         )
     }
 
+    private fun renderPreviousButton() {
+        renderPlaybackButton(
+            button = btnPrevious,
+            spec = PlaybackButtonPresentation.previous(),
+            backgroundResId = R.drawable.bg_button_dark,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+        )
+    }
+
+    private fun renderPlayPauseButton(isPlaying: Boolean) {
+        if (renderedPlayPausePlaying == isPlaying) return
+        renderedPlayPausePlaying = isPlaying
+        renderPlaybackButton(
+            button = btnPlayPause,
+            spec = PlaybackButtonPresentation.playPause(isPlaying = isPlaying),
+            backgroundResId = if (isPlaying) R.drawable.bg_button_amber else R.drawable.bg_button_green,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+        )
+    }
+
+    private fun renderNextButton() {
+        renderPlaybackButton(
+            button = btnNext,
+            spec = PlaybackButtonPresentation.next(),
+            backgroundResId = R.drawable.bg_button_dark,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+        )
+    }
+
     private fun renderLocateButton() {
         val focused = btnLocate.hasFocus()
         if (renderedLocateFocused == focused) return
@@ -435,6 +474,34 @@ class PlaybackActivity : BaseActivity() {
             iconColorResId = R.color.ui_text_warning_dark,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
             expandedMinWidthResId = R.dimen.ui_playback_locate_button_expanded_min_width,
+        )
+    }
+
+    private fun renderLyricsFullscreenButton() {
+        val focused = btnLyricsFullscreen.hasFocus()
+        if (renderedLyricsFullscreenFocused == focused) return
+        renderedLyricsFullscreenFocused = focused
+        renderPlaybackButton(
+            button = btnLyricsFullscreen,
+            spec = PlaybackButtonPresentation.lyricsFullscreen(focused = focused),
+            backgroundResId = R.drawable.bg_button_primary,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
+        )
+    }
+
+    private fun renderBackButton() {
+        val focused = btnBack.hasFocus()
+        if (renderedBackFocused == focused) return
+        renderedBackFocused = focused
+        renderPlaybackButton(
+            button = btnBack,
+            spec = PlaybackButtonPresentation.backToBrowser(focused = focused),
+            backgroundResId = R.drawable.bg_button_primary,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
         )
     }
 
@@ -473,7 +540,13 @@ class PlaybackActivity : BaseActivity() {
             btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
         } else {
             btnSleepTimer.setCompoundDrawables(null, null, null, null)
-            btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, wrapped) }
+            val spec = PlaybackButtonSpec(
+                text = "",
+                contentDescription = label,
+                iconResId = iconRes,
+                expandsOnFocus = true,
+            )
+            btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, wrapped, spec) }
         }
     }
 
@@ -487,14 +560,38 @@ class PlaybackActivity : BaseActivity() {
         collapsedWidthResId: Int,
         expandedMinWidthResId: Int,
     ) {
-        button.text = if (focused) label else ""
-        button.contentDescription = label
+        renderPlaybackButton(
+            button = button,
+            spec = PlaybackButtonSpec(
+                text = if (focused) label else "",
+                contentDescription = label,
+                iconResId = iconResId,
+                expandsOnFocus = true,
+            ),
+            backgroundResId = backgroundResId,
+            iconColorResId = iconColorResId,
+            collapsedWidthResId = collapsedWidthResId,
+            expandedMinWidthResId = expandedMinWidthResId,
+        )
+    }
+
+    private fun renderPlaybackButton(
+        button: Button,
+        spec: PlaybackButtonSpec,
+        backgroundResId: Int,
+        iconColorResId: Int,
+        collapsedWidthResId: Int,
+        expandedMinWidthResId: Int,
+    ) {
+        val expanded = spec.expandsOnFocus && button.hasFocus()
+        button.text = spec.text
+        button.contentDescription = spec.contentDescription
         button.setBackgroundResource(backgroundResId)
         button.minWidth = resources.getDimensionPixelSize(
-            if (focused) expandedMinWidthResId else collapsedWidthResId
+            if (expanded) expandedMinWidthResId else collapsedWidthResId
         )
         val layoutParams = button.layoutParams
-        val targetWidth = if (focused) {
+        val targetWidth = if (expanded) {
             ViewGroup.LayoutParams.WRAP_CONTENT
         } else {
             resources.getDimensionPixelSize(collapsedWidthResId)
@@ -504,23 +601,23 @@ class PlaybackActivity : BaseActivity() {
             button.layoutParams = layoutParams
         }
         button.overlay.clear()
-        val icon = ContextCompat.getDrawable(this, iconResId)?.mutate() ?: return
+        val icon = ContextCompat.getDrawable(this, spec.iconResId)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)
         DrawableCompat.setTint(
             wrapped,
             ContextCompat.getColor(this, iconColorResId)
         )
         wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        if (focused) {
+        if (expanded) {
             button.setCompoundDrawables(wrapped, null, null, null)
         } else {
             button.setCompoundDrawables(null, null, null, null)
-            button.post { drawCenteredButtonIcon(button, wrapped) }
+            button.post { drawCenteredButtonIcon(button, wrapped, spec) }
         }
     }
 
-    private fun drawCenteredButtonIcon(button: Button, icon: Drawable) {
-        if (button.hasFocus()) return
+    private fun drawCenteredButtonIcon(button: Button, icon: Drawable, spec: PlaybackButtonSpec) {
+        if (!PlaybackButtonPresentation.shouldDrawCenteredIcon(spec, button.hasFocus())) return
         button.overlay.clear()
         val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
         val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
