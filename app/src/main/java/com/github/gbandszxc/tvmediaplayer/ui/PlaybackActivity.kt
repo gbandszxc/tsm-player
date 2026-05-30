@@ -69,21 +69,41 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
+internal data class FavoritePlaylistChoice(
+    val playlistId: String?,
+    val label: String,
+    val disabled: Boolean,
+    val createNew: Boolean = false,
+) {
+    override fun toString(): String = label
+}
+
+internal class FavoritePlaylistChoiceAdapter(
+    context: android.content.Context,
+    choices: List<FavoritePlaylistChoice>,
+) : ArrayAdapter<FavoritePlaylistChoice>(
+    context,
+    android.R.layout.simple_list_item_1,
+    choices,
+) {
+    override fun areAllItemsEnabled(): Boolean = false
+
+    override fun isEnabled(position: Int): Boolean = !getItem(position)!!.disabled
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = super.getView(position, convertView, parent)
+        view.isEnabled = isEnabled(position)
+        (view as? TextView)?.alpha = if (isEnabled(position)) 1f else 0.45f
+        return view
+    }
+}
+
 class PlaybackActivity : BaseActivity() {
 
     private data class LyricsLoadOutcome(
         val timeline: LrcTimeline?,
         val isMiss: Boolean,
     )
-
-    private data class PlaylistChoice(
-        val playlistId: String?,
-        val label: String,
-        val disabled: Boolean,
-        val createNew: Boolean = false,
-    ) {
-        override fun toString(): String = label
-    }
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
@@ -758,7 +778,7 @@ class PlaybackActivity : BaseActivity() {
         }
         val choices = favoritesRepository.getPlaylists().map { playlist ->
             val contains = favoritesRepository.containsTrack(playlist.id, track.mediaId)
-            PlaylistChoice(
+            FavoritePlaylistChoice(
                 playlistId = playlist.id,
                 label = if (contains) {
                     "${playlist.name}（${getString(R.string.favorites_already_in_playlist)}）"
@@ -767,27 +787,14 @@ class PlaybackActivity : BaseActivity() {
                 },
                 disabled = contains,
             )
-        } + PlaylistChoice(
+        } + FavoritePlaylistChoice(
             playlistId = null,
             label = getString(R.string.favorites_new_playlist),
             disabled = false,
             createNew = true,
         )
 
-        val adapter = object : ArrayAdapter<PlaylistChoice>(
-            this,
-            android.R.layout.simple_list_item_1,
-            choices
-        ) {
-            override fun isEnabled(position: Int): Boolean = !getItem(position)!!.disabled
-
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getView(position, convertView, parent)
-                view.isEnabled = isEnabled(position)
-                (view as? TextView)?.alpha = if (isEnabled(position)) 1f else 0.45f
-                return view
-            }
-        }
+        val adapter = FavoritePlaylistChoiceAdapter(this, choices)
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.favorites_select_playlist))
@@ -799,7 +806,7 @@ class PlaybackActivity : BaseActivity() {
                     choice.playlistId != null -> addTrackToPlaylist(choice.playlistId, track)
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(getString(R.string.favorites_dialog_cancel), null)
             .show()
     }
 
@@ -827,8 +834,8 @@ class PlaybackActivity : BaseActivity() {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.favorites_new_playlist))
             .setView(input)
-            .setPositiveButton("确定", null)
-            .setNegativeButton("取消", null)
+            .setPositiveButton(getString(R.string.favorites_dialog_confirm), null)
+            .setNegativeButton(getString(R.string.favorites_dialog_cancel), null)
             .create()
             .apply {
                 setOnShowListener {

@@ -22,6 +22,8 @@
     <string name="favorites_removed_default">已取消收藏</string>
     <string name="favorites_already_in_playlist">已在该播放列表中</string>
     <string name="favorites_select_playlist">选择播放列表</string>
+    <string name="favorites_dialog_cancel">取消</string>
+    <string name="favorites_dialog_confirm">确定</string>
     <string name="favorites_new_playlist">新建播放列表</string>
     <string name="favorites_playlist_name_hint">播放列表名称</string>
     <string name="favorites_playlist_name_empty">请输入播放列表名称</string>
