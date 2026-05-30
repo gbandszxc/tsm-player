@@ -73,7 +73,7 @@ class FavoritesRepositoryTest {
         val track = sampleTrack(mediaId = "Music/A.flac", title = "A")
 
         assertTrue(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
-        assertTrue(repository.addTrack(custom.id, track.copy(id = "track-a-custom")))
+        assertTrue(repository.addTrack(custom.id, track))
 
         assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
         assertTrue(repository.containsTrack(custom.id, "Music/A.flac"))
@@ -86,13 +86,40 @@ class FavoritesRepositoryTest {
         val custom = repository.createPlaylist("通勤") ?: error("playlist should be created")
         val track = sampleTrack(mediaId = "Music/A.flac", title = "A")
         repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track)
-        repository.addTrack(custom.id, track.copy(id = "track-a-custom"))
+        repository.addTrack(custom.id, track)
 
         assertTrue(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
 
         assertFalse(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
         assertTrue(repository.containsTrack(custom.id, "Music/A.flac"))
         assertFalse(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
+    }
+
+    @Test
+    fun `add track returns false for missing playlist and does not insert orphan record`() {
+        val track = sampleTrack(mediaId = "Music/Orphan.flac", title = "Orphan")
+
+        assertFalse(repository.addTrack("missing-playlist", track))
+
+        assertFalse(repository.containsTrack("missing-playlist", "Music/Orphan.flac"))
+        assertTrue(repository.getTracks("missing-playlist").isEmpty())
+    }
+
+    @Test
+    fun `add track updates playlist timestamp only when inserted`() {
+        val custom = repository.createPlaylist("晨间") ?: error("playlist should be created")
+        val beforeInsert = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+        Thread.sleep(5L)
+
+        assertTrue(repository.addTrack(custom.id, sampleTrack(mediaId = "Music/A.flac", title = "A")))
+        val afterInsert = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+        Thread.sleep(5L)
+
+        assertFalse(repository.addTrack(custom.id, sampleTrack(mediaId = "Music/A.flac", title = "A")))
+        val afterDuplicate = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+
+        assertTrue(afterInsert >= beforeInsert)
+        assertEquals(afterInsert, afterDuplicate)
     }
 
     @Test

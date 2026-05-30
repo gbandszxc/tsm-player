@@ -99,8 +99,11 @@ class FavoritesRepository(context: Context) {
 
     fun addTrack(playlistId: String, track: FavoriteTrack): Boolean {
         dbHelper.ensureDefaultPlaylist()
+        val db = dbHelper.writableDatabase
+        if (!playlistExists(db, playlistId)) return false
+
         val values = ContentValues().apply {
-            put("id", track.id)
+            put("id", UUID.randomUUID().toString())
             put("playlist_id", playlistId)
             put("media_id", track.mediaId)
             put("stream_uri", track.streamUri)
@@ -112,7 +115,6 @@ class FavoritesRepository(context: Context) {
             putSourceConfig(track.sourceConfig)
             put("added_at", track.addedAt)
         }
-        val db = dbHelper.writableDatabase
         val insertedId = db.insertWithOnConflict(
             "playlist_tracks",
             null,
@@ -124,6 +126,20 @@ class FavoritesRepository(context: Context) {
         updatePlaylistTimestamp(db, playlistId)
         return true
     }
+
+    private fun playlistExists(db: SQLiteDatabase, playlistId: String): Boolean =
+        db.query(
+            "playlists",
+            arrayOf("id"),
+            "id = ?",
+            arrayOf(playlistId),
+            null,
+            null,
+            null,
+            "1"
+        ).use { cursor ->
+            cursor.moveToFirst()
+        }
 
     fun removeTrack(playlistId: String, mediaId: String): Boolean {
         val deleted = dbHelper.writableDatabase.delete(
