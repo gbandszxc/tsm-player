@@ -17,4 +17,13 @@
     <string name="sleep_timer_toast_started">将在 %d 分钟后睡眠</string>
     <string name="sleep_timer_toast_cancelled">已关闭睡眠定时</string>
     <string name="sleep_timer_toast_min_duration">请至少选择 1 分钟</string>
+    <string name="favorites_empty_current_track">暂无可收藏歌曲</string>
+    <string name="favorites_added_default">已加入收藏夹</string>
+    <string name="favorites_removed_default">已取消收藏</string>
+    <string name="favorites_already_in_playlist">已在该播放列表中</string>
+    <string name="favorites_select_playlist">选择播放列表</string>
+    <string name="favorites_new_playlist">新建播放列表</string>
+    <string name="favorites_playlist_name_hint">播放列表名称</string>
+    <string name="favorites_playlist_name_empty">请输入播放列表名称</string>
+    <string name="favorites_playlist_name_duplicate">播放列表已存在</string>
 </resources>

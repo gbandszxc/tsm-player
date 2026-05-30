@@ -18,7 +18,9 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ScrollView
@@ -40,6 +42,8 @@ import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcTimeline
 import com.github.gbandszxc.tvmediaplayer.lyrics.SmbLyricsRepository
@@ -63,6 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class PlaybackActivity : BaseActivity() {
 
@@ -70,6 +75,15 @@ class PlaybackActivity : BaseActivity() {
         val timeline: LrcTimeline?,
         val isMiss: Boolean,
     )
+
+    private data class PlaylistChoice(
+        val playlistId: String?,
+        val label: String,
+        val disabled: Boolean,
+        val createNew: Boolean = false,
+    ) {
+        override fun toString(): String = label
+    }
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
@@ -79,6 +93,7 @@ class PlaybackActivity : BaseActivity() {
     private var playerProgressHoldUntilMs: Long = 0L
     private val playbackSeekController = PlaybackSeekController()
     private val lyricsRepository = SmbLyricsRepository()
+    private val favoritesRepository by lazy { FavoritesRepository(applicationContext) }
     private lateinit var configStore: SmbConfigStore
 
     private var currentTimeline: LrcTimeline? = null
@@ -105,6 +120,7 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
     private lateinit var btnPlayMode: Button
+    private lateinit var btnFavorite: Button
     private lateinit var btnLyricsFullscreen: Button
     private lateinit var btnBack: Button
     private lateinit var btnLocate: Button
@@ -112,6 +128,9 @@ class PlaybackActivity : BaseActivity() {
     private var playbackMode: PlaybackMode = PlaybackMode.ORDER
     private var renderedPlaybackMode: PlaybackMode? = null
     private var renderedPlaybackModeFocused: Boolean? = null
+    private var currentTrackInDefaultFavorites: Boolean = false
+    private var renderedFavoriteInDefault: Boolean? = null
+    private var renderedFavoriteFocused: Boolean? = null
     private var renderedLocateFocused: Boolean? = null
     private var renderedPlayPausePlaying: Boolean? = null
     private var renderedLyricsFullscreenFocused: Boolean? = null
@@ -182,6 +201,7 @@ class PlaybackActivity : BaseActivity() {
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
         btnPlayMode = findViewById(R.id.btn_play_mode)
+        btnFavorite = findViewById(R.id.btn_favorite)
         btnLyricsFullscreen = findViewById(R.id.btn_lyrics_fullscreen)
         btnBack = findViewById(R.id.btn_back_to_browser)
         btnLocate = findViewById(R.id.btn_locate)
@@ -191,6 +211,7 @@ class PlaybackActivity : BaseActivity() {
         renderPlayPauseButton(isPlaying = false)
         renderNextButton()
         renderPlaybackModeButton()
+        refreshFavoriteState()
         renderLyricsFullscreenButton()
         renderBackButton()
         renderLocateButton()
@@ -230,6 +251,12 @@ class PlaybackActivity : BaseActivity() {
             applyPlaybackMode(playbackMode.next(), showNotice = true)
         }
         btnPlayMode.setOnFocusChangeListener { _, _ -> renderPlaybackModeButton() }
+        btnFavorite.setOnClickListener { toggleDefaultFavorite() }
+        btnFavorite.setOnLongClickListener {
+            showFavoritePlaylistDialog()
+            true
+        }
+        btnFavorite.setOnFocusChangeListener { _, _ -> updateFavoriteButtonPresentation() }
         btnLyricsFullscreen.setOnClickListener {
             startActivity(Intent(this, LyricsFullscreenActivity::class.java))
         }
@@ -360,6 +387,7 @@ class PlaybackActivity : BaseActivity() {
     private fun renderPlayerState(player: Player) {
         updatePlaybackModeFromPlayer(player)
         renderTrackInfo(player)
+        refreshFavoriteState()
         renderPlayPauseButton(player.isPlaying)
 
         maybeLoadLyrics(player)
@@ -424,6 +452,59 @@ class PlaybackActivity : BaseActivity() {
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
             expandedMinWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
         )
+    }
+
+    private fun refreshFavoriteState() {
+        val track = currentFavoriteTrack()
+        val inDefault = track?.let {
+            favoritesRepository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, it.mediaId)
+        } ?: false
+        if (currentTrackInDefaultFavorites != inDefault) {
+            currentTrackInDefaultFavorites = inDefault
+            renderedFavoriteInDefault = null
+        }
+        updateFavoriteButtonPresentation()
+    }
+
+    private fun updateFavoriteButtonPresentation() {
+        val focused = btnFavorite.hasFocus()
+        if (
+            renderedFavoriteInDefault == currentTrackInDefaultFavorites &&
+            renderedFavoriteFocused == focused
+        ) {
+            return
+        }
+        renderedFavoriteInDefault = currentTrackInDefaultFavorites
+        renderedFavoriteFocused = focused
+        renderPlaybackButton(
+            button = btnFavorite,
+            spec = PlaybackButtonPresentation.favorite(
+                inDefaultFavorites = currentTrackInDefaultFavorites,
+                focused = focused,
+            ),
+            backgroundResId = R.drawable.bg_button_red,
+            iconColorResId = R.color.ui_text_on_accent,
+            collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
+            expandedMinWidthResId = R.dimen.ui_playback_favorite_button_expanded_min_width,
+        )
+    }
+
+    private fun toggleDefaultFavorite() {
+        val track = currentFavoriteTrack() ?: run {
+            showPlaybackToast(getString(R.string.favorites_empty_current_track))
+            return
+        }
+        if (currentTrackInDefaultFavorites) {
+            favoritesRepository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track.mediaId)
+            currentTrackInDefaultFavorites = false
+            showPlaybackToast(getString(R.string.favorites_removed_default))
+        } else {
+            favoritesRepository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track)
+            currentTrackInDefaultFavorites = true
+            showPlaybackToast(getString(R.string.favorites_added_default))
+        }
+        renderedFavoriteInDefault = null
+        updateFavoriteButtonPresentation()
     }
 
     private fun renderPreviousButton() {
@@ -635,6 +716,144 @@ class PlaybackActivity : BaseActivity() {
             delay(PLAYBACK_TOAST_DURATION_MS)
             tvPlaybackToast.visibility = View.GONE
         }
+    }
+
+    private fun currentFavoriteTrack(): FavoriteTrack? {
+        val mediaItem = mediaController?.currentMediaItem ?: return null
+        val streamUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+        val mediaId = mediaItem.mediaId.ifBlank { streamUri }
+        if (mediaId.isBlank() || streamUri.isBlank()) return null
+
+        val key = mediaCacheKey(mediaItem)
+        val fallbackTitle = mediaItem.mediaMetadata.title?.toString()
+            ?.takeIf { it.isNotBlank() }
+            ?: mediaId.substringAfterLast('/').ifBlank { streamUri.substringAfterLast('/') }
+        val display = trackInfoStore.displayFor(
+            key = key,
+            fallbackTitle = fallbackTitle,
+            fallbackArtist = mediaItem.mediaMetadata.artist?.toString().orEmpty().ifBlank { "-" },
+            fallbackAlbumTitle = mediaItem.mediaMetadata.albumTitle?.toString().orEmpty().ifBlank { "-" }
+        )
+        val sourceConfig = PlaybackConfigStore.current().takeIf { it.host.isNotBlank() }
+            ?: fallbackConfig.takeIf { it.host.isNotBlank() }
+        return FavoriteTrack(
+            id = UUID.randomUUID().toString(),
+            playlistId = FavoritesRepository.DEFAULT_PLAYLIST_ID,
+            mediaId = mediaId,
+            streamUri = streamUri,
+            title = display.title.orEmpty(),
+            artist = display.artist.takeUnless { it == "-" },
+            album = display.albumTitle.takeUnless { it == "-" },
+            artworkUri = mediaItem.mediaMetadata.artworkUri?.toString(),
+            sourceConnectionId = null,
+            sourceConfig = sourceConfig,
+            addedAt = System.currentTimeMillis(),
+        )
+    }
+
+    private fun showFavoritePlaylistDialog() {
+        val track = currentFavoriteTrack() ?: run {
+            showPlaybackToast(getString(R.string.favorites_empty_current_track))
+            return
+        }
+        val choices = favoritesRepository.getPlaylists().map { playlist ->
+            val contains = favoritesRepository.containsTrack(playlist.id, track.mediaId)
+            PlaylistChoice(
+                playlistId = playlist.id,
+                label = if (contains) {
+                    "${playlist.name}（${getString(R.string.favorites_already_in_playlist)}）"
+                } else {
+                    playlist.name
+                },
+                disabled = contains,
+            )
+        } + PlaylistChoice(
+            playlistId = null,
+            label = getString(R.string.favorites_new_playlist),
+            disabled = false,
+            createNew = true,
+        )
+
+        val adapter = object : ArrayAdapter<PlaylistChoice>(
+            this,
+            android.R.layout.simple_list_item_1,
+            choices
+        ) {
+            override fun isEnabled(position: Int): Boolean = !getItem(position)!!.disabled
+
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent)
+                view.isEnabled = isEnabled(position)
+                (view as? TextView)?.alpha = if (isEnabled(position)) 1f else 0.45f
+                return view
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.favorites_select_playlist))
+            .setAdapter(adapter) { _, which ->
+                val choice = choices[which]
+                when {
+                    choice.createNew -> showCreatePlaylistAndAddDialog(track)
+                    choice.disabled -> showPlaybackToast(getString(R.string.favorites_already_in_playlist))
+                    choice.playlistId != null -> addTrackToPlaylist(choice.playlistId, track)
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun addTrackToPlaylist(playlistId: String, track: FavoriteTrack) {
+        val added = favoritesRepository.addTrack(
+            playlistId,
+            track.copy(
+                id = UUID.randomUUID().toString(),
+                playlistId = playlistId,
+                addedAt = System.currentTimeMillis(),
+            )
+        )
+        showPlaybackToast(
+            if (added) getString(R.string.favorites_added_default)
+            else getString(R.string.favorites_already_in_playlist)
+        )
+        refreshFavoriteState()
+    }
+
+    private fun showCreatePlaylistAndAddDialog(track: FavoriteTrack) {
+        val input = EditText(this).apply {
+            hint = getString(R.string.favorites_playlist_name_hint)
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.favorites_new_playlist))
+            .setView(input)
+            .setPositiveButton("确定", null)
+            .setNegativeButton("取消", null)
+            .create()
+            .apply {
+                setOnShowListener {
+                    getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        val name = input.text?.toString().orEmpty().trim()
+                        if (name.isBlank()) {
+                            input.error = getString(R.string.favorites_playlist_name_empty)
+                            return@setOnClickListener
+                        }
+                        val exists = favoritesRepository.getPlaylists().any { it.name == name }
+                        if (exists) {
+                            input.error = getString(R.string.favorites_playlist_name_duplicate)
+                            return@setOnClickListener
+                        }
+                        val playlist = favoritesRepository.createPlaylist(name)
+                        if (playlist == null) {
+                            input.error = getString(R.string.favorites_playlist_name_duplicate)
+                            return@setOnClickListener
+                        }
+                        addTrackToPlaylist(playlist.id, track)
+                        dismiss()
+                    }
+                }
+            }
+            .show()
     }
 
     private fun startProgressTicker() {
