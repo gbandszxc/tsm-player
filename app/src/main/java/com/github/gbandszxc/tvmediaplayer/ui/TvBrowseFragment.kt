@@ -75,6 +75,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var tvFastLocateTarget: TextView
     private lateinit var fastLocateTrack: View
     private lateinit var fastLocateIndicator: View
+    private lateinit var btnFavorites: Button
     private lateinit var btnPlayAll: Button
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
@@ -139,6 +140,7 @@ class TvBrowseFragment : Fragment() {
         tvFastLocateTarget = root.findViewById(R.id.tv_fast_locate_target)
         fastLocateTrack = root.findViewById(R.id.view_fast_locate_track)
         fastLocateIndicator = root.findViewById(R.id.view_fast_locate_indicator)
+        btnFavorites = root.findViewById(R.id.btn_favorites)
         btnPlayAll = root.findViewById(R.id.btn_play_all)
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
@@ -154,6 +156,9 @@ class TvBrowseFragment : Fragment() {
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
         btnRetry.setOnClickListener { viewModel.loadCurrentPath() }
+        btnFavorites.setOnClickListener {
+            startActivity(Intent(requireContext(), FavoritesActivity::class.java))
+        }
         btnPlayAll.setOnClickListener { playDirectory(shuffle = false) }
         btnPlayShuffle.setOnClickListener { playDirectory(shuffle = true) }
         btnNowPlaying.setOnClickListener {
@@ -163,6 +168,9 @@ class TvBrowseFragment : Fragment() {
                 resumeLastPlayback()
             }
         }
+        btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
+        btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
+        btnPlayShuffle.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
 
         root.isFocusableInTouchMode = true
         root.requestFocus()
@@ -170,7 +178,27 @@ class TvBrowseFragment : Fragment() {
             handleFastLocateKey(keyCode, event)
         }
         ViewCompat.addOnUnhandledKeyEventListener(root, globalMenuKeyListener)
+        updateBrowserPlaybackButtonPresentation()
         updateNowPlayingButton()
+    }
+
+    private fun updateBrowserPlaybackButtonPresentation() {
+        applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(btnFavorites.hasFocus()))
+        applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(btnPlayAll.hasFocus()))
+        applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(btnPlayShuffle.hasFocus()))
+    }
+
+    private fun applyBrowserButtonSpec(button: Button, spec: PlaybackButtonSpec) {
+        button.text = spec.text
+        button.contentDescription = spec.contentDescription
+        button.setCompoundDrawablesWithIntrinsicBounds(spec.iconResId, 0, 0, 0)
+        val width = if (button.hasFocus()) {
+            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width)
+        } else {
+            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+        }
+        button.minWidth = width
+        button.layoutParams = button.layoutParams.apply { this.width = width }
     }
 
     private fun bindBackHandler() {
