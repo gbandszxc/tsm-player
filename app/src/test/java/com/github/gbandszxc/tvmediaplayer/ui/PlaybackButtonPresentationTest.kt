@@ -81,10 +81,19 @@ class PlaybackButtonPresentationTest {
 
     @Test
     fun browserPlaybackButtonsUseCollapsedIconsAndFocusedText() {
+        val collapsedFavorites = PlaybackButtonPresentation.browserFavorites(focused = false)
+        val collapsedOrder = PlaybackButtonPresentation.browserPlayOrder(focused = false)
+        val collapsedShuffle = PlaybackButtonPresentation.browserPlayShuffle(focused = false)
         val favorites = PlaybackButtonPresentation.browserFavorites(focused = true)
         val order = PlaybackButtonPresentation.browserPlayOrder(focused = true)
         val shuffle = PlaybackButtonPresentation.browserPlayShuffle(focused = true)
 
+        assertEquals("", collapsedFavorites.text)
+        assertEquals("", collapsedOrder.text)
+        assertEquals("", collapsedShuffle.text)
+        assertEquals("收藏", collapsedFavorites.contentDescription)
+        assertEquals("顺序播放", collapsedOrder.contentDescription)
+        assertEquals("随机播放", collapsedShuffle.contentDescription)
         assertEquals("收藏", favorites.text)
         assertEquals("顺序播放", order.text)
         assertEquals("随机播放", shuffle.text)
