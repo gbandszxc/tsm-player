@@ -189,16 +189,12 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun applyBrowserButtonSpec(button: Button, spec: PlaybackButtonSpec) {
-        button.text = spec.text
-        button.contentDescription = spec.contentDescription
-        button.setCompoundDrawablesWithIntrinsicBounds(spec.iconResId, 0, 0, 0)
-        val width = if (button.hasFocus()) {
-            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width)
-        } else {
-            resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
-        }
-        button.minWidth = width
-        button.layoutParams = button.layoutParams.apply { this.width = width }
+        BrowserPlaybackButtonRenderer.apply(
+            context = requireContext(),
+            button = button,
+            spec = spec,
+            hasFocus = button.hasFocus(),
+        )
     }
 
     private fun bindBackHandler() {

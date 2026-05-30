@@ -4,9 +4,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.github.gbandszxc.tvmediaplayer.R
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -43,6 +46,28 @@ class TvBrowseFragmentLayoutTest {
         assertTrue(leftOf(favorites, playAll))
         assertTrue(leftOf(playAll, playShuffle))
         assertTrue(leftOf(playShuffle, nowPlaying))
+    }
+
+    @Test
+    fun `browser playback button renderer tints icon for accent buttons`() {
+        val context = RuntimeEnvironment.getApplication()
+        val button = Button(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+        BrowserPlaybackButtonRenderer.apply(
+            context = context,
+            button = button,
+            spec = PlaybackButtonPresentation.browserPlayOrder(focused = false),
+            hasFocus = false,
+        )
+
+        val leftIcon = button.compoundDrawables[0]
+        assertNotNull(leftIcon)
+        assertNotNull(leftIcon.colorFilter)
     }
 
     private fun isDescendantOf(parent: ViewParent?, ancestor: View): Boolean {
