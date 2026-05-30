@@ -118,8 +118,26 @@ class FavoritesRepositoryTest {
         assertFalse(repository.addTrack(custom.id, sampleTrack(mediaId = "Music/A.flac", title = "A")))
         val afterDuplicate = repository.getPlaylists().first { it.id == custom.id }.updatedAt
 
-        assertTrue(afterInsert >= beforeInsert)
+        assertTrue(afterInsert > beforeInsert)
         assertEquals(afterInsert, afterDuplicate)
+    }
+
+    @Test
+    fun `remove track updates playlist timestamp only when deleted`() {
+        val custom = repository.createPlaylist("午后") ?: error("playlist should be created")
+        repository.addTrack(custom.id, sampleTrack(mediaId = "Music/A.flac", title = "A"))
+        val beforeDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+        Thread.sleep(5L)
+
+        assertTrue(repository.removeTrack(custom.id, "Music/A.flac"))
+        val afterDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+        Thread.sleep(5L)
+
+        assertFalse(repository.removeTrack(custom.id, "Music/A.flac"))
+        val afterMissingDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
+
+        assertTrue(afterDelete > beforeDelete)
+        assertEquals(afterDelete, afterMissingDelete)
     }
 
     @Test

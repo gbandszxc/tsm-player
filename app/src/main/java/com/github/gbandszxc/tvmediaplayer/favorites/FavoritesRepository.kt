@@ -142,12 +142,16 @@ class FavoritesRepository(context: Context) {
         }
 
     fun removeTrack(playlistId: String, mediaId: String): Boolean {
-        val deleted = dbHelper.writableDatabase.delete(
+        val db = dbHelper.writableDatabase
+        val deleted = db.delete(
             "playlist_tracks",
             "playlist_id = ? AND media_id = ?",
             arrayOf(playlistId, mediaId)
         )
-        return deleted > 0
+        if (deleted <= 0) return false
+
+        updatePlaylistTimestamp(db, playlistId)
+        return true
     }
 
     private fun updatePlaylistTimestamp(db: SQLiteDatabase, playlistId: String) {
