@@ -65,4 +65,31 @@ class PlaybackButtonPresentationTest {
         assertTrue(PlaybackButtonPresentation.shouldDrawCenteredIcon(pause, hasFocus = true))
         assertFalse(PlaybackButtonPresentation.shouldDrawCenteredIcon(lyrics, hasFocus = true))
     }
+
+    @Test
+    fun favoriteButtonReflectsDefaultPlaylistStateAndExpandsOnFocus() {
+        val notSaved = PlaybackButtonPresentation.favorite(inDefaultFavorites = false, focused = false)
+        val saved = PlaybackButtonPresentation.favorite(inDefaultFavorites = true, focused = true)
+
+        assertEquals("", notSaved.text)
+        assertEquals("收藏", saved.text)
+        assertEquals("收藏", notSaved.contentDescription)
+        assertTrue(saved.expandsOnFocus)
+        assertEquals(R.drawable.ic_favorite_outline, notSaved.iconResId)
+        assertEquals(R.drawable.ic_favorite_filled, saved.iconResId)
+    }
+
+    @Test
+    fun browserPlaybackButtonsUseCollapsedIconsAndFocusedText() {
+        val favorites = PlaybackButtonPresentation.browserFavorites(focused = true)
+        val order = PlaybackButtonPresentation.browserPlayOrder(focused = true)
+        val shuffle = PlaybackButtonPresentation.browserPlayShuffle(focused = true)
+
+        assertEquals("收藏", favorites.text)
+        assertEquals("顺序播放", order.text)
+        assertEquals("随机播放", shuffle.text)
+        assertEquals(R.drawable.ic_favorite_filled, favorites.iconResId)
+        assertEquals(R.drawable.ic_play_order, order.iconResId)
+        assertEquals(R.drawable.ic_shuffle, shuffle.iconResId)
+    }
 }

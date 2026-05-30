@@ -32,6 +32,18 @@ object PlaybackButtonPresentation {
         )
     }
 
+    fun favorite(inDefaultFavorites: Boolean, focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = "收藏",
+            iconResId = if (inDefaultFavorites) {
+                R.drawable.ic_favorite_filled
+            } else {
+                R.drawable.ic_favorite_outline
+            },
+            focused = focused,
+        )
+    }
+
     fun lyricsFullscreen(focused: Boolean): PlaybackButtonSpec {
         return expandable(
             label = "歌词全屏",
@@ -44,6 +56,30 @@ object PlaybackButtonPresentation {
         return expandable(
             label = "返回文件页",
             iconResId = R.drawable.ic_back_to_folder,
+            focused = focused,
+        )
+    }
+
+    fun browserFavorites(focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = "收藏",
+            iconResId = R.drawable.ic_favorite_filled,
+            focused = focused,
+        )
+    }
+
+    fun browserPlayOrder(focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = "顺序播放",
+            iconResId = R.drawable.ic_play_order,
+            focused = focused,
+        )
+    }
+
+    fun browserPlayShuffle(focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = "随机播放",
+            iconResId = R.drawable.ic_shuffle,
             focused = focused,
         )
     }
