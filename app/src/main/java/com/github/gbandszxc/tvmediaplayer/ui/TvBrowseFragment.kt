@@ -77,7 +77,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnManage: Button
     private lateinit var tvPath: TextView
     private lateinit var btnRefresh: Button
-    private lateinit var btnRetry: Button
+    private lateinit var btnSort: Button
     private lateinit var tvStatus: TextView
     private lateinit var panelFastLocate: View
     private lateinit var tvFastLocateHint: TextView
@@ -142,7 +142,7 @@ class TvBrowseFragment : Fragment() {
         btnManage = root.findViewById(R.id.btn_manage)
         tvPath = root.findViewById(R.id.tv_path)
         btnRefresh = root.findViewById(R.id.btn_refresh)
-        btnRetry = root.findViewById(R.id.btn_retry)
+        btnSort = root.findViewById(R.id.btn_sort)
         tvStatus = root.findViewById(R.id.tv_status)
         panelFastLocate = root.findViewById(R.id.panel_fast_locate)
         tvFastLocateHint = root.findViewById(R.id.tv_fast_locate_hint)
@@ -164,7 +164,7 @@ class TvBrowseFragment : Fragment() {
         }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
-        btnRetry.setOnClickListener { viewModel.loadCurrentPath() }
+        btnSort.setOnClickListener { /* sort dropdown will be wired in Task 4 */ }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
         }
@@ -249,7 +249,6 @@ class TvBrowseFragment : Fragment() {
         val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
         tvPath.text = "当前路径：$pathLabel"
 
-        btnRetry.visibility = if (state.error != null) View.VISIBLE else View.GONE
         when {
             state.error != null -> {
                 tvStatus.visibility = View.VISIBLE
@@ -290,10 +289,14 @@ class TvBrowseFragment : Fragment() {
             val itemView = layoutInflater.inflate(R.layout.item_file_entry, filesContainer, false)
             val tvTag: TextView = itemView.findViewById(R.id.tv_tag)
             val tvName: TextView = itemView.findViewById(R.id.tv_name)
+            val tvSize: TextView = itemView.findViewById(R.id.tv_size)
+            val tvModified: TextView = itemView.findViewById(R.id.tv_modified)
 
             tvTag.text = if (entry.isDirectory) "📁" else "🎵"
             tvTag.background = null
             tvName.text = entry.name
+            tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
+            tvModified.text = formatModifiedTime(entry.lastModifiedAt)
 
             itemView.setOnClickListener {
                 if (viewModel.state.value.isFastLocateMode) return@setOnClickListener
@@ -771,6 +774,31 @@ class TvBrowseFragment : Fragment() {
         saveAsNewDefault: Boolean,
     ): List<FormFieldSpec> = buildConfigFormFieldsForTest(config, connectionName, saveAsNewDefault)
 
+    @VisibleForTesting
+    internal fun formatFileSize(sizeBytes: Long?, isDirectory: Boolean): String {
+        if (isDirectory || sizeBytes == null) return "--"
+        val units = arrayOf("B", "KB", "MB", "GB")
+        var value = sizeBytes.toDouble()
+        var unitIndex = 0
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+        val display = if (unitIndex == 0 || value % 1.0 == 0.0) {
+            value.toLong().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$display ${units[unitIndex]}"
+    }
+
+    @VisibleForTesting
+    internal fun formatModifiedTime(timestamp: Long?): String {
+        if (timestamp == null) return "--"
+        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        return formatter.format(java.util.Date(timestamp))
+    }
+
     companion object {
         /**
          * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
@@ -807,6 +835,18 @@ class TvBrowseFragment : Fragment() {
             FormFieldSpec("smb1", "启用 SMB1 兼容（默认关闭）", config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
             FormFieldSpec("saveAsNew", "另存为新连接", saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
         )
+
+        @VisibleForTesting
+        fun formatSizeForTest(sizeBytes: Long?, isDirectory: Boolean): String =
+            TvBrowseFragment().formatFileSize(sizeBytes, isDirectory)
+
+        @VisibleForTesting
+        fun formatModifiedTimeForTest(timestamp: Long?, timeZone: java.util.TimeZone): String {
+            if (timestamp == null) return "--"
+            val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+            formatter.timeZone = timeZone
+            return formatter.format(java.util.Date(timestamp))
+        }
     }
 
     fun handlePlaybackLocateTarget(target: PlaybackLocationResolver.Target) {

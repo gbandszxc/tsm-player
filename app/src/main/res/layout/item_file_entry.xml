@@ -29,10 +29,33 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/ui_space_lg"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:maxLines="1"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:singleLine="true"
         android:textColor="@color/ui_text_primary"
         android:textSize="@dimen/ui_text_title"
         android:fontFamily="@font/misans_medium" />
+
+    <TextView
+        android:id="@+id/tv_size"
+        android:layout_width="@dimen/ui_browser_size_column_width"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/ui_space_lg"
+        android:gravity="end"
+        android:textColor="@color/ui_text_secondary"
+        android:textSize="@dimen/ui_text_body"
+        android:fontFamily="@font/misans_regular"
+        android:singleLine="true" />
+
+    <TextView
+        android:id="@+id/tv_modified"
+        android:layout_width="@dimen/ui_browser_time_column_width"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/ui_space_lg"
+        android:gravity="end"
+        android:textColor="@color/ui_text_secondary"
+        android:textSize="@dimen/ui_text_body"
+        android:fontFamily="@font/misans_regular"
+        android:singleLine="true" />
 
 </LinearLayout>

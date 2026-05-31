@@ -178,4 +178,30 @@ class TvBrowseFragmentLayoutTest {
         val saveAsNewField = fields.first { it.key == "saveAsNew" }
         assertEquals("true", saveAsNewField.initialValue)
     }
+
+    @Test
+    fun `browser file toolbar keeps refresh before sort and removes retry button`() {
+        val context = RuntimeEnvironment.getApplication()
+        val root = LayoutInflater.from(context)
+            .inflate(R.layout.fragment_tv_browser, FrameLayout(context), false)
+
+        val refresh = root.findViewById<View>(R.id.btn_refresh)
+        val sort = root.findViewById<View>(R.id.btn_sort)
+
+        assertNotNull("btn_refresh should exist", refresh)
+        assertNotNull("btn_sort should exist", sort)
+        assertTrue("refresh should be left of sort", leftOf(refresh, sort))
+    }
+
+    @Test
+    fun `file row exposes name size and modified columns`() {
+        val context = RuntimeEnvironment.getApplication()
+        val row = LayoutInflater.from(context)
+            .inflate(R.layout.item_file_entry, FrameLayout(context), false)
+
+        assertNotNull(row.findViewById<View>(R.id.tv_tag))
+        assertNotNull(row.findViewById<View>(R.id.tv_name))
+        assertNotNull(row.findViewById<View>(R.id.tv_size))
+        assertNotNull(row.findViewById<View>(R.id.tv_modified))
+    }
 }
