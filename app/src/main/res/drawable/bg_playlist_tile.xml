@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_bg_item_focus" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_accent_blue_stroke_soft" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@color/ui_bg_panel" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_divider" />
+        </shape>
+    </item>
+</selector>

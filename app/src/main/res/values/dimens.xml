@@ -20,6 +20,9 @@
     <dimen name="ui_sleep_preset_wide_min_width">128dp</dimen>
     <dimen name="ui_sleep_action_min_width">132dp</dimen>
     <dimen name="ui_sleep_back_min_width">100dp</dimen>
+    <dimen name="ui_playlist_tile_width">180dp</dimen>
+    <dimen name="ui_playlist_tile_height">148dp</dimen>
+    <dimen name="ui_favorites_delete_button_width">56dp</dimen>
 
     <dimen name="ui_space_xs">4dp</dimen>
     <dimen name="ui_space_sm">6dp</dimen>

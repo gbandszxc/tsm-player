@@ -33,6 +33,7 @@ import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -159,6 +160,8 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var btnSleepTimer: Button
     private var renderedSleepTimerLabel: String? = null
     private var renderedSleepTimerFocused: Boolean? = null
+    private var favoritesPlaybackPlaylistId: String? = null
+    private var invalidFavoriteDialogMediaId: String? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -174,12 +177,17 @@ class PlaybackActivity : BaseActivity() {
                 renderPlayerState(player)
             }
         }
+
+        override fun onPlayerError(error: PlaybackException) {
+            confirmRemoveInvalidFavoriteTrack()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         configStore = SmbConfigStore(applicationContext)
         sleepTimerManager = SleepTimerManager(SleepTimerStore(applicationContext))
+        favoritesPlaybackPlaylistId = intent.getStringExtra(EXTRA_FAVORITES_PLAYLIST_ID)
         setContentView(R.layout.activity_playback)
         bindViews()
         applyUiSettings()
@@ -236,6 +244,12 @@ class PlaybackActivity : BaseActivity() {
         renderBackButton()
         renderLocateButton()
         renderSleepTimerButton()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        favoritesPlaybackPlaylistId = intent.getStringExtra(EXTRA_FAVORITES_PLAYLIST_ID)
     }
 
     private fun bindActions() {
@@ -863,6 +877,24 @@ class PlaybackActivity : BaseActivity() {
             .show()
     }
 
+    private fun confirmRemoveInvalidFavoriteTrack() {
+        val playlistId = favoritesPlaybackPlaylistId ?: return
+        val mediaId = mediaController?.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() } ?: return
+        if (invalidFavoriteDialogMediaId == mediaId) return
+        invalidFavoriteDialogMediaId = mediaId
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.favorites_invalid_track_title))
+            .setMessage(getString(R.string.favorites_invalid_track_message))
+            .setPositiveButton(getString(R.string.favorites_invalid_track_remove)) { _, _ ->
+                favoritesRepository.removeTrack(playlistId, mediaId)
+                refreshFavoriteState()
+            }
+            .setNegativeButton(getString(R.string.favorites_invalid_track_keep), null)
+            .setOnDismissListener { invalidFavoriteDialogMediaId = null }
+            .show()
+    }
+
     private fun startProgressTicker() {
         progressJob?.cancel()
         progressJob = lifecycleScope.launch {
@@ -1405,8 +1437,9 @@ class PlaybackActivity : BaseActivity() {
         return if (uri.isNotBlank()) uri else mediaItem.mediaId
     }
 
-    private companion object {
+    companion object {
         const val PLAYER_PROGRESS_RENDER_HOLD_MS = 350L
         const val PLAYBACK_TOAST_DURATION_MS = 2_000L
+        const val EXTRA_FAVORITES_PLAYLIST_ID = "extra_favorites_playlist_id"
     }
 }

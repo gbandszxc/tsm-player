@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ui_bg_tv_blue"
+    android:padding="@dimen/ui_space_screen">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_favorites_title"
+                style="@style/TsmTextPageTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/favorites_title" />
+
+            <Button
+                android:id="@+id/btn_favorites_back"
+                style="@style/TsmButtonPrimary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/favorites_back"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:id="@+id/scroll_playlists"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/ui_space_5xl"
+            android:fillViewport="false"
+            android:scrollbars="none">
+
+            <GridLayout
+                android:id="@+id/grid_playlists"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alignmentMode="alignBounds"
+                android:columnCount="4"
+                android:orientation="horizontal"
+                android:rowCount="1" />
+        </HorizontalScrollView>
+
+        <ScrollView
+            android:id="@+id/scroll_tracks"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/ui_space_5xl"
+            android:layout_weight="1"
+            android:fillViewport="false"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/container_tracks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+    </LinearLayout>
+</FrameLayout>
