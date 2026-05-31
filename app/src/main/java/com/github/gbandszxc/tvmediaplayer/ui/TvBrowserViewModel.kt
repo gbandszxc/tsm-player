@@ -22,6 +22,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+enum class BrowserSortOption(
+    val label: String,
+) {
+    NAME_ASC("文件名 ↑"),
+    NAME_DESC("文件名 ↓"),
+    SIZE_ASC("文件大小 ↑"),
+    SIZE_DESC("文件大小 ↓"),
+    MODIFIED_ASC("修改时间 ↑"),
+    MODIFIED_DESC("修改时间 ↓"),
+}
+
 data class TvBrowserState(
     val config: SmbConfig = SmbConfig.Empty,
     val savedConnections: List<SavedSmbConnection> = emptyList(),
@@ -34,7 +45,8 @@ data class TvBrowserState(
     val restoredFocusIndex: Int? = null,
     val inlineMessage: String? = null,
     val fastLocate: BrowseFastLocateState? = null,
-    val isFastLocateMode: Boolean = false
+    val isFastLocateMode: Boolean = false,
+    val sortOption: BrowserSortOption = BrowserSortOption.NAME_ASC
 )
 
 class TvBrowserViewModel(
@@ -143,9 +155,11 @@ class TvBrowserViewModel(
             runCatching {
                 repository.list(snapshot.config, snapshot.currentPath)
             }.onSuccess { list ->
+                val currentSortOption = _state.value.sortOption
+                val sorted = sortEntries(list, currentSortOption)
                 val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
                 val anchor = configStore.loadBrowseAnchor(anchorConnectionId, snapshot.currentPath)
-                val restore = resolveAnchorRestore(anchor, list)
+                val restore = resolveAnchorRestore(anchor, sorted)
                 lastPersistedAnchor = anchor
                     ?.takeIf { restore.index != null }
                     ?.let {
@@ -158,7 +172,7 @@ class TvBrowserViewModel(
                     }
                 _state.update {
                     it.copy(
-                        entries = list,
+                        entries = sorted,
                         loading = false,
                         restoredFocusIndex = restore.index,
                         inlineMessage = restore.message,
@@ -288,6 +302,56 @@ class TvBrowserViewModel(
 
     fun onItemFocused(index: Int, entry: SmbEntry) {
         persistBrowseAnchor(entry, preferredIndex = index)
+    }
+
+    fun selectSortOption(option: BrowserSortOption) {
+        val snapshot = _state.value
+        val focusedEntry = snapshot.restoredFocusIndex?.let(snapshot.entries::getOrNull)
+        val sorted = sortEntries(snapshot.entries, option)
+        _state.update {
+            it.copy(
+                sortOption = option,
+                entries = sorted,
+                restoredFocusIndex = focusedEntry?.let { entry ->
+                    sorted.indexOfFirst { it.fullPath == entry.fullPath }
+                }?.takeIf { idx -> idx >= 0 },
+            )
+        }
+    }
+
+    private fun sortEntries(entries: List<SmbEntry>, option: BrowserSortOption): List<SmbEntry> {
+        val parent = entries.filter { it.name == ".." }
+        val directories = entries.filter { it.isDirectory && it.name != ".." }
+        val files = entries.filterNot { it.isDirectory }
+        return parent + sortGroup(directories, option) + sortGroup(files, option)
+    }
+
+    private fun sortGroup(entries: List<SmbEntry>, option: BrowserSortOption): List<SmbEntry> {
+        val comparator = when (option) {
+            BrowserSortOption.NAME_ASC -> compareBy<SmbEntry> { it.name.lowercase() }
+            BrowserSortOption.NAME_DESC -> compareByDescending<SmbEntry> { it.name.lowercase() }
+            BrowserSortOption.SIZE_ASC -> compareBy<SmbEntry>(
+                { it.sizeBytes == null },
+                { it.sizeBytes ?: Long.MAX_VALUE },
+                { it.name.lowercase() }
+            )
+            BrowserSortOption.SIZE_DESC -> compareBy<SmbEntry>(
+                { it.sizeBytes == null },
+                { -(it.sizeBytes ?: Long.MIN_VALUE) },
+                { it.name.lowercase() }
+            )
+            BrowserSortOption.MODIFIED_ASC -> compareBy<SmbEntry>(
+                { it.lastModifiedAt == null },
+                { it.lastModifiedAt ?: Long.MAX_VALUE },
+                { it.name.lowercase() }
+            )
+            BrowserSortOption.MODIFIED_DESC -> compareBy<SmbEntry>(
+                { it.lastModifiedAt == null },
+                { -(it.lastModifiedAt ?: Long.MIN_VALUE) },
+                { it.name.lowercase() }
+            )
+        }
+        return entries.sortedWith(comparator)
     }
 
     private fun defaultConnectionName(config: SmbConfig): String {

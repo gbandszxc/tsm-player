@@ -77,7 +77,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnManage: Button
     private lateinit var tvPath: TextView
     private lateinit var btnRefresh: Button
-    private lateinit var btnRetry: Button
+    private lateinit var btnSort: Button
     private lateinit var tvStatus: TextView
     private lateinit var panelFastLocate: View
     private lateinit var tvFastLocateHint: TextView
@@ -89,6 +89,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
     private lateinit var filesContainer: LinearLayout
+    private var sortDropdownView: View? = null
     private val browsePlayerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (
@@ -124,6 +125,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        dismissSortDropdown()
         view?.let { root ->
             ViewCompat.removeOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         }
@@ -142,7 +144,7 @@ class TvBrowseFragment : Fragment() {
         btnManage = root.findViewById(R.id.btn_manage)
         tvPath = root.findViewById(R.id.tv_path)
         btnRefresh = root.findViewById(R.id.btn_refresh)
-        btnRetry = root.findViewById(R.id.btn_retry)
+        btnSort = root.findViewById(R.id.btn_sort)
         tvStatus = root.findViewById(R.id.tv_status)
         panelFastLocate = root.findViewById(R.id.panel_fast_locate)
         tvFastLocateHint = root.findViewById(R.id.tv_fast_locate_hint)
@@ -164,7 +166,7 @@ class TvBrowseFragment : Fragment() {
         }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
-        btnRetry.setOnClickListener { viewModel.loadCurrentPath() }
+        btnSort.setOnClickListener { showSortDropdown() }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
         }
@@ -211,6 +213,10 @@ class TvBrowseFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
+                    if (sortDropdownView != null) {
+                        dismissSortDropdown()
+                        return
+                    }
                     if (viewModel.state.value.isFastLocateMode) {
                         viewModel.cancelFastLocate()
                         return
@@ -249,7 +255,6 @@ class TvBrowseFragment : Fragment() {
         val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
         tvPath.text = "当前路径：$pathLabel"
 
-        btnRetry.visibility = if (state.error != null) View.VISIBLE else View.GONE
         when {
             state.error != null -> {
                 tvStatus.visibility = View.VISIBLE
@@ -271,13 +276,15 @@ class TvBrowseFragment : Fragment() {
 
         renderFastLocatePanel(state)
 
+        btnSort.text = state.sortOption.label
+
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
                 add(SmbEntry(name = "..", fullPath = state.currentPath, isDirectory = true))
             }
             addAll(state.entries)
         }
-        if (browseListRenderGate.shouldRebuild(state.currentPath, displayEntries)) {
+        if (browseListRenderGate.shouldRebuild("${state.currentPath}|${state.sortOption.name}", displayEntries)) {
             renderFileItems(state, displayEntries)
         }
         ensureBrowseFocus(state, displayEntries)
@@ -290,10 +297,14 @@ class TvBrowseFragment : Fragment() {
             val itemView = layoutInflater.inflate(R.layout.item_file_entry, filesContainer, false)
             val tvTag: TextView = itemView.findViewById(R.id.tv_tag)
             val tvName: TextView = itemView.findViewById(R.id.tv_name)
+            val tvSize: TextView = itemView.findViewById(R.id.tv_size)
+            val tvModified: TextView = itemView.findViewById(R.id.tv_modified)
 
             tvTag.text = if (entry.isDirectory) "📁" else "🎵"
             tvTag.background = null
             tvName.text = entry.name
+            tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
+            tvModified.text = formatModifiedTime(entry.lastModifiedAt)
 
             itemView.setOnClickListener {
                 if (viewModel.state.value.isFastLocateMode) return@setOnClickListener
@@ -771,6 +782,31 @@ class TvBrowseFragment : Fragment() {
         saveAsNewDefault: Boolean,
     ): List<FormFieldSpec> = buildConfigFormFieldsForTest(config, connectionName, saveAsNewDefault)
 
+    @VisibleForTesting
+    internal fun formatFileSize(sizeBytes: Long?, isDirectory: Boolean): String {
+        if (isDirectory || sizeBytes == null) return "--"
+        val units = arrayOf("B", "KB", "MB", "GB")
+        var value = sizeBytes.toDouble()
+        var unitIndex = 0
+        while (value >= 1024 && unitIndex < units.lastIndex) {
+            value /= 1024
+            unitIndex++
+        }
+        val display = if (unitIndex == 0 || value % 1.0 == 0.0) {
+            value.toLong().toString()
+        } else {
+            String.format(java.util.Locale.US, "%.1f", value)
+        }
+        return "$display ${units[unitIndex]}"
+    }
+
+    @VisibleForTesting
+    internal fun formatModifiedTime(timestamp: Long?): String {
+        if (timestamp == null) return "--"
+        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+        return formatter.format(java.util.Date(timestamp))
+    }
+
     companion object {
         /**
          * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
@@ -807,6 +843,63 @@ class TvBrowseFragment : Fragment() {
             FormFieldSpec("smb1", "启用 SMB1 兼容（默认关闭）", config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
             FormFieldSpec("saveAsNew", "另存为新连接", saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
         )
+
+        @VisibleForTesting
+        fun formatSizeForTest(sizeBytes: Long?, isDirectory: Boolean): String =
+            TvBrowseFragment().formatFileSize(sizeBytes, isDirectory)
+
+        @VisibleForTesting
+        fun formatModifiedTimeForTest(timestamp: Long?, timeZone: java.util.TimeZone): String {
+            if (timestamp == null) return "--"
+            val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
+            formatter.timeZone = timeZone
+            return formatter.format(java.util.Date(timestamp))
+        }
+    }
+
+    private fun showSortDropdown() {
+        if (sortDropdownView != null) return
+        val rootView = view as? FrameLayout ?: return
+        val dropdown = layoutInflater.inflate(R.layout.view_browser_sort_dropdown, rootView, false)
+        val optionsContainer = dropdown.findViewById<LinearLayout>(R.id.container_sort_options)
+        renderSortOptions(optionsContainer)
+
+        val location = IntArray(2)
+        btnSort.getLocationOnScreen(location)
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.leftMargin = location[0]
+        params.topMargin = location[1] + btnSort.height
+
+        rootView.addView(dropdown, params)
+        sortDropdownView = dropdown
+
+        optionsContainer.getChildAt(0)?.requestFocus()
+    }
+
+    private fun renderSortOptions(container: LinearLayout) {
+        BrowserSortOption.entries.forEach { option ->
+            val itemView = layoutInflater.inflate(R.layout.item_browser_sort_option, container, false)
+            val tvOption = itemView.findViewById<TextView>(R.id.tv_sort_option)
+            tvOption.text = option.label
+            itemView.setOnClickListener {
+                viewModel.selectSortOption(option)
+                dismissSortDropdown()
+            }
+            container.addView(itemView)
+        }
+    }
+
+    private fun dismissSortDropdown() {
+        sortDropdownView?.let { dropdown ->
+            (dropdown.parent as? ViewGroup)?.removeView(dropdown)
+        }
+        sortDropdownView = null
+        if (::btnSort.isInitialized) {
+            btnSort.requestFocus()
+        }
     }
 
     fun handlePlaybackLocateTarget(target: PlaybackLocationResolver.Target) {

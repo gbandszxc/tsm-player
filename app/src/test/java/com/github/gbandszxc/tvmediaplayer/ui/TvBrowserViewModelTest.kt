@@ -513,6 +513,82 @@ class TvBrowserViewModelTest {
         assertEquals(3, viewModel.state.value.restoredFocusIndex)
     }
 
+    @Test
+    fun `sort label follows selected sort option`() = runTest(dispatcher) {
+        val viewModel = buildViewModel(entriesByPath = mapOf("Music" to emptyList()))
+        advanceUntilIdle()
+
+        viewModel.selectSortOption(BrowserSortOption.MODIFIED_DESC)
+
+        assertEquals(BrowserSortOption.MODIFIED_DESC, viewModel.state.value.sortOption)
+        assertEquals("修改时间 ↓", viewModel.state.value.sortOption.label)
+    }
+
+    private fun buildViewModel(
+        browsePath: String = "Music",
+        entriesByPath: Map<String, List<SmbEntry>>,
+    ): TvBrowserViewModel {
+        val config = sampleConfig(path = browsePath)
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = browsePath,
+            ),
+        )
+        return TvBrowserViewModel(FakeSmbRepository(entriesByPath), store)
+    }
+
+    @Test
+    fun `load current path sorts directories first and defaults to name asc`() = runTest(dispatcher) {
+        val entries = listOf(
+            SmbEntry(name = "b.mp3", fullPath = "Music/b.mp3", isDirectory = false, sizeBytes = 3, lastModifiedAt = 3),
+            SmbEntry(name = "Album Z", fullPath = "Music/Album Z", isDirectory = true, lastModifiedAt = 2),
+            SmbEntry(name = "a.mp3", fullPath = "Music/a.mp3", isDirectory = false, sizeBytes = 1, lastModifiedAt = 1),
+            SmbEntry(name = "Album A", fullPath = "Music/Album A", isDirectory = true, lastModifiedAt = 4),
+        )
+        val viewModel = buildViewModel(entriesByPath = mapOf("Music" to entries))
+        advanceUntilIdle()
+
+        assertEquals(listOf("Album A", "Album Z", "a.mp3", "b.mp3"), viewModel.state.value.entries.map { it.name })
+        assertEquals(BrowserSortOption.NAME_ASC, viewModel.state.value.sortOption)
+    }
+
+    @Test
+    fun `select sort option keeps null size and null modified values at end of each group`() = runTest(dispatcher) {
+        val entries = listOf(
+            SmbEntry(name = "Dir B", fullPath = "Music/Dir B", isDirectory = true, lastModifiedAt = null),
+            SmbEntry(name = "Dir A", fullPath = "Music/Dir A", isDirectory = true, lastModifiedAt = 10),
+            SmbEntry(name = "track-big.flac", fullPath = "Music/track-big.flac", isDirectory = false, sizeBytes = 300, lastModifiedAt = null),
+            SmbEntry(name = "track-small.flac", fullPath = "Music/track-small.flac", isDirectory = false, sizeBytes = 100, lastModifiedAt = 1),
+        )
+        val viewModel = buildViewModel(entriesByPath = mapOf("Music" to entries))
+        advanceUntilIdle()
+
+        viewModel.selectSortOption(BrowserSortOption.SIZE_DESC)
+        assertEquals(listOf("Dir A", "Dir B", "track-big.flac", "track-small.flac"), viewModel.state.value.entries.map { it.name })
+
+        viewModel.selectSortOption(BrowserSortOption.MODIFIED_ASC)
+        assertEquals(listOf("Dir A", "Dir B", "track-small.flac", "track-big.flac"), viewModel.state.value.entries.map { it.name })
+    }
+
+    @Test
+    fun `select sort option keeps restored focus on same full path when entry still exists`() = runTest(dispatcher) {
+        val entries = listOf(
+            SmbEntry(name = "b.mp3", fullPath = "Music/b.mp3", isDirectory = false, sizeBytes = 200, lastModifiedAt = 20),
+            SmbEntry(name = "a.mp3", fullPath = "Music/a.mp3", isDirectory = false, sizeBytes = 100, lastModifiedAt = 10),
+        )
+        val viewModel = buildViewModel(entriesByPath = mapOf("Music" to entries))
+        advanceUntilIdle()
+
+        viewModel.onItemFocused(index = 0, entry = viewModel.state.value.entries.first { it.fullPath == "Music/a.mp3" })
+        advanceUntilIdle()
+        viewModel.selectSortOption(BrowserSortOption.SIZE_DESC)
+
+        assertEquals("Music/a.mp3", viewModel.state.value.entries[viewModel.state.value.restoredFocusIndex!!].fullPath)
+    }
+
     private fun sampleConfig(
         host: String = "192.168.1.2",
         share: String = "Media",

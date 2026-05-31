@@ -67,4 +67,8 @@
     <string name="smb_delete_connection_confirm_title">确认删除当前连接？</string>
     <string name="smb_delete_connection_confirm_message">会删除当前保存的 SMB 连接配置，并切换到其它已保存连接或未配置状态。</string>
     <string name="smb_deleted_connection">已删除当前连接</string>
+
+    <!-- 浏览页排序 -->
+    <string name="browser_sort_name_asc">文件名 ↑</string>
+    <string name="browser_refresh_current_dir">刷新当前目录</string>
 </resources>

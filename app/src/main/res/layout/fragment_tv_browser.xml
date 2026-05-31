@@ -193,20 +193,20 @@
                             android:gravity="center"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:text="刷新当前目录"
+                            android:text="@string/browser_refresh_current_dir"
                             android:textAllCaps="false" />
 
                         <Button
-                            android:id="@+id/btn_retry"
+                            android:id="@+id/btn_sort"
                             style="@style/TsmButtonDark"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:minWidth="110dp"
+                            android:minWidth="130dp"
                             android:layout_marginStart="@dimen/ui_space_lg"
                             android:gravity="center"
                             android:maxLines="1"
                             android:ellipsize="end"
-                            android:text="重试连接"
+                            android:text="@string/browser_sort_name_asc"
                             android:textAllCaps="false" />
                     </LinearLayout>
                 </HorizontalScrollView>
