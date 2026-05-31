@@ -513,6 +513,17 @@ class TvBrowserViewModelTest {
         assertEquals(3, viewModel.state.value.restoredFocusIndex)
     }
 
+    @Test
+    fun `sort label follows selected sort option`() = runTest(dispatcher) {
+        val viewModel = buildViewModel(entriesByPath = mapOf("Music" to emptyList()))
+        advanceUntilIdle()
+
+        viewModel.selectSortOption(BrowserSortOption.MODIFIED_DESC)
+
+        assertEquals(BrowserSortOption.MODIFIED_DESC, viewModel.state.value.sortOption)
+        assertEquals("修改时间 ↓", viewModel.state.value.sortOption.label)
+    }
+
     private fun buildViewModel(
         browsePath: String = "Music",
         entriesByPath: Map<String, List<SmbEntry>>,

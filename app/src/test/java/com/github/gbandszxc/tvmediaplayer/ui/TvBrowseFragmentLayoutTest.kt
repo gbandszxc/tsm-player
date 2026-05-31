@@ -204,4 +204,14 @@ class TvBrowseFragmentLayoutTest {
         assertNotNull(row.findViewById<View>(R.id.tv_size))
         assertNotNull(row.findViewById<View>(R.id.tv_modified))
     }
+
+    @Test
+    fun `browser sort dropdown uses dedicated lightweight layout instead of modal shell`() {
+        val context = RuntimeEnvironment.getApplication()
+        val dropdown = LayoutInflater.from(context)
+            .inflate(R.layout.view_browser_sort_dropdown, FrameLayout(context), false)
+
+        assertNotNull(dropdown.findViewById<View>(R.id.container_sort_options))
+        assertNull(dropdown.findViewById<View?>(R.id.container_modal_content))
+    }
 }

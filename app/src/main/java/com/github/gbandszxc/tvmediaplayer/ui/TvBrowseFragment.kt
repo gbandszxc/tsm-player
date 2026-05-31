@@ -89,6 +89,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
     private lateinit var filesContainer: LinearLayout
+    private var sortDropdownView: View? = null
     private val browsePlayerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (
@@ -124,6 +125,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        dismissSortDropdown()
         view?.let { root ->
             ViewCompat.removeOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         }
@@ -164,7 +166,7 @@ class TvBrowseFragment : Fragment() {
         }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
-        btnSort.setOnClickListener { /* sort dropdown will be wired in Task 4 */ }
+        btnSort.setOnClickListener { showSortDropdown() }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
         }
@@ -211,6 +213,10 @@ class TvBrowseFragment : Fragment() {
             viewLifecycleOwner,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
+                    if (sortDropdownView != null) {
+                        dismissSortDropdown()
+                        return
+                    }
                     if (viewModel.state.value.isFastLocateMode) {
                         viewModel.cancelFastLocate()
                         return
@@ -270,13 +276,15 @@ class TvBrowseFragment : Fragment() {
 
         renderFastLocatePanel(state)
 
+        btnSort.text = state.sortOption.label
+
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
                 add(SmbEntry(name = "..", fullPath = state.currentPath, isDirectory = true))
             }
             addAll(state.entries)
         }
-        if (browseListRenderGate.shouldRebuild(state.currentPath, displayEntries)) {
+        if (browseListRenderGate.shouldRebuild("${state.currentPath}|${state.sortOption.name}", displayEntries)) {
             renderFileItems(state, displayEntries)
         }
         ensureBrowseFocus(state, displayEntries)
@@ -846,6 +854,51 @@ class TvBrowseFragment : Fragment() {
             val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US)
             formatter.timeZone = timeZone
             return formatter.format(java.util.Date(timestamp))
+        }
+    }
+
+    private fun showSortDropdown() {
+        if (sortDropdownView != null) return
+        val rootView = view as? FrameLayout ?: return
+        val dropdown = layoutInflater.inflate(R.layout.view_browser_sort_dropdown, rootView, false)
+        val optionsContainer = dropdown.findViewById<LinearLayout>(R.id.container_sort_options)
+        renderSortOptions(optionsContainer)
+
+        val location = IntArray(2)
+        btnSort.getLocationOnScreen(location)
+        val params = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+        params.leftMargin = location[0]
+        params.topMargin = location[1] + btnSort.height
+
+        rootView.addView(dropdown, params)
+        sortDropdownView = dropdown
+
+        optionsContainer.getChildAt(0)?.requestFocus()
+    }
+
+    private fun renderSortOptions(container: LinearLayout) {
+        BrowserSortOption.entries.forEach { option ->
+            val itemView = layoutInflater.inflate(R.layout.item_browser_sort_option, container, false)
+            val tvOption = itemView.findViewById<TextView>(R.id.tv_sort_option)
+            tvOption.text = option.label
+            itemView.setOnClickListener {
+                viewModel.selectSortOption(option)
+                dismissSortDropdown()
+            }
+            container.addView(itemView)
+        }
+    }
+
+    private fun dismissSortDropdown() {
+        sortDropdownView?.let { dropdown ->
+            (dropdown.parent as? ViewGroup)?.removeView(dropdown)
+        }
+        sortDropdownView = null
+        if (::btnSort.isInitialized) {
+            btnSort.requestFocus()
         }
     }
 
