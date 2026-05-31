@@ -36,6 +36,7 @@
     <string name="favorites_create_playlist">创建</string>
     <string name="favorites_empty_playlist">暂无收藏歌曲</string>
     <string name="favorites_track_count">%d 首</string>
+    <string name="favorites_play">播放</string>
     <string name="favorites_remove">移除</string>
     <string name="favorites_removed_track">已从收藏中移除</string>
     <string name="favorites_invalid_track_title">歌曲已失效，是否移除？</string>

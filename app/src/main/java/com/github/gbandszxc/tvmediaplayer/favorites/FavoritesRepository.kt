@@ -24,6 +24,8 @@ class FavoritesRepository(context: Context) {
                     SELECT t.artwork_uri
                     FROM playlist_tracks t
                     WHERE t.playlist_id = p.id
+                      AND t.artwork_uri IS NOT NULL
+                      AND TRIM(t.artwork_uri) != ''
                     ORDER BY t.added_at DESC
                     LIMIT 1
                 ) AS cover_artwork_uri,

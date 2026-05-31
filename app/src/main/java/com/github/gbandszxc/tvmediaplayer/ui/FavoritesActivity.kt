@@ -3,6 +3,8 @@ package com.github.gbandszxc.tvmediaplayer.ui
 import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
@@ -39,11 +41,18 @@ import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackIdentity
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackMediaItems
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackQueueFilter
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
+import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
+import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import jcifs.smb.SmbFile
+import jcifs.smb.SmbFileInputStream
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class FavoritesActivity : BaseActivity() {
 
@@ -183,7 +192,7 @@ class FavoritesActivity : BaseActivity() {
             tracksContainer.addView(createTrackRow(playlist, track, index))
         }
         tracksContainer.post {
-            tracksContainer.getChildAt(0)?.requestFocus() ?: btnBack.requestFocus()
+            (tracksContainer.getChildAt(0)?.tag as? View)?.requestFocus() ?: btnBack.requestFocus()
         }
     }
 
@@ -210,7 +219,7 @@ class FavoritesActivity : BaseActivity() {
         val cover = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setBackgroundColor(ContextCompat.getColor(this@FavoritesActivity, R.color.ui_bg_artwork))
-            loadArtworkOrDefault(playlist.coverArtworkUri)
+            loadPlaylistArtworkOrDefault(playlist)
         }
         tile.addView(cover, LinearLayout.LayoutParams(matchParent(), 0, 1f))
         tile.addView(createTileTitle(playlist.name))
@@ -266,7 +275,7 @@ class FavoritesActivity : BaseActivity() {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            isFocusable = true
+            isFocusable = false
             isClickable = true
             background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_file_item)
             val paddingH = dimenPx(R.dimen.ui_space_3xl)
@@ -285,8 +294,11 @@ class FavoritesActivity : BaseActivity() {
         textColumn.addView(createTrackTitle(track.title))
         textColumn.addView(createTrackSubtitle(track))
 
+        val playButton = createPlayButton(playlist, index)
         row.addView(textColumn)
+        row.addView(playButton)
         row.addView(createDeleteButton(playlist, track))
+        row.tag = playButton
         return row
     }
 
@@ -312,28 +324,54 @@ class FavoritesActivity : BaseActivity() {
             ellipsize = TextUtils.TruncateAt.END
         }
 
-    private fun createDeleteButton(playlist: FavoritePlaylist, track: FavoriteTrack): Button =
-        Button(this).apply {
-            text = ""
-            contentDescription = getString(R.string.favorites_remove)
-            background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_button_red)
-            minWidth = dimenPx(R.dimen.ui_favorites_delete_button_width)
-            minimumWidth = dimenPx(R.dimen.ui_favorites_delete_button_width)
-            setPadding(0, 0, 0, 0)
-            setCompoundDrawablesWithIntrinsicBounds(tintedDeleteIcon(), null, null, null)
-            gravity = Gravity.CENTER
-            setOnClickListener {
-                repository.removeTrack(playlist.id, track)
-                Toast.makeText(this@FavoritesActivity, R.string.favorites_removed_track, Toast.LENGTH_SHORT).show()
-                showTracks(playlist)
-            }
-            layoutParams = LinearLayout.LayoutParams(
-                dimenPx(R.dimen.ui_favorites_delete_button_width),
-                matchParent(),
-            ).apply {
-                marginStart = dimenPx(R.dimen.ui_space_3xl)
-            }
+    private fun createPlayButton(playlist: FavoritePlaylist, index: Int): Button =
+        createTrackActionButton(
+            contentDescription = getString(R.string.favorites_play),
+            backgroundResId = R.drawable.bg_button_green,
+            iconResId = R.drawable.ic_play,
+            marginStartPx = dimenPx(R.dimen.ui_space_3xl),
+        ) {
+            playPlaylistFrom(playlist, index)
         }
+
+    private fun createDeleteButton(playlist: FavoritePlaylist, track: FavoriteTrack): Button =
+        createTrackActionButton(
+            contentDescription = getString(R.string.favorites_remove),
+            backgroundResId = R.drawable.bg_button_red,
+            iconResId = R.drawable.ic_delete,
+            marginStartPx = dimenPx(R.dimen.ui_space_lg),
+        ) {
+            repository.removeTrack(playlist.id, track)
+            Toast.makeText(this@FavoritesActivity, R.string.favorites_removed_track, Toast.LENGTH_SHORT).show()
+            showTracks(playlist)
+        }
+
+    private fun createTrackActionButton(
+        contentDescription: String,
+        backgroundResId: Int,
+        iconResId: Int,
+        marginStartPx: Int,
+        onClick: () -> Unit,
+    ): Button {
+        val size = dimenPx(R.dimen.ui_playback_mode_button_collapsed_width)
+        return Button(this).apply {
+            text = ""
+            this.contentDescription = contentDescription
+            background = ContextCompat.getDrawable(this@FavoritesActivity, backgroundResId)
+            minWidth = size
+            minimumWidth = size
+            minHeight = size
+            minimumHeight = size
+            setPadding(0, 0, 0, 0)
+            gravity = Gravity.CENTER
+            setCompoundDrawables(null, null, null, null)
+            setOnClickListener { onClick() }
+            layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                marginStart = marginStartPx
+            }
+            post { renderCenteredActionIcon(this, iconResId) }
+        }
+    }
 
     private fun createEmptyTrackText(): TextView =
         TextView(this).apply {
@@ -475,24 +513,133 @@ class FavoritesActivity : BaseActivity() {
         mediaController = null
     }
 
-    private fun ImageView.loadArtworkOrDefault(artworkUri: String?) {
-        if (artworkUri.isNullOrBlank()) {
-            setImageResource(R.drawable.default_cover)
-            return
+    private fun ImageView.loadPlaylistArtworkOrDefault(playlist: FavoritePlaylist) {
+        val requestKey = "favorites-cover:${playlist.id}:${playlist.updatedAt}"
+        tag = requestKey
+        setImageResource(R.drawable.default_cover)
+
+        val tracks = repository.getTracks(playlist.id)
+        val coverTrack = tracks.firstOrNull { !it.artworkUri.isNullOrBlank() } ?: tracks.firstOrNull()
+        val artworkCacheKey = coverTrack?.let(::favoriteArtworkCacheKey)
+        artworkCacheKey?.let { cacheKey ->
+            PlaybackArtworkCache.get(cacheKey)?.let { bitmap ->
+                setImageBitmap(bitmap)
+                return
+            }
         }
-        runCatching { setImageURI(Uri.parse(artworkUri)) }
-            .onFailure { setImageResource(R.drawable.default_cover) }
-        if (drawable == null) {
-            setImageResource(R.drawable.default_cover)
+
+        lifecycleScope.launch {
+            val diskBitmap = withContext(Dispatchers.IO) {
+                artworkCacheKey?.let { PlaybackArtworkCache.loadFromDisk(applicationContext, it) }
+            }
+            if (tag != requestKey) return@launch
+            if (diskBitmap != null) {
+                setImageBitmap(diskBitmap)
+                artworkCacheKey?.let { PlaybackArtworkCache.put(it, diskBitmap) }
+                return@launch
+            }
+
+            val resolvedBitmap = withContext(Dispatchers.IO) {
+                loadPlaylistArtworkBitmap(playlist, coverTrack)
+            }
+            if (tag != requestKey) return@launch
+            if (resolvedBitmap != null) {
+                setImageBitmap(resolvedBitmap)
+                artworkCacheKey?.let { cacheKey ->
+                    PlaybackArtworkCache.put(cacheKey, resolvedBitmap)
+                    PlaybackArtworkCache.saveAsync(applicationContext, cacheKey, resolvedBitmap)
+                }
+            } else {
+                setImageResource(R.drawable.default_cover)
+            }
         }
     }
 
-    private fun tintedDeleteIcon() =
-        ContextCompat.getDrawable(this, R.drawable.ic_delete)?.let { icon ->
-            DrawableCompat.wrap(icon).mutate().apply {
-                DrawableCompat.setTint(this, ContextCompat.getColor(this@FavoritesActivity, R.color.ui_text_on_accent))
+    private suspend fun loadPlaylistArtworkBitmap(
+        playlist: FavoritePlaylist,
+        coverTrack: FavoriteTrack?,
+    ): Bitmap? {
+        playlist.coverArtworkUri
+            ?.takeIf { it.isNotBlank() }
+            ?.let { artworkUri ->
+                loadBitmapFromArtworkUri(artworkUri, coverTrack?.sourceConfig)?.let { return it }
+            }
+        coverTrack ?: return null
+        return resolveFavoriteTrackArtwork(coverTrack)
+    }
+
+    private suspend fun resolveFavoriteTrackArtwork(track: FavoriteTrack): Bitmap? {
+        track.artworkUri
+            ?.takeIf { it.isNotBlank() }
+            ?.let { artworkUri ->
+                loadBitmapFromArtworkUri(artworkUri, track.sourceConfig)?.let { return it }
+            }
+        val config = track.sourceConfig ?: return null
+        val streamUri = track.streamUri.takeIf { it.startsWith("smb://", ignoreCase = true) } ?: return null
+        loadEmbeddedArtwork(streamUri, config)?.let { return it }
+        return loadSiblingArtwork(streamUri, config)
+    }
+
+    private fun loadBitmapFromArtworkUri(artworkUri: String, sourceConfig: SmbConfig?): Bitmap? {
+        if (artworkUri.startsWith("smb://", ignoreCase = true)) {
+            val config = sourceConfig ?: return null
+            return loadSmbBitmap(artworkUri, config)
+        }
+        return runCatching {
+            contentResolver.openInputStream(Uri.parse(artworkUri))?.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        }.getOrNull()
+    }
+
+    private fun loadSiblingArtwork(mediaSmbUrl: String, config: SmbConfig): Bitmap? = runCatching {
+        val context = SmbContextFactory.build(config)
+        val parentPath = mediaSmbUrl.substringBeforeLast('/', "").trimEnd('/') + "/"
+        val parentDir = SmbFile(parentPath, context)
+        val candidates = listOf(
+            "folder.jpg", "folder.png",
+            "cover.jpg", "cover.png",
+            "front.jpg", "front.png",
+        )
+        for (name in candidates) {
+            val candidate = SmbFile(parentDir, name)
+            if (!candidate.exists() || candidate.isDirectory) continue
+            SmbFileInputStream(candidate).use { stream ->
+                BitmapFactory.decodeStream(stream)?.let { return@runCatching it }
             }
         }
+        null
+    }.getOrNull()
+
+    private fun loadSmbBitmap(smbUrl: String, config: SmbConfig): Bitmap? = runCatching {
+        val smbFile = SmbFile(smbUrl, SmbContextFactory.build(config))
+        if (!smbFile.exists() || smbFile.isDirectory) return@runCatching null
+        SmbFileInputStream(smbFile).use { stream -> BitmapFactory.decodeStream(stream) }
+    }.getOrNull()
+
+    private suspend fun loadEmbeddedArtwork(mediaSmbUrl: String, config: SmbConfig): Bitmap? = runCatching {
+        val artwork = SmbAudioMetadataProbe.probe(config, mediaSmbUrl)?.artworkData ?: return@runCatching null
+        BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+    }.getOrNull()
+
+    private fun favoriteArtworkCacheKey(track: FavoriteTrack): String {
+        return track.streamUri.ifBlank { track.mediaId }
+    }
+
+    private fun renderCenteredActionIcon(button: Button, iconResId: Int) {
+        val icon = ContextCompat.getDrawable(this, iconResId)?.let { source ->
+            DrawableCompat.wrap(source).mutate().apply {
+                DrawableCompat.setTint(this, ContextCompat.getColor(this@FavoritesActivity, R.color.ui_text_on_accent))
+            }
+        } ?: return
+        button.overlay.clear()
+        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
+        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
+        val left = (button.width - iconWidth) / 2
+        val top = (button.height - iconHeight) / 2
+        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
+        button.overlay.add(icon)
+    }
 
     private fun dimenPx(id: Int): Int = resources.getDimensionPixelSize(id)
 

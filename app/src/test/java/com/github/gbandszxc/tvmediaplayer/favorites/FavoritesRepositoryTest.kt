@@ -205,6 +205,35 @@ class FavoritesRepositoryTest {
     }
 
     @Test
+    fun `playlist cover falls back to most recent track that actually has artwork`() {
+        repository.addTrack(
+            FavoritesRepository.DEFAULT_PLAYLIST_ID,
+            sampleTrack(
+                id = "track-a",
+                mediaId = "Music/A.flac",
+                title = "A",
+                artworkUri = "content://art/a",
+                addedAt = 1_000L
+            )
+        )
+        repository.addTrack(
+            FavoritesRepository.DEFAULT_PLAYLIST_ID,
+            sampleTrack(
+                id = "track-b",
+                mediaId = "Music/B.flac",
+                title = "B",
+                artworkUri = null,
+                addedAt = 2_000L
+            )
+        )
+
+        val playlist = repository.getPlaylists().first()
+
+        assertEquals("content://art/a", playlist.coverArtworkUri)
+        assertEquals(2, playlist.trackCount)
+    }
+
+    @Test
     fun `tracks restore nullable source smb config fields`() {
         val expectedConfig = sampleConfig(
             host = "nas.local",

@@ -11,6 +11,7 @@ import android.widget.ScrollView
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -63,6 +64,26 @@ class TvBrowseFragmentLayoutTest {
             button = button,
             spec = PlaybackButtonPresentation.browserPlayOrder(focused = false),
             hasFocus = false,
+        )
+
+        assertNull(button.compoundDrawables[0])
+    }
+
+    @Test
+    fun `browser playback button renderer uses compound icon when focused`() {
+        val context = RuntimeEnvironment.getApplication()
+        val button = Button(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+        BrowserPlaybackButtonRenderer.apply(
+            context = context,
+            button = button,
+            spec = PlaybackButtonPresentation.browserPlayOrder(focused = true),
+            hasFocus = true,
         )
 
         val leftIcon = button.compoundDrawables[0]

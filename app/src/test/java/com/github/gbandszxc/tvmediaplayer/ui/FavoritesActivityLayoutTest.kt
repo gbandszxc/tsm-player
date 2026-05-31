@@ -1,11 +1,17 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.view.LayoutInflater
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,5 +46,47 @@ class FavoritesActivityLayoutTest {
         FavoritesEmptyTrackFocus.requestFallbackFocus(emptyList(), backButton)
 
         assertTrue(backButton.isFocused)
+    }
+
+    @Test
+    fun `favorite track row exposes dedicated play and delete icon buttons for d pad`() {
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase(FavoritesDbHelper.DB_NAME)
+        val repository = FavoritesRepository(context)
+        repository.addTrack(
+            FavoritesRepository.DEFAULT_PLAYLIST_ID,
+            FavoriteTrack(
+                id = "track-a",
+                playlistId = FavoritesRepository.DEFAULT_PLAYLIST_ID,
+                mediaId = "Music/A.flac",
+                streamUri = "smb://nas/Media/Music/A.flac",
+                title = "Track A",
+                artist = "Artist",
+                album = "Album",
+                artworkUri = null,
+                sourceConnectionId = null,
+                sourceConfig = null,
+                addedAt = 1_000L,
+            )
+        )
+
+        val activity = Robolectric.buildActivity(FavoritesActivity::class.java)
+            .create()
+            .start()
+            .resume()
+            .get()
+
+        val grid = activity.findViewById<android.widget.GridLayout>(R.id.grid_playlists)
+        grid.getChildAt(1).performClick()
+
+        val row = activity.findViewById<LinearLayout>(R.id.container_tracks).getChildAt(0) as LinearLayout
+        val playButton = row.getChildAt(1) as Button
+        val deleteButton = row.getChildAt(2) as Button
+
+        assertEquals(3, row.childCount)
+        assertEquals("", playButton.text.toString())
+        assertEquals("", deleteButton.text.toString())
+        assertTrue(playButton.isFocusable)
+        assertTrue(deleteButton.isFocusable)
     }
 }

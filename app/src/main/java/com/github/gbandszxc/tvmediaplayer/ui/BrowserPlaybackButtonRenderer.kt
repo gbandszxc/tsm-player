@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
+import android.graphics.drawable.Drawable
 import android.widget.Button
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.BlendModeColorFilterCompat
@@ -30,7 +31,6 @@ internal object BrowserPlaybackButtonRenderer {
             )
             wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
         }
-        button.setCompoundDrawables(wrapped, null, null, null)
 
         val width = if (hasFocus) {
             context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width)
@@ -39,5 +39,28 @@ internal object BrowserPlaybackButtonRenderer {
         }
         button.minWidth = width
         button.layoutParams = button.layoutParams.apply { this.width = width }
+
+        if (hasFocus) {
+            button.overlay.clear()
+            button.setCompoundDrawables(wrapped, null, null, null)
+        } else {
+            button.setCompoundDrawables(null, null, null, null)
+            button.post { drawCenteredIcon(button, wrapped, spec) }
+        }
+    }
+
+    private fun drawCenteredIcon(
+        button: Button,
+        icon: Drawable?,
+        spec: PlaybackButtonSpec,
+    ) {
+        if (icon == null || !PlaybackButtonPresentation.shouldDrawCenteredIcon(spec, button.hasFocus())) return
+        button.overlay.clear()
+        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
+        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
+        val left = (button.width - iconWidth) / 2
+        val top = (button.height - iconHeight) / 2
+        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
+        button.overlay.add(icon)
     }
 }
