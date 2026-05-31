@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 表单字段：标签 + 输入框 + 行内错误提示 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_marginBottom="@dimen/ui_space_xl">
+
+    <!-- 字段标签 -->
+    <TextView
+        android:id="@+id/tv_modal_field_label"
+        style="@style/TsmTextSecondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/ui_text_body"
+        android:layout_marginBottom="@dimen/ui_space_xs" />
+
+    <!-- 输入框 -->
+    <EditText
+        android:id="@+id/et_modal_field_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="44dp"
+        android:background="@drawable/bg_modal_input"
+        android:paddingStart="@dimen/ui_space_3xl"
+        android:paddingEnd="@dimen/ui_space_3xl"
+        android:paddingTop="@dimen/ui_space_md"
+        android:paddingBottom="@dimen/ui_space_md"
+        android:textColor="@color/ui_text_primary"
+        android:textColorHint="@color/ui_text_muted"
+        android:textSize="@dimen/ui_text_body_large"
+        android:fontFamily="@font/misans_regular"
+        android:singleLine="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
+
+    <!-- 行内错误提示（默认隐藏） -->
+    <TextView
+        android:id="@+id/tv_modal_field_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/ui_text_error"
+        android:textSize="@dimen/ui_text_caption"
+        android:fontFamily="@font/misans_regular"
+        android:visibility="gone"
+        android:layout_marginTop="@dimen/ui_space_xs" />
+
+</LinearLayout>

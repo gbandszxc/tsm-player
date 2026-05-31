@@ -2,11 +2,16 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.text.InputType
 import android.view.View
+import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -17,7 +22,7 @@ import org.robolectric.annotation.Config
 
 /**
  * TsmModalCoordinator 的公共 modal 基建测试。
- * 验证 showActionModal 能正确填充 shell 布局中的标题、消息和操作按钮。
+ * 验证各类 Modal 的布局填充、焦点管理和交互行为。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -26,6 +31,8 @@ class TsmModalCoordinatorTest {
     /** 测试用宿主 Activity，避免依赖真实 Activity */
     @SuppressLint("RegisteredActivity")
     class FakeModalHostActivity : Activity()
+
+    // ─── ActionModal 测试 ───
 
     @Test
     fun `showActionModal inflates shell with title content and actions`() {
@@ -106,5 +113,361 @@ class TsmModalCoordinatorTest {
         val sectionView = dialog.findViewById<TextView>(R.id.tv_modal_section)
         assertNotNull(sectionView)
         assertEquals("文件操作", sectionView?.text.toString())
+    }
+
+    // ─── FormModal 测试 ───
+
+    @Test
+    fun `showFormModal inflates fields and actions`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "收藏",
+                title = "新建播放列表",
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "playlist_name",
+                        label = "名称",
+                        initialValue = "",
+                        hint = "播放列表名称",
+                        inputType = InputType.TYPE_CLASS_TEXT,
+                    ),
+                ),
+                primaryAction = ModalAction("创建", isPrimary = true),
+                secondaryAction = ModalAction("取消"),
+            )
+        )
+
+        assertTrue("Dialog should be showing", dialog.isShowing)
+
+        // 验证标题
+        val titleView = dialog.findViewById<TextView>(R.id.tv_modal_title)
+        assertEquals("新建播放列表", titleView?.text.toString())
+
+        // 验证字段存在
+        val fieldContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        assertNotNull(fieldContainer)
+        assertEquals("Should have 1 field", 1, fieldContainer?.childCount)
+
+        // 验证字段内容
+        val fieldView = fieldContainer!!.getChildAt(0)
+        assertEquals("playlist_name", fieldView.tag)
+        val labelView = fieldView.findViewById<TextView>(R.id.tv_modal_field_label)
+        assertEquals("名称", labelView.text.toString())
+        val inputView = fieldView.findViewById<EditText>(R.id.et_modal_field_input)
+        assertEquals("", inputView.text.toString())
+
+        // 验证 actions 容器可见
+        val actionsContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_actions)
+        assertNotNull(actionsContainer)
+        assertEquals(View.VISIBLE, actionsContainer?.visibility)
+        // 主按钮 + 取消按钮
+        assertEquals("Should have 2 action buttons", 2, actionsContainer?.childCount)
+    }
+
+    @Test
+    fun `updateFieldError toggles inline error text`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "收藏",
+                title = "新建播放列表",
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "playlist_name",
+                        label = "名称",
+                        initialValue = "",
+                        hint = "播放列表名称",
+                        inputType = InputType.TYPE_CLASS_TEXT,
+                    ),
+                ),
+                primaryAction = ModalAction("创建", isPrimary = true),
+            )
+        )
+
+        // 设置错误
+        coordinator.updateFieldError(dialog, "playlist_name", "播放列表已存在")
+
+        val errorView = dialog.findViewById<View>(android.R.id.content)
+            .findViewWithTag<View>("playlist_name")
+            .findViewById<TextView>(R.id.tv_modal_field_error)
+        assertEquals("播放列表已存在", errorView.text.toString())
+        assertEquals(View.VISIBLE, errorView.visibility)
+
+        // 清除错误
+        coordinator.updateFieldError(dialog, "playlist_name", null)
+        assertEquals(View.GONE, errorView.visibility)
+    }
+
+    @Test
+    fun `updateFieldError with blank string hides error`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "测试",
+                title = "测试",
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "field_a",
+                        label = "A",
+                        initialValue = "",
+                        hint = "",
+                        inputType = InputType.TYPE_CLASS_TEXT,
+                    ),
+                ),
+                primaryAction = ModalAction("OK", isPrimary = true),
+            )
+        )
+
+        coordinator.updateFieldError(dialog, "field_a", "错误信息")
+        val errorView = dialog.findViewById<View>(android.R.id.content)
+            .findViewWithTag<View>("field_a")
+            .findViewById<TextView>(R.id.tv_modal_field_error)
+        assertEquals(View.VISIBLE, errorView.visibility)
+
+        coordinator.updateFieldError(dialog, "field_a", "")
+        assertEquals(View.GONE, errorView.visibility)
+    }
+
+    // ─── ConfirmModal 测试 ───
+
+    @Test
+    fun `showConfirmModal shows message and confirm button`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = "文件操作",
+                title = "确认删除",
+                message = "删除后不可恢复",
+                confirmAction = ModalAction("删除", isDanger = true),
+                cancelAction = ModalAction("取消"),
+            )
+        )
+
+        assertTrue("Dialog should be showing", dialog.isShowing)
+
+        val titleView = dialog.findViewById<TextView>(R.id.tv_modal_title)
+        assertEquals("确认删除", titleView?.text.toString())
+
+        val messageView = dialog.findViewById<TextView>(R.id.tv_modal_message)
+        assertEquals(View.VISIBLE, messageView?.visibility)
+        assertEquals("删除后不可恢复", messageView?.text.toString())
+
+        val actionsContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_actions)
+        assertEquals(View.VISIBLE, actionsContainer?.visibility)
+        assertEquals(2, actionsContainer?.childCount)
+    }
+
+    // ─── ListModal 测试 ───
+
+    @Test
+    fun `showListModal inflates rows`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "连接",
+                title = "选择连接",
+                rows = listOf(
+                    ModalListRow(key = "conn_1", label = "客厅 NAS"),
+                    ModalListRow(key = "conn_2", label = "卧室 NAS"),
+                ),
+            )
+        )
+
+        assertTrue("Dialog should be showing", dialog.isShowing)
+
+        val container = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        assertEquals(2, container?.childCount)
+
+        // 验证行内容
+        val firstRow = container!!.getChildAt(0)
+        assertEquals("conn_1", firstRow.tag)
+        val firstLabel = firstRow.findViewById<TextView>(R.id.tv_modal_row_label)
+        assertEquals("客厅 NAS", firstLabel.text.toString())
+    }
+
+    // ─── ProgressModal 测试 ───
+
+    @Test
+    fun `progress modal handle updates visible progress`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val handle = coordinator.showProgressModal(
+            ProgressModalSpec(
+                sectionLabel = "更新",
+                title = "正在下载更新",
+                fileName = "demo.apk",
+                percent = 0,
+                indeterminate = false,
+                message = "请稍候，下载完成后将进入安装流程。",
+            )
+        )
+
+        assertTrue("Dialog should be showing", handle.dialog.isShowing)
+
+        // 验证初始内容
+        val contentView = handle.dialog.findViewById<View>(android.R.id.content)
+        val filename = contentView.findViewById<TextView>(R.id.tv_modal_progress_filename)
+        assertEquals("demo.apk", filename.text.toString())
+        val message = contentView.findViewById<TextView>(R.id.tv_modal_progress_message)
+        assertEquals("请稍候，下载完成后将进入安装流程。", message.text.toString())
+
+        val progressBar = contentView.findViewById<ProgressBar>(R.id.pb_modal_progress)
+        assertFalse(progressBar.isIndeterminate)
+        assertEquals(0, progressBar.progress)
+
+        // 更新进度
+        handle.onProgress(68)
+        assertEquals(68, progressBar.progress)
+
+        val percentText = contentView.findViewById<TextView>(R.id.tv_modal_progress_percent)
+        assertTrue(percentText.text.toString().contains("68"))
+
+        // 关闭
+        handle.onDismiss()
+        assertFalse("Dialog should be dismissed", handle.dialog.isShowing)
+    }
+
+    @Test
+    fun `progress modal indeterminate hides percent`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val handle = coordinator.showProgressModal(
+            ProgressModalSpec(
+                sectionLabel = "更新",
+                title = "正在处理",
+                fileName = "data.bin",
+                percent = 0,
+                indeterminate = true,
+                message = "处理中",
+            )
+        )
+
+        val contentView = handle.dialog.findViewById<View>(android.R.id.content)
+        val progressBar = contentView.findViewById<ProgressBar>(R.id.pb_modal_progress)
+        assertTrue(progressBar.isIndeterminate)
+
+        val percentText = contentView.findViewById<TextView>(R.id.tv_modal_progress_percent)
+        assertEquals(View.GONE, percentText.visibility)
+    }
+
+    // ─── bindFormPrimaryAction 测试 ───
+
+    @Test
+    fun `bindFormPrimaryAction collects values and dismisses on success`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        var submittedValues: Map<String, String>? = null
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "测试",
+                title = "新建",
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "name",
+                        label = "名称",
+                        initialValue = "我的列表",
+                        hint = "",
+                        inputType = InputType.TYPE_CLASS_TEXT,
+                    ),
+                ),
+                primaryAction = ModalAction("创建", isPrimary = true),
+            )
+        )
+
+        coordinator.bindFormPrimaryAction(dialog, "name") { values ->
+            submittedValues = values
+            true // 返回 true 表示校验通过，关闭弹窗
+        }
+
+        // 模拟点击主按钮
+        val contentView = dialog.findViewById<View>(android.R.id.content)
+        val primaryBtn = contentView.findViewWithTag<Button>("action_primary")
+        primaryBtn.performClick()
+
+        // 验证收集的值
+        assertNotNull(submittedValues)
+        assertEquals("我的列表", submittedValues!!["name"])
+
+        // 弹窗应已关闭
+        assertFalse("Dialog should be dismissed after successful submit", dialog.isShowing)
+    }
+
+    @Test
+    fun `bindFormPrimaryAction keeps dialog open on validation failure`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "测试",
+                title = "新建",
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "name",
+                        label = "名称",
+                        initialValue = "",
+                        hint = "",
+                        inputType = InputType.TYPE_CLASS_TEXT,
+                    ),
+                ),
+                primaryAction = ModalAction("创建", isPrimary = true),
+            )
+        )
+
+        coordinator.bindFormPrimaryAction(dialog, "name") { values ->
+            // 返回 false 表示校验失败，保持弹窗
+            if (values["name"]?.isBlank() == true) {
+                coordinator.updateFieldError(dialog, "name", "请输入名称")
+                false
+            } else {
+                true
+            }
+        }
+
+        val contentView = dialog.findViewById<View>(android.R.id.content)
+        val primaryBtn = contentView.findViewWithTag<Button>("action_primary")
+        primaryBtn.performClick()
+
+        // 弹窗应保持打开
+        assertTrue("Dialog should remain open on validation failure", dialog.isShowing)
+
+        // 错误提示应可见
+        val errorView = contentView.findViewWithTag<View>("name")
+            .findViewById<TextView>(R.id.tv_modal_field_error)
+        assertEquals(View.VISIBLE, errorView.visibility)
+        assertEquals("请输入名称", errorView.text.toString())
     }
 }

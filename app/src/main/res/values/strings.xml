@@ -51,4 +51,5 @@
     <string name="modal_default_confirm">确定</string>
     <string name="modal_default_cancel">取消</string>
     <string name="modal_default_delete">删除</string>
+    <string name="modal_progress_unit">%d%%</string>
 </resources>

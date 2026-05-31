@@ -72,4 +72,66 @@ object TsmModalBuilders {
             ModalAction(cancelLabel, onClick = {}),
         ),
     )
+
+    /**
+     * 创建一个确认型 [ConfirmModalSpec]。
+     * 包含确认按钮和可选取消按钮。
+     *
+     * @param sectionLabel  分区标签
+     * @param title         标题
+     * @param message       说明文案
+     * @param confirmLabel  确认按钮文案
+     * @param onConfirm     确认回调
+     * @param cancelLabel   取消按钮文案
+     * @param onCancel      取消回调
+     */
+    fun confirmSpec(
+        sectionLabel: String,
+        title: String,
+        message: String,
+        confirmLabel: String = "确定",
+        onConfirm: () -> Unit = {},
+        cancelLabel: String = "取消",
+        onCancel: () -> Unit = {},
+    ): ConfirmModalSpec = ConfirmModalSpec(
+        sectionLabel = sectionLabel,
+        title = title,
+        message = message,
+        confirmAction = ModalAction(confirmLabel, isPrimary = true, onClick = onConfirm),
+        cancelAction = ModalAction(cancelLabel, onClick = onCancel),
+    )
+
+    /**
+     * 创建一个危险确认型 [ConfirmModalSpec]。
+     * 确认按钮使用红色 danger 样式。
+     */
+    fun dangerConfirmSpec(
+        sectionLabel: String,
+        title: String,
+        message: String,
+        confirmLabel: String = "删除",
+        onConfirm: () -> Unit = {},
+        cancelLabel: String = "取消",
+    ): ConfirmModalSpec = ConfirmModalSpec(
+        sectionLabel = sectionLabel,
+        title = title,
+        message = message,
+        confirmAction = ModalAction(confirmLabel, isDanger = true, onClick = onConfirm),
+        cancelAction = ModalAction(cancelLabel, onClick = {}),
+    )
+
+    /**
+     * 创建一个列表选择型 [ListModalSpec]。
+     */
+    fun listSpec(
+        sectionLabel: String,
+        title: String,
+        message: String? = null,
+        rows: List<ModalListRow>,
+    ): ListModalSpec = ListModalSpec(
+        sectionLabel = sectionLabel,
+        title = title,
+        message = message,
+        rows = rows,
+    )
 }

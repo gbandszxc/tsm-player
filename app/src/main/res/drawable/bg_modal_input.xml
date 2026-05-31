@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 表单输入框背景：聚焦态蓝色描边，默认态 divider 描边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_bg_panel_deep" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_accent_blue_stroke" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_bg_panel_deep" />
+            <stroke
+                android:width="1dp"
+                android:color="@color/ui_divider" />
+        </shape>
+    </item>
+</selector>

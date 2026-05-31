@@ -45,12 +45,22 @@
             android:textSize="@dimen/ui_text_body"
             android:layout_marginBottom="@dimen/ui_space_3xl" />
 
-        <!-- 操作按钮容器（纵向排列） -->
+        <!-- 动态内容容器（纵向排列） -->
         <LinearLayout
             android:id="@+id/container_modal_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
+
+        <!-- 操作按钮容器（横向排列） -->
+        <LinearLayout
+            android:id="@+id/container_modal_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:visibility="gone" />
 
     </LinearLayout>
 
