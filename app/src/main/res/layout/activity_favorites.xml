@@ -33,23 +33,21 @@
                 android:textAllCaps="false" />
         </LinearLayout>
 
-        <HorizontalScrollView
+        <ScrollView
             android:id="@+id/scroll_playlists"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/ui_space_5xl"
-            android:fillViewport="false"
-            android:scrollbars="none">
+            android:fillViewport="false">
 
             <GridLayout
                 android:id="@+id/grid_playlists"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:alignmentMode="alignBounds"
                 android:columnCount="4"
-                android:orientation="horizontal"
-                android:rowCount="1" />
-        </HorizontalScrollView>
+                android:orientation="horizontal" />
+        </ScrollView>
 
         <ScrollView
             android:id="@+id/scroll_tracks"

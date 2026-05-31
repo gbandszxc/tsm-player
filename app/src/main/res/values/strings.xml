@@ -19,6 +19,7 @@
     <string name="sleep_timer_toast_min_duration">请至少选择 1 分钟</string>
     <string name="favorites_empty_current_track">暂无可收藏歌曲</string>
     <string name="favorites_added_default">已加入收藏夹</string>
+    <string name="favorites_added_playlist">已加入播放列表</string>
     <string name="favorites_removed_default">已取消收藏</string>
     <string name="favorites_already_in_playlist">已在该播放列表中</string>
     <string name="favorites_select_playlist">选择播放列表</string>

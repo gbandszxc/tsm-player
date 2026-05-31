@@ -15,7 +15,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.GridLayout
-import android.widget.HorizontalScrollView
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -31,10 +30,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaybackErrorTarget
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackIdentity
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackMediaItems
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackQueueFilter
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
@@ -57,7 +58,7 @@ class FavoritesActivity : BaseActivity() {
 
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: Button
-    private lateinit var scrollPlaylists: HorizontalScrollView
+    private lateinit var scrollPlaylists: ScrollView
     private lateinit var gridPlaylists: GridLayout
     private lateinit var scrollTracks: ScrollView
     private lateinit var tracksContainer: LinearLayout
@@ -322,7 +323,7 @@ class FavoritesActivity : BaseActivity() {
             setCompoundDrawablesWithIntrinsicBounds(tintedDeleteIcon(), null, null, null)
             gravity = Gravity.CENTER
             setOnClickListener {
-                repository.removeTrack(playlist.id, track.mediaId)
+                repository.removeTrack(playlist.id, track)
                 Toast.makeText(this@FavoritesActivity, R.string.favorites_removed_track, Toast.LENGTH_SHORT).show()
                 showTracks(playlist)
             }
@@ -362,7 +363,7 @@ class FavoritesActivity : BaseActivity() {
         }
 
         val queue = FavoriteTrackQueueFilter.sameSourceQueue(tracks, safeIndex)
-        queue.sourceConfig?.let { PlaybackConfigStore.update(it) }
+        PlaybackConfigStore.update(queue.sourceConfig ?: SmbConfig.Empty)
         currentPlaylist = playlist
         currentTracks = queue.tracks
         activeFavoritePlaybackMediaIds = queue.tracks.map { it.mediaId }.toSet()
@@ -392,13 +393,14 @@ class FavoritesActivity : BaseActivity() {
     }
 
     private fun confirmRemoveInvalidTrack(playlist: FavoritePlaylist, track: FavoriteTrack) {
-        if (invalidDialogTrackId == track.mediaId) return
-        invalidDialogTrackId = track.mediaId
+        val trackKey = FavoriteTrackIdentity.keyOf(track)
+        if (invalidDialogTrackId == trackKey) return
+        invalidDialogTrackId = trackKey
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.favorites_invalid_track_title))
             .setMessage(getString(R.string.favorites_invalid_track_message))
             .setPositiveButton(getString(R.string.favorites_invalid_track_remove)) { _, _ ->
-                repository.removeTrack(playlist.id, track.mediaId)
+                repository.removeTrack(playlist.id, track)
                 if (currentPlaylist?.id == playlist.id) {
                     showTracks(playlist)
                 }

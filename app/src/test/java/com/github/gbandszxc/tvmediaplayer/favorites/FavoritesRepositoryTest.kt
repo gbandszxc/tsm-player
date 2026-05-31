@@ -62,8 +62,13 @@ class FavoritesRepositoryTest {
         assertTrue(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
         assertFalse(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track.copy(id = "track-a-duplicate")))
 
-        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
-        assertFalse(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/B.flac"))
+        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
+        assertFalse(
+            repository.containsTrack(
+                FavoritesRepository.DEFAULT_PLAYLIST_ID,
+                track.copy(mediaId = "Music/B.flac")
+            )
+        )
         assertEquals(1, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
     }
 
@@ -75,10 +80,39 @@ class FavoritesRepositoryTest {
         assertTrue(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
         assertTrue(repository.addTrack(custom.id, track))
 
-        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
-        assertTrue(repository.containsTrack(custom.id, "Music/A.flac"))
+        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
+        assertTrue(repository.containsTrack(custom.id, track))
         assertEquals(1, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
         assertEquals(1, repository.getTracks(custom.id).size)
+    }
+
+    @Test
+    fun `same media id from different sources can coexist and is removed independently`() {
+        val nasA = sampleTrack(
+            id = "nas-a",
+            mediaId = "Music/A.flac",
+            streamUri = "smb://nas-a/Media/Music/A.flac",
+            sourceConfig = sampleConfig(host = "nas-a")
+        )
+        val nasB = sampleTrack(
+            id = "nas-b",
+            mediaId = "Music/A.flac",
+            streamUri = "smb://nas-b/Media/Music/A.flac",
+            sourceConfig = sampleConfig(host = "nas-b")
+        )
+
+        assertTrue(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasA))
+        assertTrue(repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasB))
+
+        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasA))
+        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasB))
+        assertEquals(2, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
+
+        assertTrue(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasA))
+
+        assertFalse(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasA))
+        assertTrue(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, nasB))
+        assertEquals("nas-b", repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).single().sourceConfig?.host)
     }
 
     @Test
@@ -88,11 +122,11 @@ class FavoritesRepositoryTest {
         repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track)
         repository.addTrack(custom.id, track)
 
-        assertTrue(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
+        assertTrue(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
 
-        assertFalse(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
-        assertTrue(repository.containsTrack(custom.id, "Music/A.flac"))
-        assertFalse(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, "Music/A.flac"))
+        assertFalse(repository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
+        assertTrue(repository.containsTrack(custom.id, track))
+        assertFalse(repository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track))
     }
 
     @Test
@@ -101,7 +135,7 @@ class FavoritesRepositoryTest {
 
         assertFalse(repository.addTrack("missing-playlist", track))
 
-        assertFalse(repository.containsTrack("missing-playlist", "Music/Orphan.flac"))
+        assertFalse(repository.containsTrack("missing-playlist", track))
         assertTrue(repository.getTracks("missing-playlist").isEmpty())
     }
 
@@ -125,15 +159,16 @@ class FavoritesRepositoryTest {
     @Test
     fun `remove track updates playlist timestamp only when deleted`() {
         val custom = repository.createPlaylist("午后") ?: error("playlist should be created")
-        repository.addTrack(custom.id, sampleTrack(mediaId = "Music/A.flac", title = "A"))
+        val track = sampleTrack(mediaId = "Music/A.flac", title = "A")
+        repository.addTrack(custom.id, track)
         val beforeDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
         Thread.sleep(5L)
 
-        assertTrue(repository.removeTrack(custom.id, "Music/A.flac"))
+        assertTrue(repository.removeTrack(custom.id, track))
         val afterDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
         Thread.sleep(5L)
 
-        assertFalse(repository.removeTrack(custom.id, "Music/A.flac"))
+        assertFalse(repository.removeTrack(custom.id, track))
         val afterMissingDelete = repository.getPlaylists().first { it.id == custom.id }.updatedAt
 
         assertTrue(afterDelete > beforeDelete)
@@ -198,6 +233,98 @@ class FavoritesRepositoryTest {
         assertEquals("conn-1", restored.sourceConnectionId)
         assertEquals("Artist", restored.artist)
         assertEquals("Album", restored.album)
+    }
+
+    @Test
+    fun `legacy database upgrade keeps tracks and allows same path from another source`() {
+        createLegacyV1Database()
+        repository = FavoritesRepository(context)
+
+        val restored = repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).single()
+        assertEquals("nas-a", restored.sourceConfig?.host)
+
+        assertTrue(
+            repository.addTrack(
+                FavoritesRepository.DEFAULT_PLAYLIST_ID,
+                sampleTrack(
+                    id = "nas-b",
+                    mediaId = "Music/A.flac",
+                    streamUri = "smb://nas-b/Media/Music/A.flac",
+                    sourceConfig = sampleConfig(host = "nas-b")
+                )
+            )
+        )
+
+        assertEquals(2, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
+    }
+
+    private fun createLegacyV1Database() {
+        context.openOrCreateDatabase(FavoritesDbHelper.DB_NAME, Context.MODE_PRIVATE, null).use { db ->
+            db.execSQL(
+                """
+                CREATE TABLE playlists (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    is_default INTEGER NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    updated_at INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TABLE playlist_tracks (
+                    id TEXT PRIMARY KEY,
+                    playlist_id TEXT NOT NULL,
+                    media_id TEXT NOT NULL,
+                    stream_uri TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    artist TEXT,
+                    album TEXT,
+                    artwork_uri TEXT,
+                    source_connection_id TEXT,
+                    source_host TEXT,
+                    source_share TEXT,
+                    source_path TEXT,
+                    source_username TEXT,
+                    source_password TEXT,
+                    source_guest INTEGER,
+                    source_smb1 INTEGER,
+                    added_at INTEGER NOT NULL,
+                    UNIQUE(playlist_id, media_id),
+                    FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX idx_playlist_tracks_playlist_added
+                ON playlist_tracks(playlist_id, added_at DESC)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO playlists (id, name, is_default, created_at, updated_at)
+                VALUES ('default_favorites', '收藏夹', 1, 1000, 1000)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO playlist_tracks (
+                    id, playlist_id, media_id, stream_uri, title,
+                    source_host, source_share, source_path, source_username,
+                    source_guest, source_smb1, added_at
+                )
+                VALUES (
+                    'legacy-a', 'default_favorites', 'Music/A.flac',
+                    'smb://nas-a/Media/Music/A.flac', 'A',
+                    'nas-a', 'Media', 'Music', '',
+                    1, 0, 1000
+                )
+                """.trimIndent()
+            )
+            db.version = 1
+        }
     }
 
     private fun sampleTrack(

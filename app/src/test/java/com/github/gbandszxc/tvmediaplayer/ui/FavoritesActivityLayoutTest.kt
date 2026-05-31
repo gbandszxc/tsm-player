@@ -2,8 +2,10 @@ package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.view.LayoutInflater
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,6 +24,10 @@ class FavoritesActivityLayoutTest {
         assertNotNull(root.findViewById(R.id.grid_playlists))
         assertNotNull(root.findViewById(R.id.container_tracks))
         assertNotNull(root.findViewById(R.id.btn_favorites_back))
+        assertNotEquals(
+            HorizontalScrollView::class.java,
+            root.findViewById<android.view.View>(R.id.grid_playlists).parent::class.java
+        )
     }
 
     @Test

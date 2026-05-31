@@ -45,6 +45,7 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackIdentity
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcTimeline
@@ -162,7 +163,7 @@ class PlaybackActivity : BaseActivity() {
     private var renderedSleepTimerLabel: String? = null
     private var renderedSleepTimerFocused: Boolean? = null
     private var favoritesPlaybackPlaylistId: String? = null
-    private var invalidFavoriteDialogMediaId: String? = null
+    private var invalidFavoriteDialogTrackKey: String? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -493,7 +494,7 @@ class PlaybackActivity : BaseActivity() {
     private fun refreshFavoriteState() {
         val track = currentFavoriteTrack()
         val inDefault = track?.let {
-            favoritesRepository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, it.mediaId)
+            favoritesRepository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, it)
         } ?: false
         if (currentTrackInDefaultFavorites != inDefault) {
             currentTrackInDefaultFavorites = inDefault
@@ -531,7 +532,7 @@ class PlaybackActivity : BaseActivity() {
             return
         }
         if (currentTrackInDefaultFavorites) {
-            favoritesRepository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track.mediaId)
+            favoritesRepository.removeTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track)
             currentTrackInDefaultFavorites = false
             showPlaybackToast(getString(R.string.favorites_removed_default))
         } else {
@@ -793,7 +794,7 @@ class PlaybackActivity : BaseActivity() {
             return
         }
         val choices = favoritesRepository.getPlaylists().map { playlist ->
-            val contains = favoritesRepository.containsTrack(playlist.id, track.mediaId)
+            val contains = favoritesRepository.containsTrack(playlist.id, track)
             FavoritePlaylistChoice(
                 playlistId = playlist.id,
                 label = if (contains) {
@@ -836,7 +837,13 @@ class PlaybackActivity : BaseActivity() {
             )
         )
         showPlaybackToast(
-            if (added) getString(R.string.favorites_added_default)
+            if (added) {
+                if (playlistId == FavoritesRepository.DEFAULT_PLAYLIST_ID) {
+                    getString(R.string.favorites_added_default)
+                } else {
+                    getString(R.string.favorites_added_playlist)
+                }
+            }
             else getString(R.string.favorites_already_in_playlist)
         )
         refreshFavoriteState()
@@ -881,19 +888,20 @@ class PlaybackActivity : BaseActivity() {
 
     private fun confirmRemoveInvalidFavoriteTrack() {
         val playlistId = favoritesPlaybackPlaylistId ?: return
-        val mediaId = mediaController?.currentMediaItem?.mediaId?.takeIf { it.isNotBlank() } ?: return
-        if (invalidFavoriteDialogMediaId == mediaId) return
-        invalidFavoriteDialogMediaId = mediaId
+        val track = currentFavoriteTrack() ?: return
+        val trackKey = FavoriteTrackIdentity.keyOf(track)
+        if (invalidFavoriteDialogTrackKey == trackKey) return
+        invalidFavoriteDialogTrackKey = trackKey
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.favorites_invalid_track_title))
             .setMessage(getString(R.string.favorites_invalid_track_message))
             .setPositiveButton(getString(R.string.favorites_invalid_track_remove)) { _, _ ->
-                favoritesRepository.removeTrack(playlistId, mediaId)
+                favoritesRepository.removeTrack(playlistId, track)
                 refreshFavoriteState()
             }
             .setNegativeButton(getString(R.string.favorites_invalid_track_keep), null)
-            .setOnDismissListener { invalidFavoriteDialogMediaId = null }
+            .setOnDismissListener { invalidFavoriteDialogTrackKey = null }
             .show()
     }
 

@@ -83,12 +83,18 @@ class FavoritesRepository(context: Context) {
             }
         }
 
+    fun containsTrack(playlistId: String, track: FavoriteTrack): Boolean =
+        containsTrackKey(playlistId, FavoriteTrackIdentity.keyOf(track))
+
     fun containsTrack(playlistId: String, mediaId: String): Boolean =
+        containsTrackKey(playlistId, FavoriteTrackIdentity.keyOf(mediaId, sourceConfig = null))
+
+    private fun containsTrackKey(playlistId: String, trackKey: String): Boolean =
         dbHelper.readableDatabase.query(
             "playlist_tracks",
             arrayOf("id"),
-            "playlist_id = ? AND media_id = ?",
-            arrayOf(playlistId, mediaId),
+            "playlist_id = ? AND track_key = ?",
+            arrayOf(playlistId, trackKey),
             null,
             null,
             null,
@@ -106,6 +112,7 @@ class FavoritesRepository(context: Context) {
             put("id", UUID.randomUUID().toString())
             put("playlist_id", playlistId)
             put("media_id", track.mediaId)
+            put("track_key", FavoriteTrackIdentity.keyOf(track))
             put("stream_uri", track.streamUri)
             put("title", track.title)
             putNullable("artist", track.artist)
@@ -141,12 +148,18 @@ class FavoritesRepository(context: Context) {
             cursor.moveToFirst()
         }
 
-    fun removeTrack(playlistId: String, mediaId: String): Boolean {
+    fun removeTrack(playlistId: String, track: FavoriteTrack): Boolean =
+        removeTrackKey(playlistId, FavoriteTrackIdentity.keyOf(track))
+
+    fun removeTrack(playlistId: String, mediaId: String): Boolean =
+        removeTrackKey(playlistId, FavoriteTrackIdentity.keyOf(mediaId, sourceConfig = null))
+
+    private fun removeTrackKey(playlistId: String, trackKey: String): Boolean {
         val db = dbHelper.writableDatabase
         val deleted = db.delete(
             "playlist_tracks",
-            "playlist_id = ? AND media_id = ?",
-            arrayOf(playlistId, mediaId)
+            "playlist_id = ? AND track_key = ?",
+            arrayOf(playlistId, trackKey)
         )
         if (deleted <= 0) return false
 
