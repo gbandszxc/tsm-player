@@ -1,6 +1,5 @@
 package com.github.gbandszxc.tvmediaplayer
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -12,6 +11,9 @@ import com.github.gbandszxc.tvmediaplayer.ui.BaseActivity
 import com.github.gbandszxc.tvmediaplayer.ui.TvBrowseFragment
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsStore
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
 import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 
 class MainActivity : BaseActivity() {
@@ -46,12 +48,17 @@ class MainActivity : BaseActivity() {
         if (controller.isDeviceAdminActive()) return
         if (UiSettingsStore.sleepAdminPromptShown(this)) return
         UiSettingsStore.setSleepAdminPromptShown(this, true)
-        AlertDialog.Builder(this)
-            .setTitle("开启睡眠权限")
-            .setMessage("授权后，睡眠定时结束时可以让电视进入睡眠或息屏。暂不授权也可以继续使用播放器，并可之后在设置页重新授权。")
-            .setPositiveButton("去授权") { _, _ -> controller.openDeviceAdminSettings(this) }
-            .setNegativeButton("暂不授权", null)
-            .show()
+        TsmModalCoordinator(this).showActionModal(
+            ActionModalSpec(
+                sectionLabel = "权限",
+                title = "开启睡眠权限",
+                message = "授权后，睡眠定时结束时可以让电视进入睡眠或息屏。暂不授权也可以继续使用播放器，并可之后在设置页重新授权。",
+                actions = listOf(
+                    ModalAction("暂不授权"),
+                    ModalAction("去授权", isPrimary = true) { controller.openDeviceAdminSettings(this) },
+                ),
+            )
+        )
     }
 
     private fun deliverPlaybackLocateTarget() {

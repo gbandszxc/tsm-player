@@ -1,8 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.update
 
 import android.app.Activity
-import android.app.AlertDialog
-import android.app.ProgressDialog
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -10,6 +8,11 @@ import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ProgressModalHandle
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ProgressModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
@@ -134,40 +137,44 @@ object AppUpdateManager {
     }
 
     private fun showUpdateDialog(activity: Activity, update: UpdateInfo) {
-        AlertDialog.Builder(activity)
-            .setTitle("发现新版本 ${update.versionName}")
-            .setMessage("检测到适用于 ${currentAbi()} 的安装包：${update.assetName}\n是否立即下载并安装？")
-            .setNegativeButton("稍后", null)
-            .setPositiveButton("下载") { _, _ ->
-                downloadAndInstall(activity, update)
-            }
-            .show()
+        TsmModalCoordinator(activity).showActionModal(
+            ActionModalSpec(
+                sectionLabel = "更新",
+                title = "发现新版本 ${update.versionName}",
+                message = "检测到适用于 ${currentAbi()} 的安装包：${update.assetName}",
+                actions = listOf(
+                    ModalAction("稍后"),
+                    ModalAction("下载并安装", isPrimary = true) { downloadAndInstall(activity, update) },
+                ),
+            )
+        )
     }
 
-    @Suppress("DEPRECATION")
     private fun downloadAndInstall(activity: Activity, update: UpdateInfo) {
-        val progressDialog = ProgressDialog(activity).apply {
-            setTitle("正在下载更新")
-            setMessage(update.assetName)
-            setProgressStyle(ProgressDialog.STYLE_HORIZONTAL)
-            max = 100
-            isIndeterminate = update.sizeBytes <= 0L
-            setCancelable(false)
-            show()
-        }
+        val coordinator = TsmModalCoordinator(activity)
+        val progressHandle = coordinator.showProgressModal(
+            ProgressModalSpec(
+                sectionLabel = "更新",
+                title = "正在下载更新",
+                fileName = update.assetName,
+                percent = 0,
+                indeterminate = update.sizeBytes <= 0L,
+                message = "请稍候，下载完成后将进入安装流程。",
+            )
+        )
 
         MainScope().let { scope ->
             scope.launchSafely(activity) {
                 val result = withContext(Dispatchers.IO) {
                     runCatching {
                         downloadApk(activity, update) { percent ->
-                            withContext(Dispatchers.Main) {
-                                progressDialog.progress = percent
+                            activity.runOnUiThread {
+                                progressHandle.onProgress(percent)
                             }
                         }
                     }
                 }
-                progressDialog.dismiss()
+                progressHandle.onDismiss()
                 if (activity.isFinishing || activity.isDestroyed) return@launchSafely
                 result.fold(
                     onSuccess = { installApk(activity, it) },
@@ -186,7 +193,7 @@ object AppUpdateManager {
     private suspend fun downloadApk(
         context: Context,
         update: UpdateInfo,
-        onProgress: suspend (Int) -> Unit
+        onProgress: (Int) -> Unit
     ): File {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val apk = File(dir, update.assetName)

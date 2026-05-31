@@ -7,12 +7,10 @@ import android.text.InputType
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
-import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import android.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
 import com.github.gbandszxc.tvmediaplayer.R
@@ -21,6 +19,12 @@ import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalFormValidators
 import com.github.gbandszxc.tvmediaplayer.update.AppUpdateManager
 import kotlinx.coroutines.launch
 
@@ -44,6 +48,7 @@ class SettingsActivity : BaseActivity() {
     private lateinit var containerDetail: LinearLayout
     private var selectedCategoryIndex = 0
     private val categoryViews = mutableListOf<View>()
+    private val modalCoordinator by lazy { TsmModalCoordinator(this) }
 
     private val categories by lazy {
         listOf(
@@ -379,42 +384,41 @@ class SettingsActivity : BaseActivity() {
         defaultValue: Int,
         onSave: (Int) -> Unit
     ) {
-        val input = EditText(this).apply {
-            hint = "输入字号（${UiSettingsStore.minLyricsFontSp}-${UiSettingsStore.maxLyricsFontSp}）"
-            inputType = InputType.TYPE_CLASS_NUMBER
-            setText(currentValue.toString())
-            setSelectAllOnFocus(true)
-            typeface = AppFonts.regular(this@SettingsActivity)
+        val dialog = modalCoordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "显示设置",
+                title = title,
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "value",
+                        label = "字号 (sp)",
+                        initialValue = currentValue.toString(),
+                        hint = "${UiSettingsStore.minLyricsFontSp}-${UiSettingsStore.maxLyricsFontSp}",
+                        inputType = InputType.TYPE_CLASS_NUMBER,
+                    )
+                ),
+                primaryAction = ModalAction("保存", isPrimary = true),
+                secondaryAction = ModalAction("恢复默认($defaultValue)") {
+                    onSave(defaultValue)
+                    Toast.makeText(this, "已恢复默认字号 ${defaultValue}sp", Toast.LENGTH_SHORT).show()
+                    rebuildCurrentCategory(moveFocusToDetail = false)
+                },
+            )
+        )
+        modalCoordinator.bindFormPrimaryAction(dialog, "value") { values ->
+            val parsed = values["value"]?.trim()?.toIntOrNull()
+            val error = TsmModalFormValidators.validateLyricsFont(
+                parsed, UiSettingsStore.minLyricsFontSp, UiSettingsStore.maxLyricsFontSp
+            )
+            if (error != null) {
+                modalCoordinator.updateFieldError(dialog, "value", error)
+                return@bindFormPrimaryAction false
+            }
+            onSave(parsed!!)
+            Toast.makeText(this, "字号已设置为 ${parsed}sp", Toast.LENGTH_SHORT).show()
+            rebuildCurrentCategory(moveFocusToDetail = false)
+            true
         }
-
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setView(input)
-            .setNeutralButton("恢复默认($defaultValue)") { _, _ ->
-                onSave(defaultValue)
-                Toast.makeText(this, "已恢复默认字号 ${defaultValue}sp", Toast.LENGTH_SHORT).show()
-                rebuildCurrentCategory(moveFocusToDetail = false)
-            }
-            .setNegativeButton("取消", null)
-            .setPositiveButton("保存") { _, _ ->
-                val value = input.text.toString().trim().toIntOrNull()
-                if (value == null) {
-                    Toast.makeText(this, "请输入有效数字", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                if (value !in UiSettingsStore.minLyricsFontSp..UiSettingsStore.maxLyricsFontSp) {
-                    Toast.makeText(
-                        this,
-                        "字号范围需在 ${UiSettingsStore.minLyricsFontSp}-${UiSettingsStore.maxLyricsFontSp}sp",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@setPositiveButton
-                }
-                onSave(value)
-                Toast.makeText(this, "字号已设置为 ${value}sp", Toast.LENGTH_SHORT).show()
-                rebuildCurrentCategory(moveFocusToDetail = false)
-            }
-            .show()
     }
 
     private fun showLyricsSpacingDialog(
@@ -423,42 +427,41 @@ class SettingsActivity : BaseActivity() {
         defaultValue: Float,
         onSave: (Float) -> Unit
     ) {
-        val input = EditText(this).apply {
-            hint = "输入间距（1.0 - 3.0）"
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-            setText("%.1f".format(currentValue))
-            setSelectAllOnFocus(true)
-            typeface = AppFonts.regular(this@SettingsActivity)
+        val dialog = modalCoordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "显示设置",
+                title = title,
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "value",
+                        label = "间距 (x)",
+                        initialValue = "%.1f".format(currentValue),
+                        hint = "${"%.1f".format(UiSettingsStore.minLyricsLineSpacing)} - ${"%.1f".format(UiSettingsStore.maxLyricsLineSpacing)}",
+                        inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL,
+                    )
+                ),
+                primaryAction = ModalAction("保存", isPrimary = true),
+                secondaryAction = ModalAction("恢复默认(${"%.1f".format(defaultValue)})") {
+                    onSave(defaultValue)
+                    Toast.makeText(this, "已恢复默认间距 ${"%.1f".format(defaultValue)}x", Toast.LENGTH_SHORT).show()
+                    rebuildCurrentCategory(moveFocusToDetail = false)
+                },
+            )
+        )
+        modalCoordinator.bindFormPrimaryAction(dialog, "value") { values ->
+            val parsed = values["value"]?.trim()?.toFloatOrNull()
+            val error = TsmModalFormValidators.validateLyricsSpacing(
+                parsed, UiSettingsStore.minLyricsLineSpacing, UiSettingsStore.maxLyricsLineSpacing
+            )
+            if (error != null) {
+                modalCoordinator.updateFieldError(dialog, "value", error)
+                return@bindFormPrimaryAction false
+            }
+            onSave(parsed!!)
+            Toast.makeText(this, "间距已设置为 ${"%.1f".format(parsed)}x", Toast.LENGTH_SHORT).show()
+            rebuildCurrentCategory(moveFocusToDetail = false)
+            true
         }
-
-        AlertDialog.Builder(this)
-            .setTitle(title)
-            .setView(input)
-            .setNeutralButton("恢复默认(${"%.1f".format(defaultValue)})") { _, _ ->
-                onSave(defaultValue)
-                Toast.makeText(this, "已恢复默认间距 ${"%.1f".format(defaultValue)}x", Toast.LENGTH_SHORT).show()
-                rebuildCurrentCategory(moveFocusToDetail = false)
-            }
-            .setNegativeButton("取消", null)
-            .setPositiveButton("保存") { _, _ ->
-                val value = input.text.toString().trim().toFloatOrNull()
-                if (value == null) {
-                    Toast.makeText(this, "请输入有效数字", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                if (value < UiSettingsStore.minLyricsLineSpacing || value > UiSettingsStore.maxLyricsLineSpacing) {
-                    Toast.makeText(
-                        this,
-                        "间距范围需在 1.0 - 3.0",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return@setPositiveButton
-                }
-                onSave(value)
-                Toast.makeText(this, "间距已设置为 ${"%.1f".format(value)}x", Toast.LENGTH_SHORT).show()
-                rebuildCurrentCategory(moveFocusToDetail = false)
-            }
-            .show()
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {

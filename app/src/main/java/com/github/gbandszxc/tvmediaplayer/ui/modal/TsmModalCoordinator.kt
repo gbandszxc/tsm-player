@@ -169,7 +169,7 @@ class TsmModalCoordinator(
         primaryBtn.tag = TAG_ACTION_PRIMARY
         actionsContainer.addView(primaryBtn)
 
-        // 次要操作按钮
+        // 次要操作按钮（点击后自动关闭弹窗，与 AlertDialog neutralButton 行为一致）
         spec.secondaryAction?.let { secondary ->
             val secondaryBtn = createActionButton(secondary)
             secondaryBtn.tag = TAG_ACTION_SECONDARY
@@ -185,6 +185,15 @@ class TsmModalCoordinator(
                 lastFocusedView?.requestFocus()
             }
             show()
+
+            // 次要按钮点击后自动关闭
+            spec.secondaryAction?.let { sec ->
+                actionsContainer.findViewWithTag<Button>(TAG_ACTION_SECONDARY)?.setOnClickListener {
+                    sec.onClick?.invoke()
+                    dismiss()
+                }
+            }
+
             // 自动聚焦第一个字段的输入框
             fieldContainer.getChildAt(0)
                 ?.findViewById<EditText>(R.id.et_modal_field_input)
@@ -242,6 +251,19 @@ class TsmModalCoordinator(
                 lastFocusedView?.requestFocus()
             }
             show()
+
+            // 确认/取消按钮点击后自动关闭
+            confirmBtn.setOnClickListener {
+                spec.confirmAction.onClick?.invoke()
+                dismiss()
+            }
+            spec.cancelAction?.let {
+                actionsContainer.findViewWithTag<Button>(TAG_ACTION_SECONDARY)?.setOnClickListener {
+                    spec.cancelAction.onClick?.invoke()
+                    dismiss()
+                }
+            }
+
             // 聚焦确认按钮
             confirmBtn.requestFocus()
         }
