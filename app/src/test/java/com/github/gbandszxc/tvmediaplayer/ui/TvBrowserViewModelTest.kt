@@ -206,6 +206,61 @@ class TvBrowserViewModelTest {
     }
 
     @Test
+    fun `delete active connection falls back to remaining saved connection and reloads root path`() = runTest(dispatcher) {
+        val currentConfig = sampleConfig(path = "Music")
+        val fallbackConfig = sampleConfig(host = "192.168.1.9", share = "Archive", path = "HiRes")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = currentConfig,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(
+                    SavedSmbConnection("conn-1", "NAS", currentConfig),
+                    SavedSmbConnection("conn-2", "Archive", fallbackConfig)
+                ),
+                activeBrowsePath = "Music/Albums"
+            )
+        )
+        val repository = FakeSmbRepository()
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.deleteActiveConnection()
+        advanceUntilIdle()
+
+        assertEquals(fallbackConfig, viewModel.state.value.config)
+        assertEquals("conn-2", viewModel.state.value.activeConnectionId)
+        assertEquals("HiRes", viewModel.state.value.currentPath)
+        assertEquals(listOf("conn-1"), store.deletedConnectionIds)
+        assertEquals(listOf("Music/Albums", "HiRes"), repository.requestedPaths)
+    }
+
+    @Test
+    fun `delete active connection clears browser state when no saved connection remains`() = runTest(dispatcher) {
+        val currentConfig = sampleConfig(path = "Music")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = currentConfig,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", currentConfig)),
+                activeBrowsePath = "Music/Albums"
+            )
+        )
+        val repository = FakeSmbRepository()
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        viewModel.deleteActiveConnection()
+        advanceUntilIdle()
+
+        assertEquals(SmbConfig.Empty, viewModel.state.value.config)
+        assertNull(viewModel.state.value.activeConnectionId)
+        assertEquals("", viewModel.state.value.currentPath)
+        assertTrue(viewModel.state.value.entries.isEmpty())
+        assertEquals(listOf("conn-1"), store.deletedConnectionIds)
+        assertEquals(listOf("Music/Albums"), repository.requestedPaths)
+    }
+
+    @Test
     fun `init restores focus index from browse anchor when item key matches`() = runTest(dispatcher) {
         val config = sampleConfig(path = "Music")
         val browsePath = "Music/Albums"
@@ -484,7 +539,7 @@ class TvBrowserViewModelTest {
     }
 
     private class FakeBrowserConfigStore(
-        private val state: SmbConfigStoreState,
+        private var state: SmbConfigStoreState,
         private val anchors: MutableMap<Pair<String?, String>, BrowseFocusAnchor> = mutableMapOf()
     ) : BrowserConfigStore {
         val savedBrowsePaths = mutableListOf<String>()
@@ -492,6 +547,7 @@ class TvBrowserViewModelTest {
         val activatedConfigs = mutableListOf<SmbConfig>()
         val loadedAnchors = mutableListOf<Pair<String?, String>>()
         val savedAnchors = mutableListOf<Pair<Pair<String?, String>, BrowseFocusAnchor>>()
+        val deletedConnectionIds = mutableListOf<String>()
 
         override suspend fun loadState(): SmbConfigStoreState = state
 
@@ -524,6 +580,19 @@ class TvBrowserViewModelTest {
 
         override suspend fun clearBrowseCache() {
             anchors.clear()
+        }
+
+        override suspend fun deleteConnection(id: String): SmbConfigStoreState {
+            deletedConnectionIds += id
+            val remaining = state.savedConnections.filterNot { it.id == id }
+            val nextActive = remaining.firstOrNull()
+            state = SmbConfigStoreState(
+                activeConfig = nextActive?.config ?: SmbConfig.Empty,
+                activeConnectionId = nextActive?.id,
+                savedConnections = remaining,
+                activeBrowsePath = nextActive?.config?.normalizedPath().orEmpty()
+            )
+            return state
         }
 
         override fun newConnectionId(): String = "generated-id"

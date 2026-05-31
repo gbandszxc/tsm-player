@@ -176,6 +176,29 @@ class FavoritesRepositoryTest {
     }
 
     @Test
+    fun `delete playlist refuses default playlist and keeps its tracks`() {
+        val track = sampleTrack(mediaId = "Music/A.flac", title = "A")
+        repository.addTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, track)
+
+        assertFalse(repository.deletePlaylist(FavoritesRepository.DEFAULT_PLAYLIST_ID))
+
+        val playlists = repository.getPlaylists()
+        assertEquals(listOf(FavoritesRepository.DEFAULT_PLAYLIST_ID), playlists.map { it.id })
+        assertEquals(1, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
+    }
+
+    @Test
+    fun `delete playlist removes custom playlist and cascades tracks`() {
+        val custom = repository.createPlaylist("夜跑") ?: error("playlist should be created")
+        repository.addTrack(custom.id, sampleTrack(id = "track-b", playlistId = custom.id, mediaId = "Music/B.flac", title = "B"))
+
+        assertTrue(repository.deletePlaylist(custom.id))
+
+        assertFalse(repository.getPlaylists().any { it.id == custom.id })
+        assertTrue(repository.getTracks(custom.id).isEmpty())
+    }
+
+    @Test
     fun `playlist cover uses last added track artwork`() {
         repository.addTrack(
             FavoritesRepository.DEFAULT_PLAYLIST_ID,

@@ -30,6 +30,7 @@ interface BrowserConfigStore {
     suspend fun loadState(): SmbConfigStoreState
     suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean = true)
     suspend fun setActiveConnection(id: String)
+    suspend fun deleteConnection(id: String): SmbConfigStoreState
     suspend fun setActiveConfig(config: SmbConfig, browsePath: String)
     suspend fun saveActiveBrowsePath(path: String)
     suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor?
@@ -91,6 +92,49 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
             writeLegacy(preferences, target.config)
             preferences[Keys.ACTIVE_BROWSE_PATH] = target.config.normalizedPath()
         }
+    }
+
+    override suspend fun deleteConnection(id: String): SmbConfigStoreState {
+        appContext.smbDataStore.edit { preferences ->
+            val current = decodeSaved(preferences[Keys.SAVED_CONNECTIONS_JSON])
+            if (current.none { it.id == id }) return@edit
+
+            val remaining = current.filterNot { it.id == id }
+            preferences[Keys.SAVED_CONNECTIONS_JSON] = encodeSaved(remaining)
+
+            val currentActiveId = preferences[Keys.ACTIVE_CONNECTION_ID]
+            val activeBrowsePath = preferences[Keys.ACTIVE_BROWSE_PATH].orEmpty()
+            val nextActive = when {
+                remaining.isEmpty() -> null
+                currentActiveId == id -> remaining.first()
+                else -> remaining.firstOrNull { it.id == currentActiveId } ?: remaining.first()
+            }
+
+            if (nextActive == null) {
+                preferences.remove(Keys.ACTIVE_CONNECTION_ID)
+                writeLegacy(preferences, SmbConfig.Empty)
+                preferences[Keys.ACTIVE_BROWSE_PATH] = ""
+            } else {
+                preferences[Keys.ACTIVE_CONNECTION_ID] = nextActive.id
+                writeLegacy(preferences, nextActive.config)
+                val nextBrowsePath = if (nextActive.id == currentActiveId && currentActiveId != id) {
+                    activeBrowsePath
+                } else {
+                    nextActive.config.normalizedPath()
+                }
+                preferences[Keys.ACTIVE_BROWSE_PATH] = normalizeBrowsePath(nextBrowsePath)
+            }
+
+            val anchors = decodeBrowseAnchors(preferences[Keys.BROWSE_ANCHORS_JSON])
+            if (anchors.isNotEmpty()) {
+                val prefix = "${id}|"
+                val removedAny = anchors.keys.removeAll { key -> key.startsWith(prefix) }
+                if (removedAny) {
+                    preferences[Keys.BROWSE_ANCHORS_JSON] = encodeBrowseAnchors(anchors)
+                }
+            }
+        }
+        return loadState()
     }
 
     override suspend fun setActiveConfig(config: SmbConfig, browsePath: String) {

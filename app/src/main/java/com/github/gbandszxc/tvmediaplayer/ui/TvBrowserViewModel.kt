@@ -105,6 +105,33 @@ class TvBrowserViewModel(
         loadCurrentPath()
     }
 
+    fun deleteActiveConnection() {
+        val activeConnectionId = _state.value.activeConnectionId ?: return
+        viewModelScope.launch {
+            val updated = configStore.deleteConnection(activeConnectionId)
+            _state.update {
+                it.copy(
+                    config = updated.activeConfig,
+                    savedConnections = updated.savedConnections,
+                    activeConnectionId = updated.activeConnectionId,
+                    currentPath = updated.activeBrowsePath,
+                    entries = emptyList(),
+                    loading = false,
+                    error = null,
+                    toast = "已删除当前连接",
+                    restoredFocusIndex = null,
+                    inlineMessage = null,
+                    fastLocate = null,
+                    isFastLocateMode = false
+                )
+            }
+            lastPersistedAnchor = null
+            if (updated.activeConfig.host.isNotBlank()) {
+                loadCurrentPath()
+            }
+        }
+    }
+
     fun loadCurrentPath() {
         val snapshot = _state.value
         if (snapshot.config.host.isBlank()) {

@@ -113,14 +113,29 @@ class TvBrowseFragmentLayoutTest {
 
     @Test
     fun `connection manager actions keep edit create and switch order`() {
-        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(hasEditableConnection = true)
-        assertEquals(listOf("编辑当前连接", "新建连接", "切换连接"), labels)
+        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(
+            hasEditableConnection = true,
+            hasSavedActiveConnection = true,
+        )
+        assertEquals(listOf("编辑当前连接", "删除当前连接", "新建连接", "切换连接"), labels)
     }
 
     @Test
     fun `connection manager actions omit edit when no editable connection`() {
-        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(hasEditableConnection = false)
+        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(
+            hasEditableConnection = false,
+            hasSavedActiveConnection = false,
+        )
         assertEquals(listOf("新建连接", "切换连接"), labels)
+    }
+
+    @Test
+    fun `connection manager actions omit delete when current connection is not saved`() {
+        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(
+            hasEditableConnection = true,
+            hasSavedActiveConnection = false,
+        )
+        assertEquals(listOf("编辑当前连接", "新建连接", "切换连接"), labels)
     }
 
     @Test

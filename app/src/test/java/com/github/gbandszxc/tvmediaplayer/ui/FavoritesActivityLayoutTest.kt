@@ -93,6 +93,29 @@ class FavoritesActivityLayoutTest {
     }
 
     @Test
+    fun `playlist detail only shows delete playlist button for custom playlists`() {
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase(FavoritesDbHelper.DB_NAME)
+        val repository = FavoritesRepository(context)
+        repository.createPlaylist("夜跑")
+
+        val activity = Robolectric.buildActivity(FavoritesActivity::class.java)
+            .create()
+            .start()
+            .resume()
+            .get()
+
+        val grid = activity.findViewById<android.widget.GridLayout>(R.id.grid_playlists)
+        val deletePlaylistButton = activity.findViewById<Button>(R.id.btn_favorites_delete_playlist)
+
+        grid.getChildAt(1).performClick()
+        assertEquals(android.view.View.GONE, deletePlaylistButton.visibility)
+
+        grid.getChildAt(2).performClick()
+        assertEquals(android.view.View.VISIBLE, deletePlaylistButton.visibility)
+    }
+
+    @Test
     fun `buildFavoritesPlaylistChoices returns create new item after playlists`() {
         val choices = FavoritesActivity.buildFavoritesPlaylistChoicesForTest(
             playlists = listOf(

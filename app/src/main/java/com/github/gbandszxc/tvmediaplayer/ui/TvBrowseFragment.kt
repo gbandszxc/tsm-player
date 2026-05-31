@@ -37,6 +37,7 @@ import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.github.gbandszxc.tvmediaplayer.playback.SmbMediaItemFactory
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ConfirmModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormModalSpec
@@ -661,8 +662,10 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun showConnectionManagerDialog() {
-        val hasEditable = viewModel.state.value.config.host.isNotBlank()
-        val configDesc = configText(viewModel.state.value.config)
+        val state = viewModel.state.value
+        val hasEditable = state.config.host.isNotBlank()
+        val hasSavedActiveConnection = state.activeConnectionId != null
+        val configDesc = configText(state.config)
         modalCoordinator.showActionModal(
             ActionModalSpec(
                 sectionLabel = "SMB",
@@ -671,6 +674,11 @@ class TvBrowseFragment : Fragment() {
                 actions = listOfNotNull(
                     if (hasEditable) {
                         ModalAction("编辑当前连接", isPrimary = true) { showConfigDialog(false) }
+                    } else null,
+                    if (hasSavedActiveConnection) {
+                        ModalAction(getString(R.string.smb_delete_current_connection), isDanger = true) {
+                            showDeleteCurrentConnectionConfirm()
+                        }
                     } else null,
                     ModalAction("新建连接") { showConfigDialog(true) },
                     ModalAction("切换连接") { showSwitchDialog() },
@@ -768,9 +776,13 @@ class TvBrowseFragment : Fragment() {
          * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
          */
         @VisibleForTesting
-        internal fun buildConnectionManagerActionLabelsForTest(hasEditableConnection: Boolean): List<String> {
+        internal fun buildConnectionManagerActionLabelsForTest(
+            hasEditableConnection: Boolean,
+            hasSavedActiveConnection: Boolean,
+        ): List<String> {
             return listOfNotNull(
                 if (hasEditableConnection) "编辑当前连接" else null,
+                if (hasSavedActiveConnection) "删除当前连接" else null,
                 "新建连接",
                 "切换连接",
             )
@@ -799,5 +811,21 @@ class TvBrowseFragment : Fragment() {
 
     fun handlePlaybackLocateTarget(target: PlaybackLocationResolver.Target) {
         viewModel.locateToPlaybackDirectory(target)
+    }
+
+    private fun showDeleteCurrentConnectionConfirm() {
+        modalCoordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = "SMB",
+                title = getString(R.string.smb_delete_connection_confirm_title),
+                message = getString(R.string.smb_delete_connection_confirm_message),
+                confirmAction = ModalAction(
+                    getString(R.string.modal_default_delete),
+                    isDanger = true,
+                    onClick = { viewModel.deleteActiveConnection() },
+                ),
+                cancelAction = ModalAction(getString(R.string.modal_default_cancel)),
+            )
+        )
     }
 }

@@ -169,6 +169,16 @@ class FavoritesRepository(context: Context) {
         return true
     }
 
+    fun deletePlaylist(playlistId: String): Boolean {
+        if (playlistId == DEFAULT_PLAYLIST_ID) return false
+        val deleted = dbHelper.writableDatabase.delete(
+            "playlists",
+            "id = ?",
+            arrayOf(playlistId)
+        )
+        return deleted > 0
+    }
+
     private fun updatePlaylistTimestamp(db: SQLiteDatabase, playlistId: String) {
         val values = ContentValues().apply {
             put("updated_at", System.currentTimeMillis())

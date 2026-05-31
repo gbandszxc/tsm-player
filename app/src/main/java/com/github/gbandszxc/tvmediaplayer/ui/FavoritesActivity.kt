@@ -73,6 +73,7 @@ class FavoritesActivity : BaseActivity() {
 
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: Button
+    private lateinit var btnDeletePlaylist: Button
     private lateinit var scrollPlaylists: ScrollView
     private lateinit var gridPlaylists: GridLayout
     private lateinit var scrollTracks: ScrollView
@@ -126,6 +127,7 @@ class FavoritesActivity : BaseActivity() {
     private fun bindViews() {
         tvTitle = findViewById(R.id.tv_favorites_title)
         btnBack = findViewById(R.id.btn_favorites_back)
+        btnDeletePlaylist = findViewById(R.id.btn_favorites_delete_playlist)
         scrollPlaylists = findViewById(R.id.scroll_playlists)
         gridPlaylists = findViewById(R.id.grid_playlists)
         scrollTracks = findViewById(R.id.scroll_tracks)
@@ -139,6 +141,9 @@ class FavoritesActivity : BaseActivity() {
             } else {
                 finish()
             }
+        }
+        btnDeletePlaylist.setOnClickListener {
+            currentPlaylist?.let(::confirmDeletePlaylist)
         }
     }
 
@@ -163,6 +168,7 @@ class FavoritesActivity : BaseActivity() {
         currentTracks = emptyList()
         activeFavoritePlaybackMediaIds = emptySet()
         tvTitle.text = getString(R.string.favorites_title)
+        updateDeletePlaylistButton(null)
         scrollPlaylists.visibility = View.VISIBLE
         scrollTracks.visibility = View.GONE
         gridPlaylists.removeAllViews()
@@ -181,9 +187,16 @@ class FavoritesActivity : BaseActivity() {
         currentTracks = repository.getTracks(playlist.id)
         activeFavoritePlaybackMediaIds = emptySet()
         tvTitle.text = playlist.name
+        updateDeletePlaylistButton(playlist)
         scrollPlaylists.visibility = View.GONE
         scrollTracks.visibility = View.VISIBLE
         renderTracks(playlist, currentTracks)
+    }
+
+    private fun updateDeletePlaylistButton(playlist: FavoritePlaylist?) {
+        val showDelete = playlist != null && !playlist.isDefault
+        btnDeletePlaylist.visibility = if (showDelete) View.VISIBLE else View.GONE
+        btnDeletePlaylist.isEnabled = showDelete
     }
 
     private fun renderTracks(playlist: FavoritePlaylist, tracks: List<FavoriteTrack>) {
@@ -347,9 +360,7 @@ class FavoritesActivity : BaseActivity() {
             iconResId = R.drawable.ic_delete,
             marginStartPx = dimenPx(R.dimen.ui_space_lg),
         ) {
-            repository.removeTrack(playlist.id, track)
-            Toast.makeText(this@FavoritesActivity, R.string.favorites_removed_track, Toast.LENGTH_SHORT).show()
-            showTracks(playlist)
+            confirmRemoveTrack(playlist, track)
         }
 
     private fun createTrackActionButton(
@@ -460,6 +471,50 @@ class FavoritesActivity : BaseActivity() {
                     getString(R.string.favorites_invalid_track_keep),
                     onClick = { invalidDialogTrackId = null },
                 ),
+            )
+        )
+    }
+
+    private fun confirmRemoveTrack(playlist: FavoritePlaylist, track: FavoriteTrack) {
+        modalCoordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = getString(R.string.favorites_title),
+                title = getString(R.string.favorites_remove_track_confirm_title),
+                message = getString(R.string.favorites_remove_track_confirm_message),
+                confirmAction = ModalAction(
+                    getString(R.string.favorites_remove),
+                    isDanger = true,
+                    onClick = {
+                        repository.removeTrack(playlist.id, track)
+                        Toast.makeText(this@FavoritesActivity, R.string.favorites_removed_track, Toast.LENGTH_SHORT).show()
+                        if (currentPlaylist?.id == playlist.id) {
+                            showTracks(playlist)
+                        }
+                    },
+                ),
+                cancelAction = ModalAction(getString(R.string.favorites_dialog_cancel)),
+            )
+        )
+    }
+
+    private fun confirmDeletePlaylist(playlist: FavoritePlaylist) {
+        if (playlist.isDefault) return
+        modalCoordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = getString(R.string.favorites_title),
+                title = getString(R.string.favorites_delete_playlist_confirm_title),
+                message = getString(R.string.favorites_delete_playlist_confirm_message),
+                confirmAction = ModalAction(
+                    getString(R.string.modal_default_delete),
+                    isDanger = true,
+                    onClick = {
+                        if (repository.deletePlaylist(playlist.id)) {
+                            Toast.makeText(this@FavoritesActivity, R.string.favorites_deleted_playlist, Toast.LENGTH_SHORT).show()
+                            showPlaylistGrid()
+                        }
+                    },
+                ),
+                cancelAction = ModalAction(getString(R.string.favorites_dialog_cancel)),
             )
         )
     }

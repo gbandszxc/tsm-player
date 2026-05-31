@@ -38,7 +38,13 @@
     <string name="favorites_track_count">%d 首</string>
     <string name="favorites_play">播放</string>
     <string name="favorites_remove">移除</string>
+    <string name="favorites_delete_playlist">删除播放列表</string>
     <string name="favorites_removed_track">已从收藏中移除</string>
+    <string name="favorites_remove_track_confirm_title">确认移除这首歌曲？</string>
+    <string name="favorites_remove_track_confirm_message">只会移除当前播放列表中的收藏记录，不会删除 SMB 原文件。</string>
+    <string name="favorites_deleted_playlist">已删除播放列表</string>
+    <string name="favorites_delete_playlist_confirm_title">确认删除播放列表？</string>
+    <string name="favorites_delete_playlist_confirm_message">会移除该播放列表及其中歌曲的收藏记录，不会删除 SMB 原文件。</string>
     <string name="favorites_invalid_track_title">歌曲已失效，是否移除？</string>
     <string name="favorites_invalid_track_message">只会移除收藏记录，不会删除 SMB 原文件。</string>
     <string name="favorites_invalid_track_remove">移除</string>
@@ -57,4 +63,8 @@
     <string name="smb_connection_manager">连接管理</string>
     <string name="smb_switch_connection">切换 SMB 连接</string>
     <string name="smb_config_title">SMB 连接配置</string>
+    <string name="smb_delete_current_connection">删除当前连接</string>
+    <string name="smb_delete_connection_confirm_title">确认删除当前连接？</string>
+    <string name="smb_delete_connection_confirm_message">会删除当前保存的 SMB 连接配置，并切换到其它已保存连接或未配置状态。</string>
+    <string name="smb_deleted_connection">已删除当前连接</string>
 </resources>
