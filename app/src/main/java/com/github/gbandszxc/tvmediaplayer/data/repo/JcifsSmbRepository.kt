@@ -69,15 +69,25 @@ class JcifsSmbRepository : SmbRepository {
         if (name.isBlank()) return null
 
         val fullPath = combinePath(currentPath, name)
+        val lastModifiedAt = runCatching { file.lastModified() }.getOrNull()
+
         return if (file.isDirectory) {
-            SmbEntry(name = name, fullPath = fullPath, isDirectory = true)
+            SmbEntry(
+                name = name,
+                fullPath = fullPath,
+                isDirectory = true,
+                sizeBytes = null,
+                lastModifiedAt = lastModifiedAt,
+            )
         } else {
             if (!isAudioFile(name)) return null
             SmbEntry(
                 name = name,
                 fullPath = fullPath,
                 isDirectory = false,
-                streamUri = file.canonicalPath
+                streamUri = file.canonicalPath,
+                sizeBytes = runCatching { file.length() }.getOrNull(),
+                lastModifiedAt = lastModifiedAt,
             )
         }
     }
