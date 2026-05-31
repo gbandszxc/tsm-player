@@ -1,6 +1,5 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
-import android.app.AlertDialog
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Color
@@ -12,14 +11,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.CheckBox
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.annotation.VisibleForTesting
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -38,6 +36,15 @@ import com.github.gbandszxc.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.github.gbandszxc.tvmediaplayer.playback.SmbMediaItemFactory
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ListModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalListRow
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalFormValidators
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +61,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     private val mediaItemFactory by lazy { SmbMediaItemFactory() }
+    private val modalCoordinator by lazy { TsmModalCoordinator(requireActivity()) }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private val fastLocateConfirmGuard = FastLocateConfirmGuard()
@@ -653,124 +661,89 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun showConnectionManagerDialog() {
-        AlertDialog.Builder(requireContext())
-            .setTitle("连接管理")
-            .setMessage("请选择操作")
-            .setPositiveButton("编辑当前连接") { _, _ -> showConfigDialog(false) }
-            .setNeutralButton("新建连接") { _, _ -> showConfigDialog(true) }
-            .setNegativeButton("切换连接") { _, _ -> showSwitchDialog() }
-            .show()
+        val hasEditable = viewModel.state.value.config.host.isNotBlank()
+        val configDesc = configText(viewModel.state.value.config)
+        modalCoordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "SMB",
+                title = getString(R.string.smb_connection_manager),
+                message = "当前连接：$configDesc",
+                actions = listOfNotNull(
+                    if (hasEditable) {
+                        ModalAction("编辑当前连接", isPrimary = true) { showConfigDialog(false) }
+                    } else null,
+                    ModalAction("新建连接") { showConfigDialog(true) },
+                    ModalAction("切换连接") { showSwitchDialog() },
+                ),
+            )
+        )
     }
 
     private fun showSwitchDialog() {
         val saved = viewModel.state.value.savedConnections
         if (saved.isEmpty()) {
-            Toast.makeText(requireContext(), "还没有已保存连接，请先保存一个连接", Toast.LENGTH_SHORT).show()
+            showConfigDialog(true)
             return
         }
 
-        val labels = saved.map { "${it.name}（${it.config.host}）" }.toTypedArray()
-        AlertDialog.Builder(requireContext())
-            .setTitle("切换 SMB 连接")
-            .setItems(labels) { _, which ->
-                viewModel.switchConnection(saved[which].id)
-            }
-            .setNegativeButton("取消", null)
-            .show()
+        modalCoordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "SMB",
+                title = getString(R.string.smb_switch_connection),
+                rows = saved.map { conn ->
+                    ModalListRow(
+                        key = conn.id,
+                        label = "${conn.name}（${conn.config.host}）",
+                        onClick = { viewModel.switchConnection(conn.id) },
+                    )
+                },
+            )
+        )
     }
 
     private fun showConfigDialog(saveAsNewDefault: Boolean) {
         val current = viewModel.state.value.config
-        val context = requireContext()
+        val activeName = viewModel.state.value.savedConnections
+            .firstOrNull { it.id == viewModel.state.value.activeConnectionId }
+            ?.name.orEmpty()
 
-        val nameInput = EditText(context).apply {
-            hint = "连接名称，例如 客厅 NAS"
-            typeface = AppFonts.regular(context)
-            val active = viewModel.state.value.savedConnections
-                .firstOrNull { it.id == viewModel.state.value.activeConnectionId }
-            setText(active?.name.orEmpty())
-        }
-        val hostInput = EditText(context).apply {
-            hint = "SMB 服务器地址，例如 192.168.0.10"
-            typeface = AppFonts.regular(context)
-            setText(current.host)
-        }
-        val shareInput = EditText(context).apply {
-            hint = "共享名（可留空，留空显示所有共享）"
-            typeface = AppFonts.regular(context)
-            setText(current.share)
-        }
-        val pathInput = EditText(context).apply {
-            hint = "子路径（可留空）"
-            typeface = AppFonts.regular(context)
-            setText(current.path)
-        }
-        val userInput = EditText(context).apply {
-            hint = "用户名（访客可留空）"
-            typeface = AppFonts.regular(context)
-            setText(current.username)
-        }
-        val passInput = EditText(context).apply {
-            hint = "密码（访客可留空）"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            typeface = AppFonts.regular(context)
-            setText(current.password)
-        }
-        val guestCheck = CheckBox(context).apply {
-            text = "访客 / 匿名"
-            typeface = AppFonts.regular(context)
-            isChecked = current.guest
-        }
-        val smb1Check = CheckBox(context).apply {
-            text = "启用 SMB1 兼容（默认关闭）"
-            typeface = AppFonts.regular(context)
-            isChecked = current.smb1Enabled
-        }
-        val saveAsNewCheck = CheckBox(context).apply {
-            text = "另存为新连接"
-            typeface = AppFonts.regular(context)
-            isChecked = saveAsNewDefault
-        }
+        val fields = buildConfigFormFields(current, activeName, saveAsNewDefault)
 
-        val container = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(36, 20, 36, 20)
-            addView(nameInput)
-            addView(hostInput)
-            addView(shareInput)
-            addView(pathInput)
-            addView(userInput)
-            addView(passInput)
-            addView(guestCheck)
-            addView(smb1Check)
-            addView(saveAsNewCheck)
-        }
+        val dialog = modalCoordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "SMB",
+                title = getString(R.string.smb_config_title),
+                fields = fields,
+                primaryAction = ModalAction("保存并连接", isPrimary = true),
+                secondaryAction = ModalAction("取消"),
+            )
+        )
 
-        val scrollView = ScrollView(context).apply {
-            addView(container)
-        }
-
-        AlertDialog.Builder(context)
-            .setTitle("SMB 连接配置")
-            .setView(scrollView)
-            .setNegativeButton("取消", null)
-            .setPositiveButton("保存并连接") { _, _ ->
-                val config = SmbConfig(
-                    host = hostInput.text.toString().trim(),
-                    share = shareInput.text.toString().trim(),
-                    path = pathInput.text.toString().trim(),
-                    username = userInput.text.toString().trim(),
-                    password = passInput.text.toString(),
-                    guest = guestCheck.isChecked,
-                    smb1Enabled = smb1Check.isChecked
-                )
-                viewModel.saveConfig(
-                    config = config,
-                    name = nameInput.text.toString().trim(),
-                    saveAsNew = saveAsNewCheck.isChecked
-                )
+        modalCoordinator.bindFormPrimaryAction(
+            dialog,
+            "name", "host", "share", "path", "username", "password", "guest", "smb1", "saveAsNew",
+        ) { values ->
+            val hostError = TsmModalFormValidators.validateSmbHost(values.getValue("host"))
+            if (hostError != null) {
+                modalCoordinator.updateFieldError(dialog, "host", hostError)
+                return@bindFormPrimaryAction false
             }
-            .show()
+            val config = SmbConfig(
+                host = values.getValue("host").trim(),
+                share = values.getValue("share").trim(),
+                path = values.getValue("path").trim(),
+                username = values.getValue("username").trim(),
+                password = values.getValue("password"),
+                guest = values.getValue("guest").toBooleanStrictOrNull() ?: false,
+                smb1Enabled = values.getValue("smb1").toBooleanStrictOrNull() ?: false,
+            )
+            viewModel.saveConfig(
+                config = config,
+                name = values.getValue("name").trim(),
+                saveAsNew = values.getValue("saveAsNew").toBooleanStrictOrNull() ?: false,
+            )
+            true
+        }
     }
 
     private fun configText(config: SmbConfig): String {
@@ -782,6 +755,46 @@ class TvBrowseFragment : Fragment() {
             if (path.isBlank()) "smb://${config.host}/${config.share}"
             else "smb://${config.host}/${config.share}/$path"
         }
+    }
+
+    private fun buildConfigFormFields(
+        config: SmbConfig,
+        connectionName: String,
+        saveAsNewDefault: Boolean,
+    ): List<FormFieldSpec> = buildConfigFormFieldsForTest(config, connectionName, saveAsNewDefault)
+
+    companion object {
+        /**
+         * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
+         */
+        @VisibleForTesting
+        internal fun buildConnectionManagerActionLabelsForTest(hasEditableConnection: Boolean): List<String> {
+            return listOfNotNull(
+                if (hasEditableConnection) "编辑当前连接" else null,
+                "新建连接",
+                "切换连接",
+            )
+        }
+
+        /**
+         * 构建 SMB 配置表单字段列表，用于测试验证字段构成。
+         */
+        @VisibleForTesting
+        internal fun buildConfigFormFieldsForTest(
+            config: SmbConfig,
+            connectionName: String,
+            saveAsNewDefault: Boolean,
+        ): List<FormFieldSpec> = listOf(
+            FormFieldSpec("name", "连接名称", connectionName, "可留空", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("host", "SMB 服务器", config.host, "", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("share", "共享名", config.share, "可留空", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("path", "子路径", config.path, "可留空", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("username", "用户名", config.username, "可留空", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("password", "密码", config.password, "可留空", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD),
+            FormFieldSpec("guest", "访客 / 匿名", config.guest.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+            FormFieldSpec("smb1", "启用 SMB1 兼容（默认关闭）", config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+            FormFieldSpec("saveAsNew", "另存为新连接", saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+        )
     }
 
     fun handlePlaybackLocateTarget(target: PlaybackLocationResolver.Target) {

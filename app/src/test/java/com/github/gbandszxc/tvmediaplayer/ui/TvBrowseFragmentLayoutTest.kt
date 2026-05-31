@@ -9,6 +9,10 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -103,5 +107,60 @@ class TvBrowseFragmentLayoutTest {
     private fun leftOf(left: View, right: View): Boolean {
         val parent = left.parent as ViewParent
         return parent === right.parent && (parent as ViewGroup).indexOfChild(left) < parent.indexOfChild(right)
+    }
+
+    // --- SMB Modal 数据构造测试 ---
+
+    @Test
+    fun `connection manager actions keep edit create and switch order`() {
+        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(hasEditableConnection = true)
+        assertEquals(listOf("编辑当前连接", "新建连接", "切换连接"), labels)
+    }
+
+    @Test
+    fun `connection manager actions omit edit when no editable connection`() {
+        val labels = TvBrowseFragment.buildConnectionManagerActionLabelsForTest(hasEditableConnection = false)
+        assertEquals(listOf("新建连接", "切换连接"), labels)
+    }
+
+    @Test
+    fun `smb config form fields include checkboxes for guest smb1 and saveAsNew`() {
+        val fields = TvBrowseFragment.buildConfigFormFieldsForTest(
+            config = SmbConfig(host = "192.168.0.10", share = "music", path = "", username = "", password = "", guest = true, smb1Enabled = false),
+            connectionName = "客厅 NAS",
+            saveAsNewDefault = false,
+        )
+        val fieldKeys = fields.map { it.key }
+        assertTrue("form should contain 'name' field", fieldKeys.contains("name"))
+        assertTrue("form should contain 'host' field", fieldKeys.contains("host"))
+        assertTrue("form should contain 'guest' checkbox", fieldKeys.contains("guest"))
+        assertTrue("form should contain 'smb1' checkbox", fieldKeys.contains("smb1"))
+        assertTrue("form should contain 'saveAsNew' checkbox", fieldKeys.contains("saveAsNew"))
+
+        val guestField = fields.first { it.key == "guest" }
+        assertEquals(FormFieldSpecType.CHECKBOX, guestField.type)
+        assertEquals("true", guestField.initialValue)
+
+        val smb1Field = fields.first { it.key == "smb1" }
+        assertEquals(FormFieldSpecType.CHECKBOX, smb1Field.type)
+        assertEquals("false", smb1Field.initialValue)
+
+        val hostField = fields.first { it.key == "host" }
+        assertEquals(FormFieldSpecType.TEXT, hostField.type)
+        assertEquals("192.168.0.10", hostField.initialValue)
+    }
+
+    @Test
+    fun `smb config form prefill connection name from saved connection`() {
+        val fields = TvBrowseFragment.buildConfigFormFieldsForTest(
+            config = SmbConfig.Empty,
+            connectionName = "客厅 NAS",
+            saveAsNewDefault = true,
+        )
+        val nameField = fields.first { it.key == "name" }
+        assertEquals("客厅 NAS", nameField.initialValue)
+
+        val saveAsNewField = fields.first { it.key == "saveAsNew" }
+        assertEquals("true", saveAsNewField.initialValue)
     }
 }

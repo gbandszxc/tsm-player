@@ -36,13 +36,25 @@ data class ActionModalSpec(
 )
 
 /**
+ * 表单字段的渲染类型。
+ *
+ * [TEXT]    — 文本输入框（EditText）
+ * [CHECKBOX] — 复选框（CheckBox），[FormFieldSpec.initialValue] 为 "true" / "false"
+ */
+enum class FormFieldSpecType {
+    TEXT,
+    CHECKBOX,
+}
+
+/**
  * 表单字段规格。
  *
  * @param key         字段唯一标识，用于运行时查找和校验错误回写
  * @param label       字段标签
- * @param initialValue 初始值
- * @param hint        输入提示
- * @param inputType   Android [android.text.InputType] 常量
+ * @param initialValue 初始值；CHECKBOX 类型使用 "true" / "false"
+ * @param hint        输入提示（仅 TEXT 类型使用）
+ * @param inputType   Android [android.text.InputType] 常量（仅 TEXT 类型使用）
+ * @param type        字段渲染类型，默认 [FormFieldSpecType.TEXT]
  * @param error       初始校验错误，null 表示无错误
  */
 data class FormFieldSpec(
@@ -51,6 +63,7 @@ data class FormFieldSpec(
     val initialValue: String,
     val hint: String,
     val inputType: Int,
+    val type: FormFieldSpecType = FormFieldSpecType.TEXT,
     val error: String? = null,
 )
 

@@ -5,6 +5,7 @@ import android.app.Dialog
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -121,25 +122,41 @@ class TsmModalCoordinator(
         val fieldContainer = content.findViewById<LinearLayout>(R.id.container_modal_content)
         fieldContainer.removeAllViews()
         spec.fields.forEach { field ->
-            val fieldView = LayoutInflater.from(host)
-                .inflate(R.layout.item_tsm_modal_form_field, fieldContainer, false)
-            // 用 field.key 作为 tag，便于后续查找
-            fieldView.tag = field.key
+            when (field.type) {
+                FormFieldSpecType.TEXT -> {
+                    val fieldView = LayoutInflater.from(host)
+                        .inflate(R.layout.item_tsm_modal_form_field, fieldContainer, false)
+                    // 用 field.key 作为 tag，便于后续查找
+                    fieldView.tag = field.key
 
-            fieldView.findViewById<TextView>(R.id.tv_modal_field_label).text = field.label
-            val inputView = fieldView.findViewById<EditText>(R.id.et_modal_field_input)
-            inputView.setText(field.initialValue)
-            inputView.hint = field.hint
-            inputView.inputType = field.inputType
+                    fieldView.findViewById<TextView>(R.id.tv_modal_field_label).text = field.label
+                    val inputView = fieldView.findViewById<EditText>(R.id.et_modal_field_input)
+                    inputView.setText(field.initialValue)
+                    inputView.hint = field.hint
+                    inputView.inputType = field.inputType
 
-            // 初始错误
-            val errorView = fieldView.findViewById<TextView>(R.id.tv_modal_field_error)
-            if (field.error != null) {
-                errorView.text = field.error
-                errorView.visibility = View.VISIBLE
+                    // 初始错误
+                    val errorView = fieldView.findViewById<TextView>(R.id.tv_modal_field_error)
+                    if (field.error != null) {
+                        errorView.text = field.error
+                        errorView.visibility = View.VISIBLE
+                    }
+
+                    fieldContainer.addView(fieldView)
+                }
+                FormFieldSpecType.CHECKBOX -> {
+                    val checkBox = CheckBox(host).apply {
+                        tag = field.key
+                        text = field.label
+                        isChecked = field.initialValue.toBooleanStrictOrNull() ?: false
+                        typeface = null
+                        setTextColor(ContextCompat.getColor(host, R.color.ui_text_primary))
+                        textSize = 14f
+                        setPadding(0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm), 0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm))
+                    }
+                    fieldContainer.addView(checkBox)
+                }
             }
-
-            fieldContainer.addView(fieldView)
         }
 
         // 操作按钮
@@ -410,9 +427,21 @@ class TsmModalCoordinator(
             val values = mutableMapOf<String, String>()
             for (key in fieldKeys) {
                 val field = contentView.findViewWithTag<View>(key)
+                // 优先尝试 EditText（TEXT 字段）
                 val input = field?.findViewById<EditText>(R.id.et_modal_field_input)
                 if (input != null) {
                     values[key] = input.text.toString()
+                    continue
+                }
+                // 其次尝试 CheckBox（CHECKBOX 字段）——field 本身就是 CheckBox
+                val checkBox = field as? CheckBox
+                if (checkBox != null) {
+                    values[key] = checkBox.isChecked.toString()
+                    continue
+                }
+                // 兼容：field 是 item_tsm_modal_form_field 容器中嵌套的 CheckBox
+                if (field is CheckBox) {
+                    values[key] = field.isChecked.toString()
                 }
             }
             if (onSubmit(values)) {
