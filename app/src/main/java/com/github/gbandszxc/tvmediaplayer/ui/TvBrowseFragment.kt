@@ -1,11 +1,13 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
 import android.text.InputType
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -90,6 +92,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnNowPlaying: Button
     private lateinit var filesContainer: LinearLayout
     private var sortDropdownView: View? = null
+    private var sortOutsideDismissView: View? = null
     private val browsePlayerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (
@@ -303,8 +306,18 @@ class TvBrowseFragment : Fragment() {
             tvTag.text = if (entry.isDirectory) "📁" else "🎵"
             tvTag.background = null
             tvName.text = entry.name
-            tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
-            tvModified.text = formatModifiedTime(entry.lastModifiedAt)
+            val isParentEntry = hasParentEntry && displayIndex == 0
+            if (isParentEntry) {
+                tvSize.visibility = View.GONE
+                tvModified.visibility = View.GONE
+            } else {
+                tvSize.visibility = View.VISIBLE
+                tvModified.visibility = View.VISIBLE
+                tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
+                tvModified.text = formatModifiedTime(entry.lastModifiedAt)
+                tvSize.gravity = metadataColumnGravity(tvSize.text)
+                tvModified.gravity = metadataColumnGravity(tvModified.text)
+            }
 
             itemView.setOnClickListener {
                 if (viewModel.state.value.isFastLocateMode) return@setOnClickListener
@@ -807,6 +820,11 @@ class TvBrowseFragment : Fragment() {
         return formatter.format(java.util.Date(timestamp))
     }
 
+    @VisibleForTesting
+    internal fun metadataColumnGravity(text: CharSequence): Int {
+        return if (text.toString() == "--") Gravity.CENTER else Gravity.END
+    }
+
     companion object {
         /**
          * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
@@ -855,11 +873,34 @@ class TvBrowseFragment : Fragment() {
             formatter.timeZone = timeZone
             return formatter.format(java.util.Date(timestamp))
         }
+
+        @VisibleForTesting
+        fun metadataColumnGravityForTest(text: String): Int =
+            TvBrowseFragment().metadataColumnGravity(text)
+
+        @VisibleForTesting
+        fun createSortOutsideDismissOverlayForTest(context: Context): View =
+            createSortOutsideDismissOverlay(context)
+
+        private fun createSortOutsideDismissOverlay(context: Context): View {
+            return View(context).apply {
+                layoutParams = FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                )
+                isClickable = true
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
+        }
     }
 
     private fun showSortDropdown() {
         if (sortDropdownView != null) return
         val rootView = view as? FrameLayout ?: return
+        val outsideDismissView = createSortOutsideDismissOverlay(requireContext()).apply {
+            setOnClickListener { dismissSortDropdown() }
+        }
         val dropdown = layoutInflater.inflate(R.layout.view_browser_sort_dropdown, rootView, false)
         val optionsContainer = dropdown.findViewById<LinearLayout>(R.id.container_sort_options)
         renderSortOptions(optionsContainer)
@@ -873,7 +914,9 @@ class TvBrowseFragment : Fragment() {
         params.leftMargin = location[0]
         params.topMargin = location[1] + btnSort.height
 
+        rootView.addView(outsideDismissView)
         rootView.addView(dropdown, params)
+        sortOutsideDismissView = outsideDismissView
         sortDropdownView = dropdown
 
         optionsContainer.getChildAt(0)?.requestFocus()
@@ -896,7 +939,11 @@ class TvBrowseFragment : Fragment() {
         sortDropdownView?.let { dropdown ->
             (dropdown.parent as? ViewGroup)?.removeView(dropdown)
         }
+        sortOutsideDismissView?.let { outsideDismissView ->
+            (outsideDismissView.parent as? ViewGroup)?.removeView(outsideDismissView)
+        }
         sortDropdownView = null
+        sortOutsideDismissView = null
         if (::btnSort.isInitialized) {
             btnSort.requestFocus()
         }

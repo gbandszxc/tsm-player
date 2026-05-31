@@ -1,5 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.view.Gravity
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -21,5 +22,12 @@ class BrowserSortFormattingTest {
                 java.util.TimeZone.getTimeZone("Asia/Shanghai")
             )
         )
+    }
+
+    @Test
+    fun `metadata placeholder is centered while real metadata is right aligned`() {
+        assertEquals(Gravity.CENTER, TvBrowseFragment.metadataColumnGravityForTest("--"))
+        assertEquals(Gravity.END, TvBrowseFragment.metadataColumnGravityForTest("42.8 MB"))
+        assertEquals(Gravity.END, TvBrowseFragment.metadataColumnGravityForTest("2026-05-31 08:09:10"))
     }
 }

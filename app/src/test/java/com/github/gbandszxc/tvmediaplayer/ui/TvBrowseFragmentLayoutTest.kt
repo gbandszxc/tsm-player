@@ -214,4 +214,16 @@ class TvBrowseFragmentLayoutTest {
         assertNotNull(dropdown.findViewById<View>(R.id.container_sort_options))
         assertNull(dropdown.findViewById<View?>(R.id.container_modal_content))
     }
+
+    @Test
+    fun `browser sort outside touch overlay covers screen without taking remote focus`() {
+        val context = RuntimeEnvironment.getApplication()
+        val overlay = TvBrowseFragment.createSortOutsideDismissOverlayForTest(context)
+        val params = overlay.layoutParams as FrameLayout.LayoutParams
+
+        assertEquals(FrameLayout.LayoutParams.MATCH_PARENT, params.width)
+        assertEquals(FrameLayout.LayoutParams.MATCH_PARENT, params.height)
+        assertTrue(overlay.isClickable)
+        assertFalse(overlay.isFocusable)
+    }
 }
