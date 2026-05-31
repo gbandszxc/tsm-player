@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TV Modal 统一 shell 布局：遮罩层 + 居中面板 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/ui_bg_overlay"
+    android:clickable="true"
+    android:focusable="false">
+
+    <LinearLayout
+        android:id="@+id/panel_modal"
+        android:layout_width="@dimen/ui_modal_panel_width"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_modal_panel"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/ui_space_5xl"
+        android:paddingEnd="@dimen/ui_space_5xl"
+        android:paddingTop="@dimen/ui_space_4xl"
+        android:paddingBottom="@dimen/ui_space_4xl">
+
+        <!-- 分区标签（左上角弱信息） -->
+        <TextView
+            android:id="@+id/tv_modal_section"
+            style="@style/TsmTextSecondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/ui_text_caption"
+            android:layout_marginBottom="@dimen/ui_space_sm" />
+
+        <!-- 标题 -->
+        <TextView
+            android:id="@+id/tv_modal_title"
+            style="@style/TsmTextSectionTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/ui_space_md" />
+
+        <!-- 说明消息（可为空，由 Coordinator 控制 visibility） -->
+        <TextView
+            android:id="@+id/tv_modal_message"
+            style="@style/TsmTextSecondary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/ui_text_body"
+            android:layout_marginBottom="@dimen/ui_space_3xl" />
+
+        <!-- 操作按钮容器（纵向排列） -->
+        <LinearLayout
+            android:id="@+id/container_modal_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+    </LinearLayout>
+
+</FrameLayout>

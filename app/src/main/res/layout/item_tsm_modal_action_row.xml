@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 操作按钮行：默认暗色，遥控器聚焦高亮 -->
+<Button xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/TsmModalActionButton" />

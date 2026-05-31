@@ -24,6 +24,9 @@
     <dimen name="ui_playlist_tile_height">148dp</dimen>
     <dimen name="ui_favorites_delete_button_width">56dp</dimen>
 
+    <!-- Modal 专用尺寸 -->
+    <dimen name="ui_modal_panel_width">720dp</dimen>
+
     <dimen name="ui_space_xs">4dp</dimen>
     <dimen name="ui_space_sm">6dp</dimen>
     <dimen name="ui_space_md">8dp</dimen>

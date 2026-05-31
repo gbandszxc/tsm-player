@@ -58,4 +58,27 @@
         <item name="android:background">@drawable/bg_button_red</item>
         <item name="android:textColor">@color/ui_text_on_accent</item>
     </style>
+
+    <!-- Modal 操作按钮：默认暗色，与 TsmButtonDark 视觉一致但保留独立命名 -->
+    <style name="TsmModalActionButton" parent="TsmButtonDark">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">@dimen/ui_space_sm</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- Modal 列表选择行 -->
+    <style name="TsmModalListRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:background">@drawable/bg_modal_surface</item>
+        <item name="android:paddingStart">@dimen/ui_space_3xl</item>
+        <item name="android:paddingEnd">@dimen/ui_space_3xl</item>
+        <item name="android:paddingTop">@dimen/ui_space_md</item>
+        <item name="android:paddingBottom">@dimen/ui_space_md</item>
+        <item name="android:focusable">true</item>
+        <item name="android:clickable">true</item>
+    </style>
 </resources>

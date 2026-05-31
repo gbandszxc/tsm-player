@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 内容行默认背景：圆角条目背景 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/ui_radius_item" />
+    <solid android:color="@color/ui_bg_item" />
+</shape>

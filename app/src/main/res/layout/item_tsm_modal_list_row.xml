@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 列表选择行：默认暗色行，聚焦高亮 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="44dp"
+    android:background="@drawable/bg_modal_list_row"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="@dimen/ui_space_3xl"
+    android:paddingEnd="@dimen/ui_space_3xl"
+    android:paddingTop="@dimen/ui_space_md"
+    android:paddingBottom="@dimen/ui_space_md"
+    android:focusable="true"
+    android:clickable="true">
+
+    <!-- 行内容文本 -->
+    <TextView
+        android:id="@+id/tv_modal_row_label"
+        style="@style/TsmTextPrimary"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="@dimen/ui_text_body_large" />
+
+</LinearLayout>

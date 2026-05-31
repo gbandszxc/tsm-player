@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 内容行焦点态背景：亮色填充 + 高亮描边 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/ui_radius_item" />
+    <solid android:color="@color/ui_bg_item_focus" />
+    <stroke
+        android:width="@dimen/ui_stroke_focus"
+        android:color="@color/ui_text_primary" />
+</shape>

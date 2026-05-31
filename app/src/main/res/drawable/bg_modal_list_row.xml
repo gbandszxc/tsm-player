@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modal 列表行背景选择器：默认暗色，聚焦时切换为高亮态 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/bg_modal_surface_focused" />
+    <item android:drawable="@drawable/bg_modal_surface" />
+</selector>
