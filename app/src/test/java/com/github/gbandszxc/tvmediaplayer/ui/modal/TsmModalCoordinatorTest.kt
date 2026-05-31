@@ -3,6 +3,7 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.text.InputType
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
@@ -379,6 +380,76 @@ class TsmModalCoordinatorTest {
         assertEquals("conn_1", firstRow.tag)
         val firstLabel = firstRow.findViewById<TextView>(R.id.tv_modal_row_label)
         assertEquals("客厅 NAS", firstLabel.text.toString())
+    }
+
+    @Test
+    fun `modal list row keeps vertical gap between adjacent choices`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val parent = LinearLayout(activity)
+        val row = LayoutInflater.from(activity)
+            .inflate(R.layout.item_tsm_modal_list_row, parent, false)
+
+        val params = row.layoutParams as LinearLayout.LayoutParams
+        val expectedMargin = activity.resources.getDimensionPixelSize(R.dimen.ui_space_sm)
+
+        assertEquals("List rows should keep a bottom gap for TV readability", expectedMargin, params.bottomMargin)
+    }
+
+    @Test
+    fun `modal action row and list row use the same vertical rhythm`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val parent = LinearLayout(activity)
+        val actionRow = LayoutInflater.from(activity)
+            .inflate(R.layout.item_tsm_modal_action_row, parent, false)
+        val listRow = LayoutInflater.from(activity)
+            .inflate(R.layout.item_tsm_modal_list_row, parent, false)
+
+        val actionParams = actionRow.layoutParams as LinearLayout.LayoutParams
+        val listParams = listRow.layoutParams as LinearLayout.LayoutParams
+
+        assertEquals(
+            "Action and list rows should keep the same TV list spacing",
+            actionParams.bottomMargin,
+            listParams.bottomMargin,
+        )
+    }
+
+    @Test
+    fun `updateListRows replaces visible choices in opened list modal`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "收藏",
+                title = "选择播放列表",
+                rows = listOf(
+                    ModalListRow(key = "default", label = "收藏夹"),
+                    ModalListRow(key = "create_new", label = "+ 新建播放列表"),
+                ),
+            )
+        )
+
+        coordinator.updateListRows(
+            dialog = dialog,
+            rows = listOf(
+                ModalListRow(key = "default", label = "收藏夹（已在该播放列表中）", enabled = false),
+                ModalListRow(key = "new_playlist", label = "新列表（已在该播放列表中）", enabled = false),
+                ModalListRow(key = "create_new", label = "+ 新建播放列表"),
+            ),
+            focusRowKey = "create_new",
+        )
+
+        val container = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        assertEquals(3, container?.childCount)
+        assertEquals("新列表（已在该播放列表中）", container?.getChildAt(1)?.findViewById<TextView>(R.id.tv_modal_row_label)?.text?.toString())
+        assertTrue(container?.getChildAt(2)?.isFocused == true)
     }
 
     // ─── ProgressModal 测试 ───

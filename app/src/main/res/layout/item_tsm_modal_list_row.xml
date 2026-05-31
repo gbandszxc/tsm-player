@@ -4,6 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:minHeight="44dp"
+    android:layout_marginBottom="@dimen/ui_space_sm"
     android:background="@drawable/bg_modal_list_row"
     android:orientation="horizontal"
     android:gravity="center_vertical"

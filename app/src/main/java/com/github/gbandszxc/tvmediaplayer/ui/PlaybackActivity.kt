@@ -1,6 +1,7 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
@@ -804,29 +805,73 @@ class PlaybackActivity : BaseActivity() {
             showPlaybackToast(getString(R.string.favorites_empty_current_track))
             return
         }
-        val playlists = favoritesRepository.getPlaylists()
-        val choices = buildFavoritePlaylistChoices(playlists, track)
+        lateinit var listDialog: Dialog
+        fun refreshDialog() {
+            refreshFavoritePlaylistDialog(listDialog, track)
+        }
+        fun rebuildRows(): List<ModalListRow> = buildFavoritePlaylistRows(
+            track = track,
+            onPlaylistChanged = ::refreshDialog,
+            onCreateNew = {
+                showCreatePlaylistAndAddDialog(track) {
+                    refreshDialog()
+                }
+            }
+        )
 
-        modalCoordinator.showListModal(
+        listDialog = modalCoordinator.showListModal(
             ListModalSpec(
                 sectionLabel = getString(R.string.favorites_title),
                 title = getString(R.string.favorites_select_playlist),
                 message = "将当前歌曲加入以下播放列表",
-                rows = choices.map { choice ->
-                    ModalListRow(
-                        key = choice.playlistId ?: "create_new",
-                        label = choice.label,
-                        enabled = !choice.disabled,
-                        onClick = {
-                            when {
-                                choice.createNew -> showCreatePlaylistAndAddDialog(track)
-                                choice.disabled -> showPlaybackToast(getString(R.string.favorites_already_in_playlist))
-                                choice.playlistId != null -> addTrackToPlaylist(choice.playlistId, track)
-                            }
-                        },
-                    )
+                rows = rebuildRows(),
+            )
+        )
+    }
+
+    private fun buildFavoritePlaylistRows(
+        track: FavoriteTrack,
+        onPlaylistChanged: () -> Unit,
+        onCreateNew: () -> Unit,
+    ): List<ModalListRow> {
+        val playlists = favoritesRepository.getPlaylists()
+        val choices = buildFavoritePlaylistChoices(playlists, track)
+        return choices.map { choice ->
+            ModalListRow(
+                key = choice.playlistId ?: "create_new",
+                label = choice.label,
+                enabled = !choice.disabled,
+                onClick = {
+                    when {
+                        choice.createNew -> onCreateNew()
+                        choice.disabled -> showPlaybackToast(getString(R.string.favorites_already_in_playlist))
+                        choice.playlistId != null -> {
+                            addTrackToPlaylist(choice.playlistId, track)
+                            onPlaylistChanged()
+                        }
+                    }
                 },
             )
+        }
+    }
+
+    private fun refreshFavoritePlaylistDialog(
+        dialog: Dialog,
+        track: FavoriteTrack,
+    ) {
+        modalCoordinator.updateListRows(
+            dialog = dialog,
+            rows = buildFavoritePlaylistRows(
+                track = track,
+                onPlaylistChanged = {
+                    refreshFavoritePlaylistDialog(dialog, track)
+                },
+                onCreateNew = {
+                    showCreatePlaylistAndAddDialog(track) {
+                        refreshFavoritePlaylistDialog(dialog, track)
+                    }
+                },
+            ),
         )
     }
 
@@ -875,7 +920,10 @@ class PlaybackActivity : BaseActivity() {
         refreshFavoriteState()
     }
 
-    private fun showCreatePlaylistAndAddDialog(track: FavoriteTrack) {
+    private fun showCreatePlaylistAndAddDialog(
+        track: FavoriteTrack,
+        onPlaylistCreated: (() -> Unit)? = null,
+    ) {
         val existing = favoritesRepository.getPlaylists().map { it.name }.toSet()
         val dialog = modalCoordinator.showFormModal(
             FormModalSpec(
@@ -907,6 +955,7 @@ class PlaybackActivity : BaseActivity() {
                 return@bindFormPrimaryAction false
             }
             addTrackToPlaylist(playlistId, track)
+            onPlaylistCreated?.invoke()
             true
         }
     }

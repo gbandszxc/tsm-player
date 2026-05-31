@@ -304,22 +304,7 @@ class TsmModalCoordinator(
 
         // 列表行
         val listContainer = content.findViewById<LinearLayout>(R.id.container_modal_content)
-        listContainer.removeAllViews()
-        spec.rows.forEach { row ->
-            val rowView = LayoutInflater.from(host)
-                .inflate(R.layout.item_tsm_modal_list_row, listContainer, false)
-            rowView.tag = row.key
-
-            val labelView = rowView.findViewById<TextView>(R.id.tv_modal_row_label)
-            labelView.text = row.label
-            rowView.isEnabled = row.enabled
-
-            rowView.setOnClickListener {
-                if (row.enabled) row.onClick?.invoke()
-            }
-
-            listContainer.addView(rowView)
-        }
+        renderListRows(listContainer, spec.rows)
 
         // 隐藏 actions 容器
         content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
@@ -333,12 +318,23 @@ class TsmModalCoordinator(
                 lastFocusedView?.requestFocus()
             }
             show()
-            // 聚焦第一个可用的行
-            val firstEnabled = spec.rows.indexOfFirst { it.enabled }
-            if (firstEnabled >= 0) {
-                listContainer.getChildAt(firstEnabled)?.requestFocus()
-            }
+            requestListFocus(listContainer, spec.rows)
         }
+    }
+
+    /**
+     * 更新已打开列表 Modal 的行内容。
+     * 用于播放页等场景在弹窗保持打开时即时刷新列表状态。
+     */
+    fun updateListRows(
+        dialog: Dialog,
+        rows: List<ModalListRow>,
+        focusRowKey: String? = null,
+    ) {
+        val contentView = dialog.findViewById<View>(android.R.id.content) ?: return
+        val listContainer = contentView.findViewById<LinearLayout>(R.id.container_modal_content) ?: return
+        renderListRows(listContainer, rows)
+        requestListFocus(listContainer, rows, focusRowKey)
     }
 
     /**
@@ -502,6 +498,41 @@ class TsmModalCoordinator(
             params.marginEnd = host.resources.getDimensionPixelSize(R.dimen.ui_space_md)
             layoutParams = params
         }
+    }
+
+    private fun renderListRows(
+        container: LinearLayout,
+        rows: List<ModalListRow>,
+    ) {
+        container.removeAllViews()
+        rows.forEach { row ->
+            val rowView = LayoutInflater.from(host)
+                .inflate(R.layout.item_tsm_modal_list_row, container, false)
+            rowView.tag = row.key
+
+            val labelView = rowView.findViewById<TextView>(R.id.tv_modal_row_label)
+            labelView.text = row.label
+            rowView.isEnabled = row.enabled
+
+            rowView.setOnClickListener {
+                if (row.enabled) row.onClick?.invoke()
+            }
+
+            container.addView(rowView)
+        }
+    }
+
+    private fun requestListFocus(
+        container: LinearLayout,
+        rows: List<ModalListRow>,
+        focusRowKey: String? = null,
+    ) {
+        val preferredIndex = focusRowKey
+            ?.let { key -> rows.indexOfFirst { it.key == key && it.enabled } }
+            ?.takeIf { it >= 0 }
+        val firstEnabled = rows.indexOfFirst { it.enabled }.takeIf { it >= 0 }
+        val targetIndex = preferredIndex ?: firstEnabled ?: return
+        container.getChildAt(targetIndex)?.requestFocus()
     }
 
     /**
