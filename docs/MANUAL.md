@@ -49,12 +49,13 @@ tsm-player/
 │     │     ├─ TvBrowseFragment.kt
 │     │     ├─ TvBrowserViewModel.kt
 │     │     ├─ SleepTimerActivity.kt
-│     │     └─ AppFonts.kt
+│     │     ├─ AppFonts.kt
+│     │     └─ modal/{TsmModalCoordinator.kt,TsmModalModels.kt,TsmModalBuilders.kt,TsmModalFormValidators.kt}
 │     └─ res/
-│        ├─ layout/activity_main.xml
+│        ├─ layout/{activity_main.xml,dialog_tsm_modal_shell.xml,item_tsm_modal_list_row.xml,item_tsm_modal_action_row.xml,item_tsm_modal_form_field.xml,view_tsm_modal_progress.xml}
 │        ├─ font/{misans_regular.ttf,misans_medium.ttf,misans_bold.ttf,misans_family.xml}
 │        ├─ values/{strings.xml,colors.xml,themes.xml}
-│        ├─ drawable/{ic_launcher_foreground.xml,tv_banner.xml}
+│        ├─ drawable/{ic_launcher_foreground.xml,tv_banner.xml,bg_modal_panel.xml,bg_modal_surface.xml,bg_modal_surface_focused.xml,bg_modal_list_row.xml,bg_modal_input.xml}
 │        └─ mipmap-anydpi-v26/{ic_launcher.xml,ic_launcher_round.xml}
 └─ docs/archive/
    ├─ plan/plan.md
@@ -168,6 +169,7 @@ Release:
 14. 收藏页播放队列按所选歌曲的 SMB 来源配置过滤，避免不同 NAS、账号、共享路径或 SMB 版本混入同一 Media3 队列；无来源配置的歌曲只与同样无来源配置的歌曲组队。收藏数据库使用 `track_key` 将 `mediaId` 与来源配置组合成稳定身份，因此同一路径来自不同来源时可同时收藏，默认收藏状态和移除操作不会串源。失效歌曲移除提示改为保守触发：空播放地址可直接提示，播放器错误仅在明确文件/路径不存在时提示移除；空播放列表焦点回落到右上角返回按钮。
 15. SMB 浏览页“收藏 / 顺序播放 / 随机播放”三个紧凑按钮的未聚焦态已改为和播放页底部按钮栏一致的布局实现：按钮保持固定矩形宽度，折叠态图标通过 overlay 视觉居中，不再出现 icon 相对矩形向左偏的问题。
 16. `FavoritesActivity` 的歌曲列表已补齐遥控器可达操作：整行继续支持触摸点击直接播放；遥控器模式下右侧新增绿色播放按钮，并将播放/删除都收敛为方形 icon-only 按钮，初始焦点会落在首行播放按钮。收藏页歌单 tile 封面也补齐了多级回显链路：先取最近有 `artworkUri` 的歌曲封面，再尝试播放页封面缓存、内嵌封面与同目录封面图，最后才回退到 `default_cover`。
+17. 项目已新增统一的 TV 自绘 modal 体系，替换播放页、收藏页、SMB 连接管理、设置输入框、睡眠权限提示、更新确认框与下载进度框中的原生 `AlertDialog` / `ProgressDialog`。新 modal 统一采用深色面板、蓝色焦点和项目按钮语义，Back 关闭后会恢复打开前焦点。公共组件位于 `ui/modal` 包下，包含 `TsmModalCoordinator`（协调器）、`TsmModalModels`（数据模型）、`TsmModalBuilders`（便捷构建）和 `TsmModalFormValidators`（表单校验）。
 
 ## 10. 浏览导航增强
 
