@@ -999,10 +999,10 @@ class PlaybackActivity : BaseActivity() {
             return
         }
         if (PlaybackLyricsCache.isMissCached(applicationContext, key)) {
-            tvLyricContent.text = "暂无歌词"
+            showLyricsStatus("暂无歌词")
             return
         }
-        tvLyricContent.text = "歌词加载中..."
+        showLyricsStatus("歌词加载中...")
 
         val config = PlaybackConfigStore.current()
         if (config.host.isBlank()) {
@@ -1050,7 +1050,7 @@ class PlaybackActivity : BaseActivity() {
                 if (outcome.isMiss) {
                     PlaybackLyricsCache.markMissAsync(applicationContext, key)
                 }
-                tvLyricContent.text = "暂无歌词"
+                showLyricsStatus("暂无歌词")
                 return@launch
             }
             PlaybackLyricsCache.put(key, outcome.timeline)
@@ -1060,15 +1060,24 @@ class PlaybackActivity : BaseActivity() {
         }
     }
 
+    private fun showLyricsStatus(text: String) {
+        tvLyricContent.text = text
+        resetLyricsScrollToTop()
+    }
+
+    private fun resetLyricsScrollToTop() {
+        scrollLyrics.post { scrollLyrics.scrollTo(0, 0) }
+    }
+
     private fun renderLyrics(positionMs: Long) {
         val timeline = currentTimeline ?: return
         if (timeline.lines.isEmpty()) return
 
-        val currentIndex = LrcParser.findCurrentLineIndex(
-            lines = timeline.lines,
-            playbackPositionMs = positionMs,
-            offsetMs = timeline.offsetMs
+        val renderPlan = LyricsViewRenderer.buildRenderPlan(
+            timeline = timeline,
+            positionMs = positionMs,
         )
+        val currentIndex = renderPlan.currentLineIndex
 
         val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
         val highlightColor = ContextCompat.getColor(this, android.R.color.white)
@@ -1090,7 +1099,9 @@ class PlaybackActivity : BaseActivity() {
         }
         tvLyricContent.text = builder
 
-        if (highlightStart >= 0) {
+        if (renderPlan.shouldResetScrollToTop) {
+            resetLyricsScrollToTop()
+        } else if (highlightStart >= 0) {
             scrollLyrics.post {
                 val layout = tvLyricContent.layout ?: return@post
                 val lineIndex = layout.getLineForOffset(highlightStart)
