@@ -15,7 +15,9 @@ object FavoriteTrackQueueFilter {
         val safeSelectedIndex = selectedIndex.coerceIn(0, tracks.lastIndex)
         val selectedTrack = tracks[safeSelectedIndex]
         val selectedSource = selectedTrack.sourceConfig
-        val filteredTracks = tracks.filter { it.sourceConfig == selectedSource }
+        val filteredTracks = tracks.filter {
+            it.sourceConfig == selectedSource && it.streamUri.isNotBlank()
+        }
         val filteredStartIndex = filteredTracks.indexOfFirst { it.id == selectedTrack.id }
             .takeIf { it >= 0 }
             ?: 0

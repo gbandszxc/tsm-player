@@ -42,12 +42,49 @@ class FavoriteTrackQueueFilterTest {
         assertNull(result.sourceConfig)
     }
 
-    private fun sampleTrack(mediaId: String, sourceConfig: SmbConfig?): FavoriteTrack =
+    @Test
+    fun `same source queue excludes blank stream uri tracks and keeps selected track index`() {
+        val source = SmbConfig("nas", "Music", "", "user", "password", false, false)
+        val tracks = listOf(
+            sampleTrack("blank-before", source, streamUri = " "),
+            sampleTrack("playable-before", source),
+            sampleTrack("selected", source),
+            sampleTrack("blank-after", source, streamUri = ""),
+            sampleTrack("playable-after", source),
+        )
+
+        val result = FavoriteTrackQueueFilter.sameSourceQueue(tracks, selectedIndex = 2)
+
+        assertEquals(listOf("playable-before", "selected", "playable-after"), result.tracks.map { it.mediaId })
+        assertEquals(1, result.startIndex)
+        assertEquals(source, result.sourceConfig)
+    }
+
+    @Test
+    fun `same source queue clamps out of range selected index before filtering blank stream uris`() {
+        val source = SmbConfig("nas", "Music", "", "user", "password", false, false)
+        val tracks = listOf(
+            sampleTrack("first", source),
+            sampleTrack("blank-last", source, streamUri = " "),
+        )
+
+        val result = FavoriteTrackQueueFilter.sameSourceQueue(tracks, selectedIndex = 99)
+
+        assertEquals(listOf("first"), result.tracks.map { it.mediaId })
+        assertEquals(0, result.startIndex)
+        assertEquals(source, result.sourceConfig)
+    }
+
+    private fun sampleTrack(
+        mediaId: String,
+        sourceConfig: SmbConfig?,
+        streamUri: String = "smb://example/$mediaId",
+    ): FavoriteTrack =
         FavoriteTrack(
             id = "id-$mediaId",
             playlistId = FavoritesRepository.DEFAULT_PLAYLIST_ID,
             mediaId = mediaId,
-            streamUri = "smb://example/$mediaId",
+            streamUri = streamUri,
             title = mediaId,
             artist = null,
             album = null,

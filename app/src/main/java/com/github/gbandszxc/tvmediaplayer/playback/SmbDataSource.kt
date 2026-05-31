@@ -84,7 +84,7 @@ class SmbDataSource(
             transferStarted(dataSpec)
             return bytesRemaining
         } catch (e: Exception) {
-            throw IOException("Failed to open SMB stream: $uri", e)
+            throw SmbDataSourceOpenFailurePolicy.wrapOpenFailure(uri.toString(), e)
         }
     }
 

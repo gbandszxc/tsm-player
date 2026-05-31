@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.favorites
 
 import androidx.media3.common.PlaybackException
+import com.github.gbandszxc.tvmediaplayer.playback.SmbDataSourceOpenFailurePolicy
 import java.io.FileNotFoundException
 
 object FavoriteInvalidTrackPolicy {
@@ -8,7 +9,9 @@ object FavoriteInvalidTrackPolicy {
 
     fun shouldOfferRemoval(error: PlaybackException): Boolean {
         if (error.errorCode == PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND) return true
-        return error.causeChain().any { it is FileNotFoundException }
+        return error.causeChain().any {
+            it is FileNotFoundException || SmbDataSourceOpenFailurePolicy.isFileNotFound(it)
+        }
     }
 
     private fun Throwable.causeChain(): Sequence<Throwable> = sequence {

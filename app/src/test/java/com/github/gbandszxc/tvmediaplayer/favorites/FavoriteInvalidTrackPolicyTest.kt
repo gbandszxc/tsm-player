@@ -43,4 +43,32 @@ class FavoriteInvalidTrackPolicyTest {
 
         assertTrue(FavoriteInvalidTrackPolicy.shouldOfferRemoval(error))
     }
+
+    @Test
+    fun `SMB object not found playback error offers removal`() {
+        val error = PlaybackException(
+            "smb open failed",
+            IOException("Failed to open SMB stream", IOException("STATUS_OBJECT_NAME_NOT_FOUND")),
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+        )
+
+        assertTrue(FavoriteInvalidTrackPolicy.shouldOfferRemoval(error))
+    }
+
+    @Test
+    fun `SMB auth and network playback errors do not offer removal`() {
+        val authError = PlaybackException(
+            "smb auth failed",
+            IOException("Failed to open SMB stream", IOException("Access is denied.")),
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+        )
+        val networkError = PlaybackException(
+            "smb network failed",
+            IOException("Failed to open SMB stream", IOException("Failed to connect to server")),
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+        )
+
+        assertFalse(FavoriteInvalidTrackPolicy.shouldOfferRemoval(authError))
+        assertFalse(FavoriteInvalidTrackPolicy.shouldOfferRemoval(networkError))
+    }
 }
