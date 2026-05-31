@@ -7,8 +7,10 @@ import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.github.gbandszxc.tvmediaplayer.R
@@ -198,6 +200,10 @@ class TsmModalCoordinator(
             fieldContainer.getChildAt(0)
                 ?.findViewById<EditText>(R.id.et_modal_field_input)
                 ?.requestFocus()
+
+            content.post {
+                applyFormPanelLayout(content)
+            }
         }
     }
 
@@ -498,7 +504,73 @@ class TsmModalCoordinator(
         }
     }
 
+    /**
+     * 在表单内容过高时，将中间 ScrollView 切换为占满剩余空间的滚动区，
+     * 保证标题区和底部操作区始终留在屏幕可视范围内。
+     */
+    private fun applyFormPanelLayout(root: View) {
+        val viewportHeight = root.height.takeIf { it > 0 } ?: root.measuredHeight
+        if (viewportHeight <= 0) return
+
+        val panel = root.findViewById<LinearLayout>(R.id.panel_modal) ?: return
+        val scrollView = root.findViewById<ScrollView>(R.id.scroll_modal_content) ?: return
+        val panelMeasuredHeight = panel.measuredHeight.takeIf { it > 0 } ?: panel.height
+        if (panelMeasuredHeight <= 0) return
+
+        val verticalMargin = host.resources.getDimensionPixelSize(R.dimen.ui_space_screen)
+        val layout = computeFormPanelLayout(panelMeasuredHeight, viewportHeight, verticalMargin)
+
+        (panel.layoutParams as? FrameLayout.LayoutParams)?.let { panelParams ->
+            panelParams.height = layout.panelHeight
+            panel.layoutParams = panelParams
+        }
+
+        (scrollView.layoutParams as? LinearLayout.LayoutParams)?.let { scrollParams ->
+            scrollParams.height = layout.scrollHeight
+            scrollParams.weight = layout.scrollWeight
+            scrollView.layoutParams = scrollParams
+        }
+        scrollView.isFillViewport = layout.shouldConstrainPanel
+    }
+
     companion object {
+        internal data class FormPanelLayout(
+            val shouldConstrainPanel: Boolean,
+            val panelHeight: Int,
+            val scrollHeight: Int,
+            val scrollWeight: Float,
+        )
+
+        private fun computeFormPanelLayout(
+            panelMeasuredHeight: Int,
+            viewportHeight: Int,
+            verticalMargin: Int,
+        ): FormPanelLayout {
+            val maxPanelHeight = (viewportHeight - verticalMargin * 2).coerceAtLeast(0)
+            return if (panelMeasuredHeight > maxPanelHeight && maxPanelHeight > 0) {
+                FormPanelLayout(
+                    shouldConstrainPanel = true,
+                    panelHeight = maxPanelHeight,
+                    scrollHeight = 0,
+                    scrollWeight = 1f,
+                )
+            } else {
+                FormPanelLayout(
+                    shouldConstrainPanel = false,
+                    panelHeight = LinearLayout.LayoutParams.WRAP_CONTENT,
+                    scrollHeight = LinearLayout.LayoutParams.WRAP_CONTENT,
+                    scrollWeight = 0f,
+                )
+            }
+        }
+
+        @JvmStatic
+        internal fun computeFormPanelLayoutForTest(
+            panelMeasuredHeight: Int,
+            viewportHeight: Int,
+            verticalMargin: Int,
+        ): FormPanelLayout = computeFormPanelLayout(panelMeasuredHeight, viewportHeight, verticalMargin)
+
         internal const val TAG_ACTION_PRIMARY = "action_primary"
         internal const val TAG_ACTION_SECONDARY = "action_secondary"
     }

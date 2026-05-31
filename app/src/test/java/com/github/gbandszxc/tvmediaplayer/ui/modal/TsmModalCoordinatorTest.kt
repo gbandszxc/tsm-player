@@ -8,6 +8,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertEquals
@@ -167,6 +168,80 @@ class TsmModalCoordinatorTest {
         assertEquals(View.VISIBLE, actionsContainer?.visibility)
         // 主按钮 + 取消按钮
         assertEquals("Should have 2 action buttons", 2, actionsContainer?.childCount)
+    }
+
+    @Test
+    fun `computeFormPanelLayout constrains tall content into scroll area`() {
+        val result = TsmModalCoordinator.computeFormPanelLayoutForTest(
+            panelMeasuredHeight = 980,
+            viewportHeight = 720,
+            verticalMargin = 28,
+        )
+
+        assertTrue("Tall form panel should be constrained", result.shouldConstrainPanel)
+        assertEquals("Panel height should keep top and bottom safe margins", 664, result.panelHeight)
+        assertEquals("Scroll area should switch to weighted fill mode", 1f, result.scrollWeight)
+    }
+
+    @Test
+    fun `computeFormPanelLayout keeps wrap content when content already fits`() {
+        val result = TsmModalCoordinator.computeFormPanelLayoutForTest(
+            panelMeasuredHeight = 520,
+            viewportHeight = 720,
+            verticalMargin = 28,
+        )
+
+        assertFalse("Fitting form panel should keep natural height", result.shouldConstrainPanel)
+        assertEquals("Unconstrained panel should stay wrap content", LinearLayout.LayoutParams.WRAP_CONTENT, result.panelHeight)
+        assertEquals("Scroll area should not consume extra space", 0f, result.scrollWeight)
+    }
+
+    @Test
+    @Config(sdk = [28], qualifiers = "w640dp-h360dp-xhdpi")
+    fun `showFormModal keeps footer visible on 720p tv layout`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "SMB",
+                title = "SMB 连接配置",
+                fields = listOf(
+                    FormFieldSpec("name", "连接名称", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("host", "SMB 服务器", "", "", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("share", "共享名", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("path", "子路径", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("username", "用户名", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("password", "密码", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("guest", "访客 / 匿名", "false", "", 0, FormFieldSpecType.CHECKBOX),
+                    FormFieldSpec("smb1", "启用 SMB1 兼容（默认关闭）", "false", "", 0, FormFieldSpecType.CHECKBOX),
+                    FormFieldSpec("saveAsNew", "另存为新连接", "true", "", 0, FormFieldSpecType.CHECKBOX),
+                ),
+                primaryAction = ModalAction("保存并连接", isPrimary = true),
+                secondaryAction = ModalAction("取消"),
+            )
+        )
+
+        val contentView = dialog.findViewById<View>(android.R.id.content)
+        val width = activity.resources.displayMetrics.widthPixels
+        val height = activity.resources.displayMetrics.heightPixels
+        contentView.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
+        )
+        contentView.layout(0, 0, width, height)
+
+        val scrollView = dialog.findViewById<ScrollView>(R.id.scroll_modal_content)
+        val actionsContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_actions)
+
+        assertNotNull(scrollView)
+        assertNotNull(actionsContainer)
+        assertTrue(
+            "Footer actions should stay visible within the dialog viewport",
+            actionsContainer!!.bottom <= contentView.height,
+        )
     }
 
     @Test
