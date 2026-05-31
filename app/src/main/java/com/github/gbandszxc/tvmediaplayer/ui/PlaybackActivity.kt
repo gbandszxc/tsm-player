@@ -43,6 +43,7 @@ import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
@@ -179,6 +180,7 @@ class PlaybackActivity : BaseActivity() {
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            if (!FavoriteInvalidTrackPolicy.shouldOfferRemoval(error)) return
             confirmRemoveInvalidFavoriteTrack()
         }
     }

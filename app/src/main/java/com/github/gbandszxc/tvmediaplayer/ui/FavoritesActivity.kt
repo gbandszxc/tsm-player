@@ -31,10 +31,11 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
-import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackMediaItems
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackQueueFilter
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
@@ -64,6 +65,12 @@ class FavoritesActivity : BaseActivity() {
             val controller = mediaController ?: return
             val playlist = currentPlaylist ?: return
             val track = currentTracks.getOrNull(controller.currentMediaItemIndex) ?: return
+            if (
+                !FavoriteInvalidTrackPolicy.isBlankStreamUriInvalid(track.streamUri) &&
+                !FavoriteInvalidTrackPolicy.shouldOfferRemoval(error)
+            ) {
+                return
+            }
             confirmRemoveInvalidTrack(playlist, track)
         }
     }
@@ -158,6 +165,7 @@ class FavoritesActivity : BaseActivity() {
         tracksContainer.removeAllViews()
         if (tracks.isEmpty()) {
             tracksContainer.addView(createEmptyTrackText())
+            FavoritesEmptyTrackFocus.requestFallbackFocus(tracks, btnBack)
             return
         }
 
@@ -338,19 +346,23 @@ class FavoritesActivity : BaseActivity() {
         }
 
         val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-        val config = tracks[safeIndex].sourceConfig
-            ?: tracks.firstNotNullOfOrNull { it.sourceConfig }
-            ?: SmbConfig.Empty
-        PlaybackConfigStore.update(config)
+        val selectedTrack = tracks[safeIndex]
+        if (FavoriteInvalidTrackPolicy.isBlankStreamUriInvalid(selectedTrack.streamUri)) {
+            confirmRemoveInvalidTrack(playlist, selectedTrack)
+            return
+        }
+
+        val queue = FavoriteTrackQueueFilter.sameSourceQueue(tracks, safeIndex)
+        queue.sourceConfig?.let { PlaybackConfigStore.update(it) }
         currentPlaylist = playlist
-        currentTracks = tracks
+        currentTracks = queue.tracks
 
         lifecycleScope.launch {
             runCatching {
-                val mediaItems = FavoriteTrackMediaItems.fromTracks(tracks)
+                val mediaItems = FavoriteTrackMediaItems.fromTracks(queue.tracks)
                 controller.repeatMode = Player.REPEAT_MODE_OFF
                 controller.setShuffleModeEnabled(false)
-                controller.setMediaItems(mediaItems, safeIndex, 0L)
+                controller.setMediaItems(mediaItems, queue.startIndex, 0L)
                 controller.prepare()
                 controller.play()
             }.onSuccess {
