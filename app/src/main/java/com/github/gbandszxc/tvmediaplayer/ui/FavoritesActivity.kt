@@ -32,6 +32,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaybackErrorTarget
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackMediaItems
@@ -51,6 +52,7 @@ class FavoritesActivity : BaseActivity() {
     private var mediaController: MediaController? = null
     private var currentPlaylist: FavoritePlaylist? = null
     private var currentTracks: List<FavoriteTrack> = emptyList()
+    private var activeFavoritePlaybackMediaIds: Set<String> = emptySet()
     private var invalidDialogTrackId: String? = null
 
     private lateinit var tvTitle: TextView
@@ -64,7 +66,12 @@ class FavoritesActivity : BaseActivity() {
         override fun onPlayerError(error: PlaybackException) {
             val controller = mediaController ?: return
             val playlist = currentPlaylist ?: return
-            val track = currentTracks.getOrNull(controller.currentMediaItemIndex) ?: return
+            val track = FavoritePlaybackErrorTarget.resolve(
+                currentTracks = currentTracks,
+                currentMediaItemIndex = controller.currentMediaItemIndex,
+                currentMediaId = controller.currentMediaItem?.mediaId,
+                activeMediaIds = activeFavoritePlaybackMediaIds,
+            ) ?: return
             if (
                 !FavoriteInvalidTrackPolicy.isBlankStreamUriInvalid(track.streamUri) &&
                 !FavoriteInvalidTrackPolicy.shouldOfferRemoval(error)
@@ -138,6 +145,7 @@ class FavoritesActivity : BaseActivity() {
     private fun showPlaylistGrid() {
         currentPlaylist = null
         currentTracks = emptyList()
+        activeFavoritePlaybackMediaIds = emptySet()
         tvTitle.text = getString(R.string.favorites_title)
         scrollPlaylists.visibility = View.VISIBLE
         scrollTracks.visibility = View.GONE
@@ -155,6 +163,7 @@ class FavoritesActivity : BaseActivity() {
     private fun showTracks(playlist: FavoritePlaylist) {
         currentPlaylist = playlist
         currentTracks = repository.getTracks(playlist.id)
+        activeFavoritePlaybackMediaIds = emptySet()
         tvTitle.text = playlist.name
         scrollPlaylists.visibility = View.GONE
         scrollTracks.visibility = View.VISIBLE
@@ -356,6 +365,7 @@ class FavoritesActivity : BaseActivity() {
         queue.sourceConfig?.let { PlaybackConfigStore.update(it) }
         currentPlaylist = playlist
         currentTracks = queue.tracks
+        activeFavoritePlaybackMediaIds = queue.tracks.map { it.mediaId }.toSet()
 
         lifecycleScope.launch {
             runCatching {

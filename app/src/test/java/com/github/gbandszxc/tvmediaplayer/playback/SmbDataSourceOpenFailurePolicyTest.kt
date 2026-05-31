@@ -28,5 +28,6 @@ class SmbDataSourceOpenFailurePolicyTest {
         assertFalse(SmbDataSourceOpenFailurePolicy.isFileNotFound(SocketTimeoutException("Read timed out")))
         assertFalse(SmbDataSourceOpenFailurePolicy.isFileNotFound(IOException("Failed to connect to server")))
         assertFalse(SmbDataSourceOpenFailurePolicy.isFileNotFound(IOException("The network name cannot be found.")))
+        assertFalse(SmbDataSourceOpenFailurePolicy.isFileNotFound(IOException("Network path not found.")))
     }
 }

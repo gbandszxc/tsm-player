@@ -25,7 +25,6 @@ object SmbDataSourceOpenFailurePolicy {
             "status_object_path_not_found",
             "object name not found",
             "object path not found",
-            "path not found",
             "file not found",
             "cannot find the file",
             "cannot find the path",
