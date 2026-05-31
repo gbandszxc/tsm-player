@@ -20,7 +20,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.ScrollView
@@ -28,6 +27,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
@@ -44,6 +44,7 @@ import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteInvalidTrackPolicy
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackIdentity
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
@@ -60,6 +61,14 @@ import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
 import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ConfirmModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.FormModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ListModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalListRow
+import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalFormValidators
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import jcifs.smb.SmbFile
@@ -107,6 +116,8 @@ class PlaybackActivity : BaseActivity() {
         val timeline: LrcTimeline?,
         val isMiss: Boolean,
     )
+
+    private val modalCoordinator by lazy { TsmModalCoordinator(this) }
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
@@ -793,7 +804,37 @@ class PlaybackActivity : BaseActivity() {
             showPlaybackToast(getString(R.string.favorites_empty_current_track))
             return
         }
-        val choices = favoritesRepository.getPlaylists().map { playlist ->
+        val playlists = favoritesRepository.getPlaylists()
+        val choices = buildFavoritePlaylistChoices(playlists, track)
+
+        modalCoordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = getString(R.string.favorites_title),
+                title = getString(R.string.favorites_select_playlist),
+                message = "将当前歌曲加入以下播放列表",
+                rows = choices.map { choice ->
+                    ModalListRow(
+                        key = choice.playlistId ?: "create_new",
+                        label = choice.label,
+                        enabled = !choice.disabled,
+                        onClick = {
+                            when {
+                                choice.createNew -> showCreatePlaylistAndAddDialog(track)
+                                choice.disabled -> showPlaybackToast(getString(R.string.favorites_already_in_playlist))
+                                choice.playlistId != null -> addTrackToPlaylist(choice.playlistId, track)
+                            }
+                        },
+                    )
+                },
+            )
+        )
+    }
+
+    private fun buildFavoritePlaylistChoices(
+        playlists: List<FavoritePlaylist>,
+        track: FavoriteTrack,
+    ): List<FavoritePlaylistChoice> {
+        return playlists.map { playlist ->
             val contains = favoritesRepository.containsTrack(playlist.id, track)
             FavoritePlaylistChoice(
                 playlistId = playlist.id,
@@ -806,25 +847,10 @@ class PlaybackActivity : BaseActivity() {
             )
         } + FavoritePlaylistChoice(
             playlistId = null,
-            label = getString(R.string.favorites_new_playlist),
+            label = "+ " + getString(R.string.favorites_new_playlist),
             disabled = false,
             createNew = true,
         )
-
-        val adapter = FavoritePlaylistChoiceAdapter(this, choices)
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.favorites_select_playlist))
-            .setAdapter(adapter) { _, which ->
-                val choice = choices[which]
-                when {
-                    choice.createNew -> showCreatePlaylistAndAddDialog(track)
-                    choice.disabled -> showPlaybackToast(getString(R.string.favorites_already_in_playlist))
-                    choice.playlistId != null -> addTrackToPlaylist(choice.playlistId, track)
-                }
-            }
-            .setNegativeButton(getString(R.string.favorites_dialog_cancel), null)
-            .show()
     }
 
     private fun addTrackToPlaylist(playlistId: String, track: FavoriteTrack) {
@@ -850,40 +876,39 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun showCreatePlaylistAndAddDialog(track: FavoriteTrack) {
-        val input = EditText(this).apply {
-            hint = getString(R.string.favorites_playlist_name_hint)
-            setSingleLine(true)
-        }
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.favorites_new_playlist))
-            .setView(input)
-            .setPositiveButton(getString(R.string.favorites_dialog_confirm), null)
-            .setNegativeButton(getString(R.string.favorites_dialog_cancel), null)
-            .create()
-            .apply {
-                setOnShowListener {
-                    getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                        val name = input.text?.toString().orEmpty().trim()
-                        if (name.isBlank()) {
-                            input.error = getString(R.string.favorites_playlist_name_empty)
-                            return@setOnClickListener
-                        }
-                        val exists = favoritesRepository.getPlaylists().any { it.name == name }
-                        if (exists) {
-                            input.error = getString(R.string.favorites_playlist_name_duplicate)
-                            return@setOnClickListener
-                        }
-                        val playlist = favoritesRepository.createPlaylist(name)
-                        if (playlist == null) {
-                            input.error = getString(R.string.favorites_playlist_name_duplicate)
-                            return@setOnClickListener
-                        }
-                        addTrackToPlaylist(playlist.id, track)
-                        dismiss()
-                    }
-                }
+        val existing = favoritesRepository.getPlaylists().map { it.name }.toSet()
+        val dialog = modalCoordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = getString(R.string.favorites_title),
+                title = getString(R.string.favorites_new_playlist),
+                fields = listOf(
+                    FormFieldSpec(
+                        key = "playlist_name",
+                        label = "名称",
+                        initialValue = "",
+                        hint = getString(R.string.favorites_playlist_name_hint),
+                        inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                            android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
+                    )
+                ),
+                primaryAction = ModalAction(getString(R.string.favorites_dialog_confirm), isPrimary = true),
+                secondaryAction = ModalAction(getString(R.string.favorites_dialog_cancel)),
+            )
+        )
+        modalCoordinator.bindFormPrimaryAction(dialog, "playlist_name") { values ->
+            val name = values.getValue("playlist_name")
+            val error = TsmModalFormValidators.validatePlaylistName(name, existing)
+            if (error != null) {
+                modalCoordinator.updateFieldError(dialog, "playlist_name", error)
+                return@bindFormPrimaryAction false
             }
-            .show()
+            val playlistId = favoritesRepository.createPlaylist(name.trim())?.id ?: run {
+                modalCoordinator.updateFieldError(dialog, "playlist_name", getString(R.string.favorites_playlist_name_duplicate))
+                return@bindFormPrimaryAction false
+            }
+            addTrackToPlaylist(playlistId, track)
+            true
+        }
     }
 
     private fun confirmRemoveInvalidFavoriteTrack() {
@@ -893,16 +918,26 @@ class PlaybackActivity : BaseActivity() {
         if (invalidFavoriteDialogTrackKey == trackKey) return
         invalidFavoriteDialogTrackKey = trackKey
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.favorites_invalid_track_title))
-            .setMessage(getString(R.string.favorites_invalid_track_message))
-            .setPositiveButton(getString(R.string.favorites_invalid_track_remove)) { _, _ ->
-                favoritesRepository.removeTrack(playlistId, track)
-                refreshFavoriteState()
-            }
-            .setNegativeButton(getString(R.string.favorites_invalid_track_keep), null)
-            .setOnDismissListener { invalidFavoriteDialogTrackKey = null }
-            .show()
+        modalCoordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = getString(R.string.favorites_title),
+                title = getString(R.string.favorites_invalid_track_title),
+                message = getString(R.string.favorites_invalid_track_message),
+                confirmAction = ModalAction(
+                    getString(R.string.favorites_invalid_track_remove),
+                    isDanger = true,
+                    onClick = {
+                        favoritesRepository.removeTrack(playlistId, track)
+                        refreshFavoriteState()
+                        invalidFavoriteDialogTrackKey = null
+                    },
+                ),
+                cancelAction = ModalAction(
+                    getString(R.string.favorites_invalid_track_keep),
+                    onClick = { invalidFavoriteDialogTrackKey = null },
+                ),
+            )
+        )
     }
 
     private fun startProgressTicker() {
@@ -1462,5 +1497,33 @@ class PlaybackActivity : BaseActivity() {
         const val PLAYER_PROGRESS_RENDER_HOLD_MS = 350L
         const val PLAYBACK_TOAST_DURATION_MS = 2_000L
         const val EXTRA_FAVORITES_PLAYLIST_ID = "extra_favorites_playlist_id"
+
+        /**
+         * 测试用途：根据播放列表列表和已包含集合构建选择项。
+         * 不依赖 Activity 实例，可在纯 JUnit 中调用。
+         */
+        @VisibleForTesting
+        internal fun buildFavoritePlaylistChoicesForTest(
+            playlists: List<FavoritePlaylist>,
+            containedPlaylists: Set<String>,
+        ): List<FavoritePlaylistChoice> {
+            return playlists.map { playlist ->
+                val contains = playlist.id in containedPlaylists
+                FavoritePlaylistChoice(
+                    playlistId = playlist.id,
+                    label = if (contains) {
+                        "${playlist.name}（已在播放列表中）"
+                    } else {
+                        playlist.name
+                    },
+                    disabled = contains,
+                )
+            } + FavoritePlaylistChoice(
+                playlistId = null,
+                label = "+ 新建播放列表",
+                disabled = false,
+                createNew = true,
+            )
+        }
     }
 }

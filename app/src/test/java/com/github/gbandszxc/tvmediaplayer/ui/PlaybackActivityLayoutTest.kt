@@ -56,4 +56,41 @@ class PlaybackActivityLayoutTest {
         assertFalse(adapter.isEnabled(0))
         assertTrue(adapter.isEnabled(1))
     }
+
+    @Test
+    fun `buildFavoritePlaylistChoices puts create new item after playlists`() {
+        val choices = PlaybackActivity.buildFavoritePlaylistChoicesForTest(
+            playlists = listOf(
+                com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist(
+                    id = "default",
+                    name = "收藏夹",
+                    isDefault = true,
+                    createdAt = 0L,
+                    trackCount = 12,
+                    coverArtworkUri = null,
+                    updatedAt = 1L,
+                ),
+                com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist(
+                    id = "night",
+                    name = "夜间播放",
+                    isDefault = false,
+                    createdAt = 0L,
+                    trackCount = 5,
+                    coverArtworkUri = null,
+                    updatedAt = 2L,
+                ),
+            ),
+            containedPlaylists = setOf("default"),
+        )
+
+        // "新建播放列表" 应该是最后一项
+        assertEquals("+ 新建播放列表", choices.last().label)
+        assertTrue(choices.last().createNew)
+        assertFalse(choices.last().disabled)
+
+        // 已包含的播放列表应该是 disabled
+        assertTrue(choices.first().disabled)
+        // 未包含的播放列表应该可用
+        assertFalse(choices[1].disabled)
+    }
 }

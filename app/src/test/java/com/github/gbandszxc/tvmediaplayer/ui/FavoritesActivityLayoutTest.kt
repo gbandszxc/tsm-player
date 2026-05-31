@@ -5,6 +5,7 @@ import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
@@ -13,6 +14,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -88,5 +90,42 @@ class FavoritesActivityLayoutTest {
         assertEquals("", deleteButton.text.toString())
         assertTrue(playButton.isFocusable)
         assertTrue(deleteButton.isFocusable)
+    }
+
+    @Test
+    fun `buildFavoritesPlaylistChoices returns create new item after playlists`() {
+        val choices = FavoritesActivity.buildFavoritesPlaylistChoicesForTest(
+            playlists = listOf(
+                FavoritePlaylist(
+                    id = "default",
+                    name = "收藏夹",
+                    isDefault = true,
+                    createdAt = 0L,
+                    trackCount = 12,
+                    coverArtworkUri = null,
+                    updatedAt = 1L,
+                ),
+                FavoritePlaylist(
+                    id = "night",
+                    name = "夜间播放",
+                    isDefault = false,
+                    createdAt = 0L,
+                    trackCount = 5,
+                    coverArtworkUri = null,
+                    updatedAt = 2L,
+                ),
+            ),
+            containedPlaylists = emptySet(),
+        )
+
+        // "新建播放列表" 应该是最后一项
+        assertEquals("+ 新建播放列表", choices.last().label)
+        assertTrue(choices.last().createNew)
+        assertFalse(choices.last().disabled)
+
+        // 两个播放列表都可用
+        assertEquals(2, choices.size - 1) // 减去最后的新建项
+        assertFalse(choices[0].disabled)
+        assertFalse(choices[1].disabled)
     }
 }
