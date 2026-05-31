@@ -45,12 +45,24 @@
             android:textSize="@dimen/ui_text_body"
             android:layout_marginBottom="@dimen/ui_space_3xl" />
 
-        <!-- 动态内容容器（纵向排列） -->
-        <LinearLayout
-            android:id="@+id/container_modal_content"
+        <!-- 动态内容容器（纵向排列，可滚动） -->
+        <ScrollView
+            android:id="@+id/scroll_modal_content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:maxHeight="@dimen/ui_modal_content_max_height"
+            android:fillViewport="false"
+            android:scrollbars="vertical"
+            android:fadingEdgeLength="@dimen/ui_space_lg"
+            android:requiresFadingEdge="vertical">
+
+            <LinearLayout
+                android:id="@+id/container_modal_content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </ScrollView>
 
         <!-- 操作按钮容器（横向排列） -->
         <LinearLayout

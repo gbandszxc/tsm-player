@@ -26,6 +26,7 @@
 
     <!-- Modal 专用尺寸 -->
     <dimen name="ui_modal_panel_width">720dp</dimen>
+    <dimen name="ui_modal_content_max_height">420dp</dimen>
 
     <dimen name="ui_space_xs">4dp</dimen>
     <dimen name="ui_space_sm">6dp</dimen>
