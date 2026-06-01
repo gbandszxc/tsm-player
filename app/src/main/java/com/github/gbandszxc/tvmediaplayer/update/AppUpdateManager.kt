@@ -16,6 +16,7 @@ import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -28,6 +29,7 @@ object AppUpdateManager {
         "$GITHUB_BASE_URL/gbandszxc/tsm-player/releases/latest"
     private const val EXPANDED_ASSETS_PATH = "/gbandszxc/tsm-player/releases/expanded_assets/"
     private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
+    private const val PROGRESS_UPDATE_INTERVAL_MS = 500L
     private var automaticCheckStarted = false
 
     data class UpdateInfo(
@@ -157,8 +159,11 @@ object AppUpdateManager {
                 sectionLabel = "更新",
                 title = "正在下载更新",
                 fileName = update.assetName,
-                percent = 0,
-                indeterminate = update.sizeBytes <= 0L,
+                initialState = DownloadProgressState(
+                    downloadedBytes = 0L,
+                    totalBytes = update.sizeBytes,
+                    speedBytesPerSecond = 0L,
+                ),
                 message = "请稍候，下载完成后将进入安装流程。",
             )
         )
@@ -167,9 +172,9 @@ object AppUpdateManager {
             scope.launchSafely(activity) {
                 val result = withContext(Dispatchers.IO) {
                     runCatching {
-                        downloadApk(activity, update) { percent ->
+                        downloadApk(activity, update) { state ->
                             activity.runOnUiThread {
-                                progressHandle.onProgress(percent)
+                                progressHandle.onProgress(state)
                             }
                         }
                     }
@@ -193,36 +198,91 @@ object AppUpdateManager {
     private suspend fun downloadApk(
         context: Context,
         update: UpdateInfo,
-        onProgress: (Int) -> Unit
+        onProgress: (DownloadProgressState) -> Unit
     ): File {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val apk = File(dir, update.assetName)
         val connection = openConnection(update.downloadUrl)
         try {
+            val totalBytes = connection.contentLengthLong.takeIf { it > 0L } ?: update.sizeBytes
+            val startedAt = System.currentTimeMillis()
+            var lastEmitAt = startedAt
+            var lastEmitBytes = 0L
             connection.inputStream.use { input ->
                 apk.outputStream().use { output ->
                     val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                     var downloaded = 0L
-                    var lastProgress = -1
                     while (true) {
                         val read = input.read(buffer)
                         if (read == -1) break
                         output.write(buffer, 0, read)
                         downloaded += read
-                        if (update.sizeBytes > 0L) {
-                            val progress = ((downloaded * 100) / update.sizeBytes).toInt()
-                            if (progress != lastProgress) {
-                                lastProgress = progress
-                                onProgress(progress.coerceIn(0, 100))
-                            }
+                        val now = System.currentTimeMillis()
+                        if (now - lastEmitAt >= PROGRESS_UPDATE_INTERVAL_MS) {
+                            val elapsedMs = (now - lastEmitAt).coerceAtLeast(1L)
+                            val speed = ((downloaded - lastEmitBytes) * 1000L) / elapsedMs
+                            onProgress(
+                                DownloadProgressState(
+                                    downloadedBytes = downloaded,
+                                    totalBytes = totalBytes,
+                                    speedBytesPerSecond = speed,
+                                )
+                            )
+                            lastEmitAt = now
+                            lastEmitBytes = downloaded
                         }
                     }
+                    val totalElapsedMs = (System.currentTimeMillis() - startedAt).coerceAtLeast(1L)
+                    onProgress(
+                        DownloadProgressState(
+                            downloadedBytes = downloaded,
+                            totalBytes = totalBytes,
+                            speedBytesPerSecond = (downloaded * 1000L) / totalElapsedMs,
+                        )
+                    )
                 }
             }
         } finally {
             connection.disconnect()
         }
         return apk
+    }
+
+    fun previewDownloadProgress(activity: Activity) {
+        if (!BuildConfig.DEBUG) return
+        val totalBytes = 42L * 1024L * 1024L
+        val progressHandle = TsmModalCoordinator(activity).showProgressModal(
+            ProgressModalSpec(
+                sectionLabel = "更新",
+                title = "正在下载更新",
+                fileName = "tsm-player-release-${currentAbi()}-preview.apk",
+                initialState = DownloadProgressState(
+                    downloadedBytes = 0L,
+                    totalBytes = totalBytes,
+                    speedBytesPerSecond = 0L,
+                ),
+                message = "预览模式：仅展示下载样式，不会安装 APK。",
+            )
+        )
+        MainScope().launchSafely(activity) {
+            var downloaded = 0L
+            var tick = 0
+            while (downloaded < totalBytes && !activity.isFinishing && !activity.isDestroyed) {
+                delay(100L)
+                tick += 1
+                val speed = 4_200_000L + (tick % 8) * 220_000L
+                downloaded = (downloaded + speed / 10L).coerceAtMost(totalBytes)
+                progressHandle.onProgress(
+                    DownloadProgressState(
+                        downloadedBytes = downloaded,
+                        totalBytes = totalBytes,
+                        speedBytesPerSecond = speed,
+                    )
+                )
+            }
+            delay(500L)
+            progressHandle.onDismiss()
+        }
     }
 
     private fun installApk(activity: Activity, apk: File) {

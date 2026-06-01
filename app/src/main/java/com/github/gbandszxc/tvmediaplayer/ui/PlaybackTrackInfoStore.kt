@@ -31,3 +31,29 @@ class PlaybackTrackInfoStore {
         val shared: PlaybackTrackInfoStore = PlaybackTrackInfoStore()
     }
 }
+
+object PlaybackTrackInfoResolver {
+    fun resolve(
+        store: PlaybackTrackInfoStore,
+        key: String?,
+        mediaItemTitle: String?,
+        mediaItemArtist: String?,
+        mediaItemAlbumTitle: String?,
+        playerTitle: String?,
+        playerArtist: String?,
+        playerAlbumTitle: String?
+    ): PlaybackTrackInfo {
+        val fallbackTitle = firstNotBlank(mediaItemTitle, playerTitle) ?: "暂无播放内容"
+        val fallbackArtist = firstNotBlank(mediaItemArtist, playerArtist) ?: "-"
+        val fallbackAlbumTitle = firstNotBlank(mediaItemAlbumTitle, playerAlbumTitle) ?: "-"
+        return store.displayFor(
+            key = key,
+            fallbackTitle = fallbackTitle,
+            fallbackArtist = fallbackArtist,
+            fallbackAlbumTitle = fallbackAlbumTitle
+        )
+    }
+
+    private fun firstNotBlank(vararg values: String?): String? =
+        values.firstOrNull { !it.isNullOrBlank() }
+}

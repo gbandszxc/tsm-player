@@ -12,6 +12,7 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -466,8 +467,11 @@ class TsmModalCoordinatorTest {
                 sectionLabel = "更新",
                 title = "正在下载更新",
                 fileName = "demo.apk",
-                percent = 0,
-                indeterminate = false,
+                initialState = DownloadProgressState(
+                    downloadedBytes = 0L,
+                    totalBytes = 100L * 1024L * 1024L,
+                    speedBytesPerSecond = 0L,
+                ),
                 message = "请稍候，下载完成后将进入安装流程。",
             )
         )
@@ -486,11 +490,19 @@ class TsmModalCoordinatorTest {
         assertEquals(0, progressBar.progress)
 
         // 更新进度
-        handle.onProgress(68)
-        assertEquals(68, progressBar.progress)
+        handle.onProgress(
+            DownloadProgressState(
+                downloadedBytes = 68L * 1024L * 1024L,
+                totalBytes = 100L * 1024L * 1024L,
+                speedBytesPerSecond = 2L * 1024L * 1024L,
+            )
+        )
+        assertEquals(680, progressBar.progress)
 
-        val percentText = contentView.findViewById<TextView>(R.id.tv_modal_progress_percent)
-        assertTrue(percentText.text.toString().contains("68"))
+        val speedText = contentView.findViewById<TextView>(R.id.tv_modal_progress_speed)
+        assertEquals("2.0 MB/s", speedText.text.toString())
+        val sizeText = contentView.findViewById<TextView>(R.id.tv_modal_progress_size)
+        assertEquals("68.0 / 100.0 MB", sizeText.text.toString())
 
         // 关闭
         handle.onDismiss()
@@ -498,7 +510,7 @@ class TsmModalCoordinatorTest {
     }
 
     @Test
-    fun `progress modal indeterminate hides percent`() {
+    fun `progress modal unknown total keeps stable determinate bar`() {
         val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
             .setup()
             .get()
@@ -509,18 +521,24 @@ class TsmModalCoordinatorTest {
                 sectionLabel = "更新",
                 title = "正在处理",
                 fileName = "data.bin",
-                percent = 0,
-                indeterminate = true,
+                initialState = DownloadProgressState(
+                    downloadedBytes = 1024L * 1024L,
+                    totalBytes = -1L,
+                    speedBytesPerSecond = 0L,
+                ),
                 message = "处理中",
             )
         )
 
         val contentView = handle.dialog.findViewById<View>(android.R.id.content)
         val progressBar = contentView.findViewById<ProgressBar>(R.id.pb_modal_progress)
-        assertTrue(progressBar.isIndeterminate)
+        assertFalse(progressBar.isIndeterminate)
+        assertEquals(0, progressBar.progress)
 
-        val percentText = contentView.findViewById<TextView>(R.id.tv_modal_progress_percent)
-        assertEquals(View.GONE, percentText.visibility)
+        val speedText = contentView.findViewById<TextView>(R.id.tv_modal_progress_speed)
+        assertEquals("-- MB/s", speedText.text.toString())
+        val sizeText = contentView.findViewById<TextView>(R.id.tv_modal_progress_size)
+        assertEquals("已下载 1.0 MB", sizeText.text.toString())
     }
 
     // ─── bindFormPrimaryAction 测试 ───

@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui.modal
 
 import android.app.Dialog
+import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressState
 
 /**
  * Modal 操作按钮的数据模型。
@@ -137,16 +138,14 @@ data class ModalListRow(
  * @param sectionLabel  左上角分区标签
  * @param title         标题
  * @param fileName      文件名
- * @param percent       进度百分比（0-100）
- * @param indeterminate 是否为不确定进度
+ * @param initialState  初始下载状态
  * @param message       说明文案
  */
 data class ProgressModalSpec(
     val sectionLabel: String,
     val title: String,
     val fileName: String,
-    val percent: Int,
-    val indeterminate: Boolean,
+    val initialState: DownloadProgressState,
     val message: String,
 )
 
@@ -154,11 +153,11 @@ data class ProgressModalSpec(
  * 进度型 Modal 的操作句柄。
  *
  * @param dialog     Dialog 实例
- * @param onProgress 更新进度的回调
+ * @param onProgress 更新下载状态的回调
  * @param onDismiss  关闭弹窗的回调
  */
 data class ProgressModalHandle(
     val dialog: Dialog,
-    val onProgress: (Int) -> Unit,
+    val onProgress: (DownloadProgressState) -> Unit,
     val onDismiss: () -> Unit,
 )

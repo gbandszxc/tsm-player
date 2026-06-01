@@ -212,35 +212,52 @@ class SettingsActivity : BaseActivity() {
             SettingsCategory(
                 title = "关于",
                 itemsProvider = {
-                    listOf(
-                        SettingsItem(
-                            title = "项目描述",
-                            descriptionProvider = {
-                                "一款适配安卓TV，基于遥控器操作的本地SMB网络音乐播放器。"
-                            },
-                            valueProvider = { "v${BuildConfig.VERSION_NAME} / ${AppUpdateManager.currentAbi()}" }
-                        ),
-                        SettingsItem(
-                            title = "检查更新",
-                            descriptionProvider = { "从 GitHub Release 查找适用于当前设备架构的新版本安装包" },
-                            action = {
-                                AppUpdateManager.checkAndPrompt(this, silentWhenNoUpdate = false)
-                            }
-                        ),
-                        SettingsItem(
-                            title = "GitHub",
-                            descriptionProvider = { "项目主页" },
-                            iconResId = R.drawable.ic_github,
-                            action = {
-                                startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://github.com/gbandszxc/tsm-player")
-                                    )
-                                )
-                            }
+                    buildList {
+                        add(
+                            SettingsItem(
+                                title = "项目描述",
+                                descriptionProvider = {
+                                    "一款适配安卓TV，基于遥控器操作的本地SMB网络音乐播放器。"
+                                },
+                                valueProvider = { "v${BuildConfig.VERSION_NAME} / ${AppUpdateManager.currentAbi()}" }
+                            )
                         )
-                    )
+                        add(
+                            SettingsItem(
+                                title = "检查更新",
+                                descriptionProvider = { "从 GitHub Release 查找适用于当前设备架构的新版本安装包" },
+                                action = {
+                                    AppUpdateManager.checkAndPrompt(this@SettingsActivity, silentWhenNoUpdate = false)
+                                }
+                            )
+                        )
+                        if (BuildConfig.DEBUG) {
+                            add(
+                                SettingsItem(
+                                    title = "预览更新下载样式",
+                                    descriptionProvider = { "仅 Debug 包显示；不访问 GitHub，不安装 APK" },
+                                    action = {
+                                        AppUpdateManager.previewDownloadProgress(this@SettingsActivity)
+                                    }
+                                )
+                            )
+                        }
+                        add(
+                            SettingsItem(
+                                title = "GitHub",
+                                descriptionProvider = { "项目主页" },
+                                iconResId = R.drawable.ic_github,
+                                action = {
+                                    startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://github.com/gbandszxc/tsm-player")
+                                        )
+                                    )
+                                }
+                            )
+                        )
+                    }
                 }
             )
         )

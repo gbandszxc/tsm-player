@@ -450,14 +450,15 @@ class PlaybackActivity : BaseActivity() {
     private fun renderTrackInfo(player: Player) {
         val mediaItem = player.currentMediaItem
         val key = mediaItem?.let(::mediaCacheKey)
-        val fallbackTitle = player.mediaMetadata.title?.toString().orEmpty()
-        val fallbackArtist = player.mediaMetadata.artist?.toString().orEmpty().ifBlank { "-" }
-        val fallbackAlbum = player.mediaMetadata.albumTitle?.toString().orEmpty().ifBlank { "-" }
-        val display = trackInfoStore.displayFor(
+        val display = PlaybackTrackInfoResolver.resolve(
+            store = trackInfoStore,
             key = key,
-            fallbackTitle = if (fallbackTitle.isBlank()) "暂无播放内容" else fallbackTitle,
-            fallbackArtist = fallbackArtist,
-            fallbackAlbumTitle = fallbackAlbum
+            mediaItemTitle = mediaItem?.mediaMetadata?.title?.toString(),
+            mediaItemArtist = mediaItem?.mediaMetadata?.artist?.toString(),
+            mediaItemAlbumTitle = mediaItem?.mediaMetadata?.albumTitle?.toString(),
+            playerTitle = player.mediaMetadata.title?.toString(),
+            playerArtist = player.mediaMetadata.artist?.toString(),
+            playerAlbumTitle = player.mediaMetadata.albumTitle?.toString()
         )
         tvTitle.text = "歌曲：${display.title}"
         tvArtist.text = "艺术家：${display.artist}"

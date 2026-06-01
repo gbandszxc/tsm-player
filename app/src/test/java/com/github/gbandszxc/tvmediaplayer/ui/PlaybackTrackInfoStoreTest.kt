@@ -60,4 +60,24 @@ class PlaybackTrackInfoStoreTest {
         assertEquals("Music", display.artist)
         assertEquals("album", display.albumTitle)
     }
+
+    @Test
+    fun `uses media item metadata when player metadata is temporarily empty`() {
+        val store = PlaybackTrackInfoStore()
+
+        val display = PlaybackTrackInfoResolver.resolve(
+            store = store,
+            key = "smb://nas/Music/album/01.flac",
+            mediaItemTitle = "01 - 夜に駆ける",
+            mediaItemArtist = "YOASOBI",
+            mediaItemAlbumTitle = "THE BOOK",
+            playerTitle = "",
+            playerArtist = "",
+            playerAlbumTitle = ""
+        )
+
+        assertEquals("01 - 夜に駆ける", display.title)
+        assertEquals("YOASOBI", display.artist)
+        assertEquals("THE BOOK", display.albumTitle)
+    }
 }

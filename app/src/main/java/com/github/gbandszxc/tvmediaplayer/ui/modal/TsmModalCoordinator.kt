@@ -14,6 +14,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressFormatter
+import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressState
 
 /**
  * TV Modal 统一协调器。
@@ -369,17 +371,17 @@ class TsmModalCoordinator(
         // 填充初始值
         progressView.findViewById<TextView>(R.id.tv_modal_progress_filename).text = spec.fileName
         val progressBar = progressView.findViewById<ProgressBar>(R.id.pb_modal_progress)
-        val percentText = progressView.findViewById<TextView>(R.id.tv_modal_progress_percent)
+        val speedText = progressView.findViewById<TextView>(R.id.tv_modal_progress_speed)
+        val sizeText = progressView.findViewById<TextView>(R.id.tv_modal_progress_size)
         progressView.findViewById<TextView>(R.id.tv_modal_progress_message).text = spec.message
 
-        if (spec.indeterminate) {
-            progressBar.isIndeterminate = true
-            percentText.visibility = View.GONE
-        } else {
+        fun renderProgress(state: DownloadProgressState) {
             progressBar.isIndeterminate = false
-            progressBar.progress = spec.percent
-            percentText.text = host.getString(R.string.modal_progress_unit, spec.percent)
+            progressBar.progress = DownloadProgressFormatter.progressPermille(state)
+            speedText.text = DownloadProgressFormatter.formatSpeed(state)
+            sizeText.text = DownloadProgressFormatter.formatBytes(state)
         }
+        renderProgress(spec.initialState)
 
         // 隐藏 actions 容器
         content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
@@ -395,11 +397,8 @@ class TsmModalCoordinator(
             show()
         }
 
-        val onProgress: (Int) -> Unit = { percent ->
-            if (!spec.indeterminate) {
-                progressBar.progress = percent
-                percentText.text = host.getString(R.string.modal_progress_unit, percent)
-            }
+        val onProgress: (DownloadProgressState) -> Unit = { state ->
+            renderProgress(state)
         }
 
         val onDismiss: () -> Unit = {

@@ -197,7 +197,9 @@ Release:
 
 应用启动进入主界面时会在本进程内自动检查一次 GitHub 最新 Release；设置页“关于”分类下也提供“检查更新”手动入口。检测逻辑直接解析公开 Release 页面：先访问 `/releases/latest` 获取最新 tag，再访问 `/releases/expanded_assets/<tag>` 读取 assets HTML，不依赖 `api.github.com` REST API。随后读取当前 `BuildConfig.VERSION_NAME` 与设备 ABI，在 Release assets 中匹配命名为 `tsm-player-release-<abi>-<versionName>.apk` 且版本号更高的安装包。
 
-若发现新版本，会弹窗询问是否下载；用户确认后前台显示下载进度条，下载完成后通过系统 APK 安装页面继续安装。APK 临时保存在 `cacheDir/updates/`，并通过 `FileProvider` 只授权该缓存目录给系统安装器读取。
+若发现新版本，会弹窗询问是否下载；用户确认后前台显示下载进度弹窗，内容包含文件名、实时网速、已下载/总大小和蓝色从左向右填充的进度条，不再显示百分比，也不使用系统流动进度背景。下载任务会从 APK 响应头读取 `Content-Length` 作为总大小；若服务器未返回总大小，则保守显示已下载大小并保持稳定轨道。下载完成后通过系统 APK 安装页面继续安装。APK 临时保存在 `cacheDir/updates/`，并通过 `FileProvider` 只授权该缓存目录给系统安装器读取。
+
+Debug 包在设置页“关于”分类下提供“预览更新下载样式”入口。该入口只模拟下载状态并展示同一套进度弹窗，不访问 GitHub Release、不下载真实 APK，也不会触发安装；Release 包不会显示该入口。
 
 ## 13. GitHub Release 发版脚本
 
