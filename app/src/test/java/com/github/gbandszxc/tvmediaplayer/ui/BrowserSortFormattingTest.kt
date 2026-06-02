@@ -30,4 +30,24 @@ class BrowserSortFormattingTest {
         assertEquals(Gravity.END, TvBrowseFragment.metadataColumnGravityForTest("42.8 MB"))
         assertEquals(Gravity.END, TvBrowseFragment.metadataColumnGravityForTest("2026-05-31 08:09:10"))
     }
+
+    @Test
+    fun `sort dropdown scroll delta keeps panel bottom visible with margin`() {
+        assertEquals(
+            36,
+            TvBrowseFragment.sortDropdownScrollDeltaForTest(
+                dropdownBottom = 620,
+                visibleBottom = 600,
+                safetyMargin = 16,
+            )
+        )
+        assertEquals(
+            0,
+            TvBrowseFragment.sortDropdownScrollDeltaForTest(
+                dropdownBottom = 580,
+                visibleBottom = 600,
+                safetyMargin = 16,
+            )
+        )
+    }
 }

@@ -93,6 +93,8 @@ class TvBrowseFragment : Fragment() {
     private lateinit var filesContainer: LinearLayout
     private var sortDropdownView: View? = null
     private var sortOutsideDismissView: View? = null
+    private val sortDropdownSafetyMarginPx: Int
+        get() = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
     private val browsePlayerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             if (
@@ -882,6 +884,19 @@ class TvBrowseFragment : Fragment() {
         fun createSortOutsideDismissOverlayForTest(context: Context): View =
             createSortOutsideDismissOverlay(context)
 
+        @VisibleForTesting
+        fun sortDropdownScrollDeltaForTest(
+            dropdownBottom: Int,
+            visibleBottom: Int,
+            safetyMargin: Int,
+        ): Int = calculateSortDropdownScrollDelta(dropdownBottom, visibleBottom, safetyMargin)
+
+        private fun calculateSortDropdownScrollDelta(
+            dropdownBottom: Int,
+            visibleBottom: Int,
+            safetyMargin: Int,
+        ): Int = max(0, dropdownBottom + safetyMargin - visibleBottom)
+
         private fun createSortOutsideDismissOverlay(context: Context): View {
             return View(context).apply {
                 layoutParams = FrameLayout.LayoutParams(
@@ -904,6 +919,8 @@ class TvBrowseFragment : Fragment() {
         val dropdown = layoutInflater.inflate(R.layout.view_browser_sort_dropdown, rootView, false)
         val optionsContainer = dropdown.findViewById<LinearLayout>(R.id.container_sort_options)
         renderSortOptions(optionsContainer)
+        keepSortOptionFocusInsideDropdown(optionsContainer)
+        scrollToRevealSortDropdown(dropdown)
 
         val location = IntArray(2)
         btnSort.getLocationOnScreen(location)
@@ -922,10 +939,42 @@ class TvBrowseFragment : Fragment() {
         optionsContainer.getChildAt(0)?.requestFocus()
     }
 
+    private fun scrollToRevealSortDropdown(dropdown: View) {
+        val visibleRect = Rect()
+        if (!rootScroll.getGlobalVisibleRect(visibleRect)) return
+
+        dropdown.measure(
+            View.MeasureSpec.makeMeasureSpec(rootScroll.width, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val location = IntArray(2)
+        btnSort.getLocationOnScreen(location)
+        val dropdownBottom = location[1] + btnSort.height + dropdown.measuredHeight
+        val scrollDelta = calculateSortDropdownScrollDelta(
+            dropdownBottom = dropdownBottom,
+            visibleBottom = visibleRect.bottom,
+            safetyMargin = sortDropdownSafetyMarginPx,
+        )
+        if (scrollDelta > 0) {
+            rootScroll.scrollBy(0, scrollDelta)
+        }
+    }
+
+    private fun keepSortOptionFocusInsideDropdown(container: LinearLayout) {
+        val childCount = container.childCount
+        if (childCount == 0) return
+        for (index in 0 until childCount) {
+            val child = container.getChildAt(index)
+            child.nextFocusUpId = if (index == 0) child.id else container.getChildAt(index - 1).id
+            child.nextFocusDownId = if (index == childCount - 1) child.id else container.getChildAt(index + 1).id
+        }
+    }
+
     private fun renderSortOptions(container: LinearLayout) {
         BrowserSortOption.entries.forEach { option ->
             val itemView = layoutInflater.inflate(R.layout.item_browser_sort_option, container, false)
-            val tvOption = itemView.findViewById<TextView>(R.id.tv_sort_option)
+            val tvOption = itemView as TextView
+            itemView.id = View.generateViewId()
             tvOption.text = option.label
             itemView.setOnClickListener {
                 viewModel.selectSortOption(option)
