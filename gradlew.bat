@@ -37,6 +37,18 @@ for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
 @rem Find java.exe
+@rem Read java.home from local.properties first (highest priority)
+set "_JAVA_HOME_LOCAL="
+if exist "%APP_HOME%\local.properties" (
+    for /f "usebackq tokens=1,* delims==" %%a in (`findstr /B /C:"java.home=" "%APP_HOME%\local.properties"`) do (
+        set "_JAVA_HOME_LOCAL=%%b"
+    )
+)
+if defined _JAVA_HOME_LOCAL (
+    set "JAVA_HOME=%_JAVA_HOME_LOCAL%"
+    goto findJavaFromJavaHome
+)
+@rem Fall back to system JAVA_HOME
 if defined JAVA_HOME goto findJavaFromJavaHome
 
 set JAVA_EXE=java.exe
