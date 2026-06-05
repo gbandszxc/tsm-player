@@ -39,6 +39,7 @@ class SqliteBackupManagerTest {
 
         assertEquals(BackupOperationStatus.SUCCESS, result.status)
         assertEquals(manager.localBackupFile(), result.file)
+        assertEquals("tsm-player.db", result.file.name)
         assertTrue(result.file.length() > 0L)
         assertEquals(listOf("收藏夹", "夜间"), readPlaylistNames(result.file.path))
     }
@@ -82,7 +83,9 @@ class SqliteBackupManagerTest {
     }
 
     private fun readPlaylistNames(path: String): List<String> {
-        return SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+        val readable = java.io.File(context.cacheDir, "readable-${java.io.File(path).name}")
+        java.io.File(path).copyTo(readable, overwrite = true)
+        return SQLiteDatabase.openDatabase(readable.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
             db.rawQuery("SELECT name FROM playlists ORDER BY is_default DESC, name ASC", emptyArray()).use { cursor ->
                 buildList {
                     while (cursor.moveToNext()) {
@@ -90,6 +93,6 @@ class SqliteBackupManagerTest {
                     }
                 }
             }
-        }
+        }.also { readable.delete() }
     }
 }

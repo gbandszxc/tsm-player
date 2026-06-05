@@ -1,9 +1,11 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
+import com.github.gbandszxc.tvmediaplayer.data.db.AppSettingsDbStore
 
 object UiSettingsStore {
     private const val PREF_NAME = "ui_settings"
+    private const val DB_PREFIX = "ui."
     private const val KEY_GLOBAL_SCALE_PERCENT = "global_scale_percent"
     private const val KEY_PLAYBACK_LYRICS_FONT_SP = "playback_lyrics_font_sp"
     private const val KEY_FULLSCREEN_LYRICS_FONT_SP = "fullscreen_lyrics_font_sp"
@@ -25,13 +27,17 @@ object UiSettingsStore {
     const val maxLyricsLineSpacing: Float = 3.0f
 
     fun globalScalePercent(context: Context): Int {
-        val value = prefs(context).getInt(KEY_GLOBAL_SCALE_PERCENT, defaultGlobalScalePercent)
+        val value = db(context).getInt(dbKey(KEY_GLOBAL_SCALE_PERCENT))
+            ?: prefs(context).takeIf { it.contains(KEY_GLOBAL_SCALE_PERCENT) }
+                ?.getInt(KEY_GLOBAL_SCALE_PERCENT, defaultGlobalScalePercent)
+                ?.also { db(context).putInt(dbKey(KEY_GLOBAL_SCALE_PERCENT), it) }
+            ?: defaultGlobalScalePercent
         return if (globalScalePresets.contains(value)) value else defaultGlobalScalePercent
     }
 
     fun setGlobalScalePercent(context: Context, value: Int) {
         if (!globalScalePresets.contains(value)) return
-        prefs(context).edit().putInt(KEY_GLOBAL_SCALE_PERCENT, value).apply()
+        db(context).putInt(dbKey(KEY_GLOBAL_SCALE_PERCENT), value)
     }
 
     fun cycleGlobalScalePreset(context: Context): Int {
@@ -44,73 +50,97 @@ object UiSettingsStore {
     }
 
     fun playbackLyricsFontSp(context: Context): Int {
-        val value = prefs(context).getInt(KEY_PLAYBACK_LYRICS_FONT_SP, defaultPlaybackLyricsFontSp)
+        val value = db(context).getInt(dbKey(KEY_PLAYBACK_LYRICS_FONT_SP))
+            ?: prefs(context).takeIf { it.contains(KEY_PLAYBACK_LYRICS_FONT_SP) }
+                ?.getInt(KEY_PLAYBACK_LYRICS_FONT_SP, defaultPlaybackLyricsFontSp)
+                ?.also { db(context).putInt(dbKey(KEY_PLAYBACK_LYRICS_FONT_SP), it) }
+            ?: defaultPlaybackLyricsFontSp
         return value.coerceIn(minLyricsFontSp, maxLyricsFontSp)
     }
 
     fun setPlaybackLyricsFontSp(context: Context, value: Int) {
-        prefs(context).edit()
-            .putInt(KEY_PLAYBACK_LYRICS_FONT_SP, value.coerceIn(minLyricsFontSp, maxLyricsFontSp))
-            .apply()
+        db(context).putInt(dbKey(KEY_PLAYBACK_LYRICS_FONT_SP), value.coerceIn(minLyricsFontSp, maxLyricsFontSp))
     }
 
     fun fullscreenLyricsFontSp(context: Context): Int {
-        val value = prefs(context).getInt(KEY_FULLSCREEN_LYRICS_FONT_SP, defaultFullscreenLyricsFontSp)
+        val value = db(context).getInt(dbKey(KEY_FULLSCREEN_LYRICS_FONT_SP))
+            ?: prefs(context).takeIf { it.contains(KEY_FULLSCREEN_LYRICS_FONT_SP) }
+                ?.getInt(KEY_FULLSCREEN_LYRICS_FONT_SP, defaultFullscreenLyricsFontSp)
+                ?.also { db(context).putInt(dbKey(KEY_FULLSCREEN_LYRICS_FONT_SP), it) }
+            ?: defaultFullscreenLyricsFontSp
         return value.coerceIn(minLyricsFontSp, maxLyricsFontSp)
     }
 
     fun setFullscreenLyricsFontSp(context: Context, value: Int) {
-        prefs(context).edit()
-            .putInt(KEY_FULLSCREEN_LYRICS_FONT_SP, value.coerceIn(minLyricsFontSp, maxLyricsFontSp))
-            .apply()
+        db(context).putInt(dbKey(KEY_FULLSCREEN_LYRICS_FONT_SP), value.coerceIn(minLyricsFontSp, maxLyricsFontSp))
     }
 
     fun keepScreenAwake(context: Context): Boolean {
-        return prefs(context).getBoolean(KEY_KEEP_SCREEN_AWAKE, true)
+        return db(context).getBoolean(dbKey(KEY_KEEP_SCREEN_AWAKE))
+            ?: prefs(context).takeIf { it.contains(KEY_KEEP_SCREEN_AWAKE) }
+                ?.getBoolean(KEY_KEEP_SCREEN_AWAKE, true)
+                ?.also { db(context).putBoolean(dbKey(KEY_KEEP_SCREEN_AWAKE), it) }
+            ?: true
     }
 
     fun setKeepScreenAwake(context: Context, enabled: Boolean) {
-        prefs(context).edit().putBoolean(KEY_KEEP_SCREEN_AWAKE, enabled).apply()
+        db(context).putBoolean(dbKey(KEY_KEEP_SCREEN_AWAKE), enabled)
     }
 
     fun rememberLastPlayback(context: Context): Boolean {
-        return prefs(context).getBoolean(KEY_REMEMBER_LAST_PLAYBACK, true)
+        return db(context).getBoolean(dbKey(KEY_REMEMBER_LAST_PLAYBACK))
+            ?: prefs(context).takeIf { it.contains(KEY_REMEMBER_LAST_PLAYBACK) }
+                ?.getBoolean(KEY_REMEMBER_LAST_PLAYBACK, true)
+                ?.also { db(context).putBoolean(dbKey(KEY_REMEMBER_LAST_PLAYBACK), it) }
+            ?: true
     }
 
     fun setRememberLastPlayback(context: Context, enabled: Boolean) {
-        prefs(context).edit().putBoolean(KEY_REMEMBER_LAST_PLAYBACK, enabled).apply()
+        db(context).putBoolean(dbKey(KEY_REMEMBER_LAST_PLAYBACK), enabled)
     }
 
     fun playbackLyricsLineSpacing(context: Context): Float {
-        val value = prefs(context).getFloat(KEY_PLAYBACK_LYRICS_LINE_SPACING, defaultPlaybackLyricsLineSpacing)
+        val value = db(context).getFloat(dbKey(KEY_PLAYBACK_LYRICS_LINE_SPACING))
+            ?: prefs(context).takeIf { it.contains(KEY_PLAYBACK_LYRICS_LINE_SPACING) }
+                ?.getFloat(KEY_PLAYBACK_LYRICS_LINE_SPACING, defaultPlaybackLyricsLineSpacing)
+                ?.also { db(context).putFloat(dbKey(KEY_PLAYBACK_LYRICS_LINE_SPACING), it) }
+            ?: defaultPlaybackLyricsLineSpacing
         return value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing)
     }
 
     fun setPlaybackLyricsLineSpacing(context: Context, value: Float) {
-        prefs(context).edit()
-            .putFloat(KEY_PLAYBACK_LYRICS_LINE_SPACING, value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing))
-            .apply()
+        db(context).putFloat(dbKey(KEY_PLAYBACK_LYRICS_LINE_SPACING), value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing))
     }
 
     fun fullscreenLyricsLineSpacing(context: Context): Float {
-        val value = prefs(context).getFloat(KEY_FULLSCREEN_LYRICS_LINE_SPACING, defaultFullscreenLyricsLineSpacing)
+        val value = db(context).getFloat(dbKey(KEY_FULLSCREEN_LYRICS_LINE_SPACING))
+            ?: prefs(context).takeIf { it.contains(KEY_FULLSCREEN_LYRICS_LINE_SPACING) }
+                ?.getFloat(KEY_FULLSCREEN_LYRICS_LINE_SPACING, defaultFullscreenLyricsLineSpacing)
+                ?.also { db(context).putFloat(dbKey(KEY_FULLSCREEN_LYRICS_LINE_SPACING), it) }
+            ?: defaultFullscreenLyricsLineSpacing
         return value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing)
     }
 
     fun setFullscreenLyricsLineSpacing(context: Context, value: Float) {
-        prefs(context).edit()
-            .putFloat(KEY_FULLSCREEN_LYRICS_LINE_SPACING, value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing))
-            .apply()
+        db(context).putFloat(dbKey(KEY_FULLSCREEN_LYRICS_LINE_SPACING), value.coerceIn(minLyricsLineSpacing, maxLyricsLineSpacing))
     }
 
     fun sleepAdminPromptShown(context: Context): Boolean {
-        return prefs(context).getBoolean(KEY_SLEEP_ADMIN_PROMPT_SHOWN, false)
+        return db(context).getBoolean(dbKey(KEY_SLEEP_ADMIN_PROMPT_SHOWN))
+            ?: prefs(context).takeIf { it.contains(KEY_SLEEP_ADMIN_PROMPT_SHOWN) }
+                ?.getBoolean(KEY_SLEEP_ADMIN_PROMPT_SHOWN, false)
+                ?.also { db(context).putBoolean(dbKey(KEY_SLEEP_ADMIN_PROMPT_SHOWN), it) }
+            ?: false
     }
 
     fun setSleepAdminPromptShown(context: Context, shown: Boolean) {
-        prefs(context).edit().putBoolean(KEY_SLEEP_ADMIN_PROMPT_SHOWN, shown).apply()
+        db(context).putBoolean(dbKey(KEY_SLEEP_ADMIN_PROMPT_SHOWN), shown)
     }
 
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+
+    private fun db(context: Context) = AppSettingsDbStore(context)
+
+    private fun dbKey(key: String): String = "$DB_PREFIX$key"
 }

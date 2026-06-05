@@ -91,13 +91,11 @@ class SqliteBackupManager(context: Context) {
     private fun isValidFavoritesDatabase(file: File): Boolean {
         return runCatching {
             SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
-                db.rawQuery(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('playlists', 'playlist_tracks')",
-                    emptyArray()
-                ).use { cursor ->
-                    var count = 0
-                    while (cursor.moveToNext()) count += 1
-                    count == 2
+                REQUIRED_TABLES.all { table ->
+                    db.rawQuery(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                        arrayOf(table)
+                    ).use { cursor -> cursor.moveToFirst() }
                 }
             }
         }.getOrDefault(false)
@@ -106,5 +104,15 @@ class SqliteBackupManager(context: Context) {
     private fun deleteWalFiles(databaseFile: File) {
         File(databaseFile.path + "-wal").delete()
         File(databaseFile.path + "-shm").delete()
+    }
+
+    private companion object {
+        val REQUIRED_TABLES = listOf(
+            "playlists",
+            "playlist_tracks",
+            "app_settings",
+            "smb_connections",
+            "browse_anchors"
+        )
     }
 }

@@ -229,13 +229,13 @@ class SettingsActivity : BaseActivity() {
                     listOf(
                         SettingsItem(
                             title = "导出本地备份",
-                            descriptionProvider = { "将当前收藏 SQLite 数据全量导出到应用备份目录" },
+                            descriptionProvider = { "将当前应用持久化数据库全量导出到应用备份目录" },
                             valueProvider = { formatFileSize(backupManager.localBackupFile()) },
                             action = { exportLocalBackup() }
                         ),
                         SettingsItem(
                             title = "导入本地备份",
-                            descriptionProvider = { "从应用备份目录恢复收藏 SQLite 数据，会覆盖当前收藏数据" },
+                            descriptionProvider = { "从应用备份目录恢复应用持久化数据库，会覆盖当前配置与收藏数据" },
                             valueProvider = { formatFileSize(backupManager.localBackupFile()) },
                             action = { confirmImportLocalBackup() }
                         ),
@@ -248,13 +248,13 @@ class SettingsActivity : BaseActivity() {
                         ),
                         SettingsItem(
                             title = "上传到 WebDAV",
-                            descriptionProvider = { "先导出当前 SQLite 数据，再全量上传到配置的 WebDAV 目录" },
+                            descriptionProvider = { "先导出当前应用数据库，再全量上传到配置的 WebDAV 目录" },
                             valueProvider = { if (webDavConfig.isReady()) webDavConfig.remoteDirectory else "请先配置" },
                             action = { uploadWebDavBackup() }
                         ),
                         SettingsItem(
                             title = "从 WebDAV 下载并恢复",
-                            descriptionProvider = { "从 WebDAV 下载备份并覆盖当前收藏 SQLite 数据，不会自动同步" },
+                            descriptionProvider = { "从 WebDAV 下载备份并覆盖当前应用数据库，不会自动同步" },
                             valueProvider = { if (webDavConfig.isReady()) webDavConfig.remoteDirectory else "请先配置" },
                             action = { confirmDownloadWebDavBackup() }
                         )
@@ -552,7 +552,7 @@ class SettingsActivity : BaseActivity() {
             ConfirmModalSpec(
                 sectionLabel = "备份恢复",
                 title = "从本地备份恢复？",
-                message = "会用备份文件覆盖当前收藏 SQLite 数据。该操作不会修改 SMB 原文件。",
+                message = "会用备份文件覆盖当前配置、播放状态与收藏数据。该操作不会修改 SMB 原文件。",
                 confirmAction = ModalAction("恢复", isPrimary = true) {
                     importLocalBackup()
                 },
@@ -685,7 +685,7 @@ class SettingsActivity : BaseActivity() {
             ConfirmModalSpec(
                 sectionLabel = "备份恢复",
                 title = "从 WebDAV 下载并恢复？",
-                message = "会下载远端备份并覆盖当前收藏 SQLite 数据。该操作不会修改 SMB 原文件。",
+                message = "会下载远端备份并覆盖当前配置、播放状态与收藏数据。该操作不会修改 SMB 原文件。",
                 confirmAction = ModalAction("下载并恢复", isPrimary = true) {
                     downloadWebDavBackup()
                 },
@@ -746,7 +746,7 @@ class SettingsActivity : BaseActivity() {
         when (status) {
             BackupOperationStatus.SUCCESS -> "${operation}完成：${file.path}"
             BackupOperationStatus.MISSING_SOURCE -> "${operation}失败：未找到备份文件"
-            BackupOperationStatus.INVALID_SOURCE -> "${operation}失败：备份文件不是有效收藏数据库"
+            BackupOperationStatus.INVALID_SOURCE -> "${operation}失败：备份文件不是有效应用数据库"
             BackupOperationStatus.FAILED -> "${operation}失败"
         }
 

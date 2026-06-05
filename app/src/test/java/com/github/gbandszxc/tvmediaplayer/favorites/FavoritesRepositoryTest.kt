@@ -310,50 +310,44 @@ class FavoritesRepositoryTest {
         assertEquals(2, repository.getTracks(FavoritesRepository.DEFAULT_PLAYLIST_ID).size)
     }
 
+    @Test
+    fun `main database imports existing favorites database when empty`() {
+        context.deleteDatabase(FavoritesDbHelper.DB_NAME)
+        context.openOrCreateDatabase(FavoritesDbHelper.LEGACY_FAVORITES_DB_NAME, Context.MODE_PRIVATE, null).use { db ->
+            createFavoritesSchema(db, includeTrackKey = true)
+            db.execSQL(
+                """
+                INSERT INTO playlists (id, name, is_default, created_at, updated_at)
+                VALUES ('legacy_custom', '旧库歌单', 0, 1000, 1000)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                INSERT INTO playlist_tracks (
+                    id, playlist_id, media_id, track_key, stream_uri, title,
+                    source_host, source_share, source_path, source_username,
+                    source_guest, source_smb1, added_at
+                )
+                VALUES (
+                    'legacy-track', 'legacy_custom', 'Music/Legacy.flac',
+                    'legacy-key', 'smb://nas/Media/Music/Legacy.flac', 'Legacy',
+                    'nas', 'Media', 'Music', '',
+                    1, 0, 1000
+                )
+                """.trimIndent()
+            )
+            db.version = 2
+        }
+
+        repository = FavoritesRepository(context)
+
+        assertEquals(listOf("收藏夹", "旧库歌单"), repository.getPlaylists().map { it.name })
+        assertEquals("Legacy", repository.getTracks("legacy_custom").single().title)
+    }
+
     private fun createLegacyV1Database() {
         context.openOrCreateDatabase(FavoritesDbHelper.DB_NAME, Context.MODE_PRIVATE, null).use { db ->
-            db.execSQL(
-                """
-                CREATE TABLE playlists (
-                    id TEXT PRIMARY KEY,
-                    name TEXT NOT NULL UNIQUE,
-                    is_default INTEGER NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    updated_at INTEGER NOT NULL
-                )
-                """.trimIndent()
-            )
-            db.execSQL(
-                """
-                CREATE TABLE playlist_tracks (
-                    id TEXT PRIMARY KEY,
-                    playlist_id TEXT NOT NULL,
-                    media_id TEXT NOT NULL,
-                    stream_uri TEXT NOT NULL,
-                    title TEXT NOT NULL,
-                    artist TEXT,
-                    album TEXT,
-                    artwork_uri TEXT,
-                    source_connection_id TEXT,
-                    source_host TEXT,
-                    source_share TEXT,
-                    source_path TEXT,
-                    source_username TEXT,
-                    source_password TEXT,
-                    source_guest INTEGER,
-                    source_smb1 INTEGER,
-                    added_at INTEGER NOT NULL,
-                    UNIQUE(playlist_id, media_id),
-                    FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
-                )
-                """.trimIndent()
-            )
-            db.execSQL(
-                """
-                CREATE INDEX idx_playlist_tracks_playlist_added
-                ON playlist_tracks(playlist_id, added_at DESC)
-                """.trimIndent()
-            )
+            createFavoritesSchema(db, includeTrackKey = false)
             db.execSQL(
                 """
                 INSERT INTO playlists (id, name, is_default, created_at, updated_at)
@@ -377,6 +371,54 @@ class FavoritesRepositoryTest {
             )
             db.version = 1
         }
+    }
+
+    private fun createFavoritesSchema(db: android.database.sqlite.SQLiteDatabase, includeTrackKey: Boolean) {
+        db.execSQL(
+            """
+            CREATE TABLE playlists (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                is_default INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        val trackKeyColumn = if (includeTrackKey) "track_key TEXT NOT NULL," else ""
+        val uniqueColumn = if (includeTrackKey) "track_key" else "media_id"
+        db.execSQL(
+            """
+            CREATE TABLE playlist_tracks (
+                id TEXT PRIMARY KEY,
+                playlist_id TEXT NOT NULL,
+                media_id TEXT NOT NULL,
+                $trackKeyColumn
+                stream_uri TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT,
+                album TEXT,
+                artwork_uri TEXT,
+                source_connection_id TEXT,
+                source_host TEXT,
+                source_share TEXT,
+                source_path TEXT,
+                source_username TEXT,
+                source_password TEXT,
+                source_guest INTEGER,
+                source_smb1 INTEGER,
+                added_at INTEGER NOT NULL,
+                UNIQUE(playlist_id, $uniqueColumn),
+                FOREIGN KEY(playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX idx_playlist_tracks_playlist_added
+            ON playlist_tracks(playlist_id, added_at DESC)
+            """.trimIndent()
+        )
     }
 
     private fun sampleTrack(
