@@ -129,6 +129,7 @@ data class ModalListRow(
     val key: String,
     val label: String,
     val enabled: Boolean = true,
+    val dismissOnClick: Boolean = false,
     val onClick: (() -> Unit)? = null,
 )
 

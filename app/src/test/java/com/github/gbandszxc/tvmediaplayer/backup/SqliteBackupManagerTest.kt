@@ -11,6 +11,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 @RunWith(RobolectricTestRunner::class)
 class SqliteBackupManagerTest {
@@ -65,6 +67,34 @@ class SqliteBackupManagerTest {
 
         assertEquals(BackupOperationStatus.MISSING_SOURCE, result.status)
         assertEquals(listOf("收藏夹", "当前歌单"), readPlaylistNames(context.getDatabasePath(FavoritesDbHelper.DB_NAME).path))
+    }
+
+    @Test
+    fun `export writes the current database to a chosen output stream`() {
+        createDatabaseWithPlaylist("chosen", "选择路径")
+        val output = ByteArrayOutputStream()
+
+        val result = manager.exportToStream(output)
+
+        val chosenFile = java.io.File(context.cacheDir, "chosen-export.db")
+        chosenFile.writeBytes(output.toByteArray())
+        assertEquals(BackupOperationStatus.SUCCESS, result.status)
+        assertEquals(listOf("收藏夹", "选择路径"), readPlaylistNames(chosenFile.path))
+        chosenFile.delete()
+    }
+
+    @Test
+    fun `import replaces the current database from a chosen input stream`() {
+        createDatabaseWithPlaylist("source", "外部文件")
+        val output = ByteArrayOutputStream()
+        manager.exportToStream(output)
+        context.deleteDatabase(FavoritesDbHelper.DB_NAME)
+        createDatabaseWithPlaylist("current", "当前数据")
+
+        val result = manager.importFromStream(ByteArrayInputStream(output.toByteArray()))
+
+        assertEquals(BackupOperationStatus.SUCCESS, result.status)
+        assertEquals(listOf("收藏夹", "外部文件"), readPlaylistNames(context.getDatabasePath(FavoritesDbHelper.DB_NAME).path))
     }
 
     private fun createDatabaseWithPlaylist(id: String, name: String) {

@@ -12,10 +12,12 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
+import com.github.gbandszxc.tvmediaplayer.domain.model.SmbFailure
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import java.security.MessageDigest
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +59,8 @@ class TvBrowserViewModel(
     private val _state = MutableStateFlow(TvBrowserState())
     val state: StateFlow<TvBrowserState> = _state.asStateFlow()
     private var lastPersistedAnchor: AnchorFingerprint? = null
+    private var lockedConnectionKey: String? = null
+    private var loadGeneration: Long = 0L
 
     init {
         viewModelScope.launch {
@@ -97,6 +101,7 @@ class TvBrowserViewModel(
         viewModelScope.launch {
             configStore.saveConnection(saved, activate = true)
         }
+        lockedConnectionKey = null
         loadCurrentPath()
     }
 
@@ -145,16 +150,31 @@ class TvBrowserViewModel(
     }
 
     fun loadCurrentPath() {
+        loadCurrentPath(manualRetry = false)
+    }
+
+    fun refreshCurrentPath() {
+        loadCurrentPath(manualRetry = true)
+    }
+
+    private fun loadCurrentPath(manualRetry: Boolean) {
         val snapshot = _state.value
         if (snapshot.config.host.isBlank()) {
             _state.update { it.copy(error = "SMB 主机地址不能为空") }
             return
         }
+        val connectionKey = failureLockKey(snapshot.activeConnectionId, snapshot.config)
+        if (!manualRetry && lockedConnectionKey == connectionKey) {
+            _state.update { it.copy(loading = false) }
+            return
+        }
+        val generation = ++loadGeneration
         viewModelScope.launch {
             _state.update { it.copy(loading = true, error = null, toast = null) }
             runCatching {
-                repository.list(snapshot.config, snapshot.currentPath)
+                listCurrentPathWithRetry(snapshot.config, snapshot.currentPath)
             }.onSuccess { list ->
+                if (generation != loadGeneration) return@launch
                 val currentSortOption = _state.value.sortOption
                 val sorted = sortEntries(list, currentSortOption)
                 val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
@@ -180,11 +200,39 @@ class TvBrowserViewModel(
                         isFastLocateMode = false
                     )
                 }
+                if (lockedConnectionKey == connectionKey) {
+                    lockedConnectionKey = null
+                }
             }.onFailure { ex ->
+                if (generation != loadGeneration) return@launch
                 val message = SmbFailureMapper.toUserMessage(SmbFailureMapper.map(ex))
-                _state.update { it.copy(loading = false, error = message) }
+                lockedConnectionKey = connectionKey
+                _state.update {
+                    it.copy(
+                        loading = false,
+                        error = message,
+                        toast = "SMB 连接失败：$message"
+                    )
+                }
             }
         }
+    }
+
+    private suspend fun listCurrentPathWithRetry(config: SmbConfig, path: String): List<SmbEntry> {
+        var lastError: Throwable? = null
+        repeat(SMB_CONNECT_ATTEMPTS) { attempt ->
+            runCatching {
+                return repository.list(config, path)
+            }.onFailure { ex ->
+                lastError = ex
+                val failure = SmbFailureMapper.map(ex)
+                if (!failure.shouldRetryConnection() || attempt == SMB_CONNECT_ATTEMPTS - 1) {
+                    throw ex
+                }
+                delay(SMB_CONNECT_BACKOFF_MS[attempt])
+            }
+        }
+        throw lastError ?: IllegalStateException("SMB 浏览失败")
     }
 
     fun enterDirectory(entry: SmbEntry) {
@@ -479,6 +527,12 @@ class TvBrowserViewModel(
         return activeConnectionId ?: buildTemporaryAnchorNamespace(config)
     }
 
+    private fun failureLockKey(activeConnectionId: String?, config: SmbConfig): String =
+        resolveAnchorConnectionId(activeConnectionId, config)
+
+    private fun SmbFailure.shouldRetryConnection(): Boolean =
+        this == SmbFailure.TIMEOUT || this == SmbFailure.HOST_UNREACHABLE
+
     private fun buildTemporaryAnchorNamespace(config: SmbConfig): String {
         val source = listOf(
             config.host.trim().lowercase(Locale.ROOT),
@@ -506,6 +560,9 @@ class TvBrowserViewModel(
     )
 
     companion object {
+        private const val SMB_CONNECT_ATTEMPTS = 3
+        private val SMB_CONNECT_BACKOFF_MS = longArrayOf(500L, 1_500L)
+
         fun factory(context: Context): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {

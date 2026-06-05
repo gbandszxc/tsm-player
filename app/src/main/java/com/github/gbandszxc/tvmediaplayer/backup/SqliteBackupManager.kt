@@ -4,6 +4,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
 import java.io.File
+import java.io.InputStream
+import java.io.OutputStream
 
 enum class BackupOperationStatus {
     SUCCESS,
@@ -29,6 +31,39 @@ class SqliteBackupManager(context: Context) {
 
     fun importFromLocalBackup(): BackupOperationResult =
         importFromFile(localBackupFile())
+
+    fun exportToStream(output: OutputStream): BackupOperationResult {
+        val tempFile = File(appContext.cacheDir, FavoritesDbHelper.DB_NAME)
+        return runCatching {
+            val result = exportToFile(tempFile)
+            if (result.status != BackupOperationStatus.SUCCESS) {
+                result
+            } else {
+                tempFile.inputStream().use { input ->
+                    output.use { target -> input.copyTo(target) }
+                }
+                BackupOperationResult(BackupOperationStatus.SUCCESS, tempFile)
+            }
+        }.getOrElse { ex ->
+            BackupOperationResult(BackupOperationStatus.FAILED, tempFile, ex.message.orEmpty())
+        }.also {
+            tempFile.delete()
+        }
+    }
+
+    fun importFromStream(input: InputStream): BackupOperationResult {
+        val tempFile = File(appContext.cacheDir, "chosen-${FavoritesDbHelper.DB_NAME}")
+        return runCatching {
+            tempFile.outputStream().use { output ->
+                input.use { source -> source.copyTo(output) }
+            }
+            importFromFile(tempFile)
+        }.getOrElse { ex ->
+            BackupOperationResult(BackupOperationStatus.FAILED, tempFile, ex.message.orEmpty())
+        }.also {
+            tempFile.delete()
+        }
+    }
 
     fun exportToFile(target: File): BackupOperationResult {
         val source = appContext.getDatabasePath(FavoritesDbHelper.DB_NAME)

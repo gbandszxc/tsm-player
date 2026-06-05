@@ -170,7 +170,7 @@ class TvBrowseFragment : Fragment() {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
-        btnRefresh.setOnClickListener { viewModel.loadCurrentPath() }
+        btnRefresh.setOnClickListener { viewModel.refreshCurrentPath() }
         btnSort.setOnClickListener { showSortDropdown() }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
@@ -728,6 +728,7 @@ class TvBrowseFragment : Fragment() {
                     ModalListRow(
                         key = conn.id,
                         label = "${conn.name}（${conn.config.host}）",
+                        dismissOnClick = true,
                         onClick = { viewModel.switchConnection(conn.id) },
                     )
                 },
@@ -753,6 +754,7 @@ class TvBrowseFragment : Fragment() {
             )
         )
 
+        modalCoordinator.bindTextFieldsToClearCheckbox(dialog, "guest", "username", "password")
         modalCoordinator.bindFormPrimaryAction(
             dialog,
             "name", "host", "share", "path", "username", "password", "guest", "smb1", "saveAsNew",

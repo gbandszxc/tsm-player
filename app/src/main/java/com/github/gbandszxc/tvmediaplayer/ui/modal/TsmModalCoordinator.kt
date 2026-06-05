@@ -2,6 +2,8 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 
 import android.app.Activity
 import android.app.Dialog
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -62,6 +64,8 @@ class TsmModalCoordinator(
         messageView.text = spec.message.orEmpty()
         messageView.visibility = if (spec.message.isNullOrBlank()) View.GONE else View.VISIBLE
 
+        lateinit var dialog: Dialog
+
         // 操作按钮
         val container = content.findViewById<LinearLayout>(R.id.container_modal_content)
         container.removeAllViews()
@@ -70,7 +74,11 @@ class TsmModalCoordinator(
                 .inflate(R.layout.item_tsm_modal_action_row, container, false) as Button
             row.text = action.label
             row.isEnabled = action.isEnabled
-            row.setOnClickListener { action.onClick?.invoke() }
+            row.setOnClickListener {
+                if (!action.isEnabled) return@setOnClickListener
+                action.onClick?.invoke()
+                dialog.dismiss()
+            }
             row.setBackgroundResource(
                 when {
                     action.isDanger -> R.drawable.bg_button_red
@@ -82,7 +90,7 @@ class TsmModalCoordinator(
             container.addView(row)
         }
 
-        return Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
@@ -94,6 +102,7 @@ class TsmModalCoordinator(
             // 自动聚焦第一个操作按钮，方便遥控器立即操作
             container.getChildAt(0)?.requestFocus()
         }
+        return dialog
     }
 
     /**
@@ -306,12 +315,16 @@ class TsmModalCoordinator(
 
         // 列表行
         val listContainer = content.findViewById<LinearLayout>(R.id.container_modal_content)
-        renderListRows(listContainer, spec.rows)
+        lateinit var dialog: Dialog
+        renderListRows(listContainer, spec.rows) { row ->
+            row.onClick?.invoke()
+            if (row.dismissOnClick) dialog.dismiss()
+        }
 
         // 隐藏 actions 容器
         content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
 
-        return Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
@@ -322,6 +335,7 @@ class TsmModalCoordinator(
             show()
             requestListFocus(listContainer, spec.rows)
         }
+        return dialog
     }
 
     /**
@@ -335,7 +349,9 @@ class TsmModalCoordinator(
     ) {
         val contentView = dialog.findViewById<View>(android.R.id.content) ?: return
         val listContainer = contentView.findViewById<LinearLayout>(R.id.container_modal_content) ?: return
-        renderListRows(listContainer, rows)
+        renderListRows(listContainer, rows) { row ->
+            row.onClick?.invoke()
+        }
         requestListFocus(listContainer, rows, focusRowKey)
     }
 
@@ -474,6 +490,32 @@ class TsmModalCoordinator(
     }
 
     /**
+     * 绑定文本字段与复选框的互斥关系。
+     * 当任一文本字段输入了非空内容时，自动取消指定复选框。
+     */
+    fun bindTextFieldsToClearCheckbox(
+        dialog: Dialog,
+        checkboxKey: String,
+        vararg textFieldKeys: String,
+    ) {
+        val contentView = dialog.findViewById<View>(android.R.id.content) ?: return
+        val checkbox = contentView.findViewWithTag<CheckBox>(checkboxKey) ?: return
+        textFieldKeys.forEach { key ->
+            val field = contentView.findViewWithTag<View>(key) ?: return@forEach
+            val input = field.findViewById<EditText>(R.id.et_modal_field_input) ?: return@forEach
+            input.addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                    if (!s.isNullOrBlank()) {
+                        checkbox.isChecked = false
+                    }
+                }
+                override fun afterTextChanged(s: Editable?) = Unit
+            })
+        }
+    }
+
+    /**
      * 创建 Modal 操作按钮。
      * 使用 [TsmModalActionButton] 样式并设置样式和点击事件。
      */
@@ -502,6 +544,7 @@ class TsmModalCoordinator(
     private fun renderListRows(
         container: LinearLayout,
         rows: List<ModalListRow>,
+        onRowClick: (ModalListRow) -> Unit,
     ) {
         container.removeAllViews()
         rows.forEach { row ->
@@ -514,7 +557,7 @@ class TsmModalCoordinator(
             rowView.isEnabled = row.enabled
 
             rowView.setOnClickListener {
-                if (row.enabled) row.onClick?.invoke()
+                if (row.enabled) onRowClick(row)
             }
 
             container.addView(rowView)

@@ -6,6 +6,7 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -116,6 +117,31 @@ class TsmModalCoordinatorTest {
         val sectionView = dialog.findViewById<TextView>(R.id.tv_modal_section)
         assertNotNull(sectionView)
         assertEquals("文件操作", sectionView?.text.toString())
+    }
+
+    @Test
+    fun `showActionModal dismisses after action click so stale manager does not remain`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+        var clicked = false
+
+        val dialog = coordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "SMB",
+                title = "连接管理",
+                actions = listOf(
+                    ModalAction("新建连接") { clicked = true },
+                ),
+            )
+        )
+
+        val container = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        container.getChildAt(0).performClick()
+
+        assertTrue(clicked)
+        assertFalse("Action modal should close after an action is accepted", dialog.isShowing)
     }
 
     // ─── FormModal 测试 ───
@@ -244,6 +270,38 @@ class TsmModalCoordinatorTest {
             "Footer actions should stay visible within the dialog viewport",
             actionsContainer!!.bottom <= contentView.height,
         )
+    }
+
+    @Test
+    fun `text input can auto clear checked guest checkbox when credentials are entered`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "SMB",
+                title = "SMB 连接配置",
+                fields = listOf(
+                    FormFieldSpec("username", "用户名", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("password", "密码", "", "可留空", InputType.TYPE_CLASS_TEXT),
+                    FormFieldSpec("guest", "访客 / 匿名", "true", "", 0, FormFieldSpecType.CHECKBOX),
+                ),
+                primaryAction = ModalAction("保存并连接", isPrimary = true),
+            )
+        )
+        coordinator.bindTextFieldsToClearCheckbox(dialog, "guest", "username", "password")
+
+        val contentView = dialog.findViewById<View>(android.R.id.content)
+        val guest = contentView.findViewWithTag<CheckBox>("guest")
+        assertTrue(guest.isChecked)
+
+        contentView.findViewWithTag<View>("username")
+            .findViewById<EditText>(R.id.et_modal_field_input)
+            .setText("alice")
+
+        assertFalse("Entering a username should switch off guest access", guest.isChecked)
     }
 
     @Test
@@ -381,6 +439,31 @@ class TsmModalCoordinatorTest {
         assertEquals("conn_1", firstRow.tag)
         val firstLabel = firstRow.findViewById<TextView>(R.id.tv_modal_row_label)
         assertEquals("客厅 NAS", firstLabel.text.toString())
+    }
+
+    @Test
+    fun `showListModal dismisses after enabled row click so switch feedback is immediate`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+        var selectedKey: String? = null
+
+        val dialog = coordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "SMB",
+                title = "切换连接",
+                rows = listOf(
+                    ModalListRow(key = "conn_1", label = "客厅 NAS", dismissOnClick = true) { selectedKey = "conn_1" },
+                ),
+            )
+        )
+
+        val container = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        container.getChildAt(0).performClick()
+
+        assertEquals("conn_1", selectedKey)
+        assertFalse("List modal should close after selecting a row", dialog.isShowing)
     }
 
     @Test

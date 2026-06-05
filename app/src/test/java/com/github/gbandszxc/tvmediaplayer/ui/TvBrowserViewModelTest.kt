@@ -6,6 +6,8 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
+import com.github.gbandszxc.tvmediaplayer.domain.model.SmbFailure
+import com.github.gbandszxc.tvmediaplayer.domain.model.SmbRepositoryException
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +58,39 @@ class TvBrowserViewModelTest {
 
         assertEquals("Music/Albums", viewModel.state.value.currentPath)
         assertEquals(listOf("Music/Albums"), repository.requestedPaths)
+    }
+
+    @Test
+    fun `connection failure retries three times then locks automatic loads until manual refresh`() = runTest(dispatcher) {
+        val config = sampleConfig(path = "Music")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = "Music"
+            )
+        )
+        val repository = FakeSmbRepository(
+            failure = SmbRepositoryException(SmbFailure.HOST_UNREACHABLE)
+        )
+
+        val viewModel = TvBrowserViewModel(repository, store)
+        advanceUntilIdle()
+
+        assertEquals(listOf("Music", "Music", "Music"), repository.requestedPaths)
+        assertEquals("服务器不可达，请检查网络或主机地址", viewModel.state.value.error)
+        assertEquals("SMB 连接失败：服务器不可达，请检查网络或主机地址", viewModel.state.value.toast)
+
+        viewModel.loadCurrentPath()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Music", "Music", "Music"), repository.requestedPaths)
+
+        viewModel.refreshCurrentPath()
+        advanceUntilIdle()
+
+        assertEquals(listOf("Music", "Music", "Music", "Music", "Music", "Music"), repository.requestedPaths)
     }
 
     @Test
@@ -604,12 +639,14 @@ class TvBrowserViewModelTest {
         )
 
     private class FakeSmbRepository(
-        private val entriesByPath: Map<String, List<SmbEntry>> = emptyMap()
+        private val entriesByPath: Map<String, List<SmbEntry>> = emptyMap(),
+        private val failure: Throwable? = null
     ) : SmbRepository {
         val requestedPaths = mutableListOf<String>()
 
         override suspend fun list(config: SmbConfig, path: String): List<SmbEntry> {
             requestedPaths += path
+            failure?.let { throw it }
             return entriesByPath[path].orEmpty()
         }
     }

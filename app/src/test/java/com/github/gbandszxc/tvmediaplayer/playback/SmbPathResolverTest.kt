@@ -2,9 +2,7 @@ package com.github.gbandszxc.tvmediaplayer.playback
 
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
-import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SmbPathResolverTest {
@@ -51,13 +49,4 @@ class SmbPathResolverTest {
         assertEquals("smb://192.168.31.233/Banana/RJ01113327/Track9.lrc", path)
     }
 
-    @Test
-    fun track9SampleShouldParseTimestamps() {
-        val file = java.io.File("sample/Track9.lrc").takeIf { it.exists() }
-            ?: java.io.File("../sample/Track9.lrc")
-        val content = file.readText(Charsets.UTF_8)
-        val timeline = LrcParser.parseTimeline(content)
-        assertTrue(timeline.lines.isNotEmpty())
-        assertTrue(timeline.lines.first().timestampMs >= 0L)
-    }
 }

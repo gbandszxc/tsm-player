@@ -2,7 +2,6 @@
 
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
-import com.github.gbandszxc.tvmediaplayer.domain.model.SmbFailure
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
 import java.util.Properties
 import jcifs.CIFSContext
@@ -25,7 +24,7 @@ class JcifsSmbRepository : SmbRepository {
         val context = buildContext(config)
         val directory = SmbFile(target.url, context)
 
-        listWithRetry(directory)
+        directory.listFiles()
             .orEmpty()
             .sortedBy { it.name.lowercase() }
             .mapNotNull { file -> mapToEntry(file, target.pathPrefix) }
@@ -50,18 +49,6 @@ class JcifsSmbRepository : SmbRepository {
         val base = "smb://$host/$dynamicShare".trimEnd('/')
         val url = if (subPath.isBlank()) "$base/" else "$base/$subPath/"
         return TargetLocation(url = url, pathPrefix = currentPath)
-    }
-
-    private fun listWithRetry(directory: SmbFile): Array<SmbFile>? {
-        val first = runCatching { directory.listFiles() }
-        if (first.isSuccess) return first.getOrThrow()
-
-        val firstError = first.exceptionOrNull() ?: return first.getOrNull()
-        val failure = SmbFailureMapper.map(firstError)
-        val retryable = failure == SmbFailure.TIMEOUT || failure == SmbFailure.HOST_UNREACHABLE
-        if (!retryable) throw firstError
-
-        return runCatching { directory.listFiles() }.getOrElse { throw it }
     }
 
     private fun mapToEntry(file: SmbFile, currentPath: String): SmbEntry? {
