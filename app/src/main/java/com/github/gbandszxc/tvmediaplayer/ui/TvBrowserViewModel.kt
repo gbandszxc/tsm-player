@@ -61,6 +61,7 @@ class TvBrowserViewModel(
     private var lastPersistedAnchor: AnchorFingerprint? = null
     private var lockedConnectionKey: String? = null
     private var loadGeneration: Long = 0L
+    private var pendingLocateMediaId: String? = null
 
     init {
         viewModelScope.launch {
@@ -179,8 +180,21 @@ class TvBrowserViewModel(
                 val sorted = sortEntries(list, currentSortOption)
                 val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
                 val anchor = configStore.loadBrowseAnchor(anchorConnectionId, snapshot.currentPath)
-                val restore = resolveAnchorRestore(anchor, sorted)
-                lastPersistedAnchor = anchor
+                val locatedIndex = pendingLocateMediaId?.let { mediaId ->
+                    sorted.indexOfFirst { it.fullPath == mediaId }.takeIf { it >= 0 }
+                }
+                val locatedEntry = locatedIndex?.let(sorted::getOrNull)
+                val restore = locatedIndex
+                    ?.let { AnchorRestoreResult(index = it, message = null) }
+                    ?: resolveAnchorRestore(anchor, sorted)
+                lastPersistedAnchor = locatedEntry?.let {
+                    AnchorFingerprint(
+                        connectionId = anchorConnectionId,
+                        directoryPath = snapshot.currentPath,
+                        itemKey = it.fullPath,
+                        index = locatedIndex
+                    )
+                } ?: anchor
                     ?.takeIf { restore.index != null }
                     ?.let {
                         AnchorFingerprint(
@@ -190,6 +204,7 @@ class TvBrowserViewModel(
                             index = restore.index ?: return@let null
                         )
                     }
+                pendingLocateMediaId = null
                 _state.update {
                     it.copy(
                         entries = sorted,
@@ -198,6 +213,17 @@ class TvBrowserViewModel(
                         inlineMessage = restore.message,
                         fastLocate = null,
                         isFastLocateMode = false
+                    )
+                }
+                locatedEntry?.let { entry ->
+                    configStore.saveBrowseAnchor(
+                        connectionId = anchorConnectionId,
+                        directoryPath = snapshot.currentPath,
+                        anchor = BrowseFocusAnchor(
+                            itemKey = entry.fullPath,
+                            index = locatedIndex,
+                            updatedAt = System.currentTimeMillis()
+                        )
                     )
                 }
                 if (lockedConnectionKey == connectionKey) {
@@ -268,6 +294,7 @@ class TvBrowserViewModel(
             _state.update { it.copy(toast = "无法定位当前播放目录") }
             return
         }
+        pendingLocateMediaId = target.mediaId?.let(PlaybackLocationResolver::normalizePath)
 
         val stateSnapshot = _state.value
         if (isCurrentConnectionTarget(stateSnapshot, target)) {

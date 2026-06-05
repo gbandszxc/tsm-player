@@ -332,12 +332,13 @@ class TvBrowserViewModelTest {
     }
 
     @Test
-    fun `locate playback directory falls back to nearest available index when stored anchor item is missing`() = runTest(dispatcher) {
+    fun `locate playback directory focuses current media instead of stored directory anchor`() = runTest(dispatcher) {
         val config = sampleConfig(path = "Music")
         val browsePath = "Music/Albums"
         val entries = listOf(
             SmbEntry(name = "Track 01", fullPath = "Music/Albums/Track 01.flac", isDirectory = false),
-            SmbEntry(name = "Track 02", fullPath = "Music/Albums/Track 02.flac", isDirectory = false)
+            SmbEntry(name = "Track 02", fullPath = "Music/Albums/Track 02.flac", isDirectory = false),
+            SmbEntry(name = "Track 03", fullPath = "Music/Albums/Track 03.flac", isDirectory = false)
         )
         val store = FakeBrowserConfigStore(
             state = SmbConfigStoreState(
@@ -348,8 +349,8 @@ class TvBrowserViewModelTest {
             ),
             anchors = mutableMapOf(
                 ("conn-1" to browsePath) to BrowseFocusAnchor(
-                    itemKey = "Music/Albums/Track 99.flac",
-                    index = 1,
+                    itemKey = "Music/Albums/Track 01.flac",
+                    index = 0,
                     updatedAt = 10L
                 )
             )
@@ -365,7 +366,7 @@ class TvBrowserViewModelTest {
 
         viewModel.locateToPlaybackDirectory(
             PlaybackLocationResolver.Target(
-                mediaId = "Music/Albums/Track 02.flac",
+                mediaId = "Music/Albums/Track 03.flac",
                 directoryPath = browsePath,
                 sourceConnectionId = "conn-1",
                 sourceConfig = config
@@ -374,8 +375,12 @@ class TvBrowserViewModelTest {
         advanceUntilIdle()
 
         assertEquals(browsePath, viewModel.state.value.currentPath)
-        assertEquals(1, viewModel.state.value.restoredFocusIndex)
-        assertEquals("目录内容已变化，已回到开头", viewModel.state.value.inlineMessage)
+        assertEquals(2, viewModel.state.value.restoredFocusIndex)
+        assertNull(viewModel.state.value.inlineMessage)
+        val saved = store.savedAnchors.lastOrNull()
+        assertEquals("conn-1" to browsePath, saved?.first)
+        assertEquals("Music/Albums/Track 03.flac", saved?.second?.itemKey)
+        assertEquals(2, saved?.second?.index)
     }
 
     @Test
