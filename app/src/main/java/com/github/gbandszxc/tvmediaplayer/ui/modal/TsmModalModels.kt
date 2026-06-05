@@ -74,6 +74,7 @@ data class FormFieldSpec(
  * @param sectionLabel    左上角分区标签
  * @param title           标题
  * @param fields          表单字段列表
+ * @param leadingAction   左侧辅助操作按钮（如"测试连接"），显示在主操作左侧
  * @param primaryAction   主操作按钮（如"创建"）
  * @param secondaryAction 次要操作按钮（如"取消"），null 则不显示
  */
@@ -81,6 +82,7 @@ data class FormModalSpec(
     val sectionLabel: String,
     val title: String,
     val fields: List<FormFieldSpec>,
+    val leadingAction: ModalAction? = null,
     val primaryAction: ModalAction,
     val secondaryAction: ModalAction? = null,
 )

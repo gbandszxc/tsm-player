@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.app.Activity
+import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -10,6 +11,7 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.widget.ImageView
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -244,20 +246,20 @@ class SettingsActivity : BaseActivity() {
                         SettingsItem(title = "WebDAV", isGroupHeader = true),
                         SettingsItem(
                             title = "WebDAV 配置",
-                            descriptionProvider = { "配置服务器地址、账号和远端目录；仅用于手动上传/下载" },
+                            descriptionProvider = { "配置 WebDAV 目录 URL、用户名和密码；仅用于手动上传/下载" },
                             valueProvider = { if (webDavConfig.isReady()) "已配置" else "未配置" },
                             action = { showWebDavConfigDialog() }
                         ),
                         SettingsItem(
                             title = "上传到 WebDAV",
-                            descriptionProvider = { "先导出当前应用数据库，再全量上传到配置的 WebDAV 目录" },
-                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.remoteDirectory else "请先配置" },
+                            descriptionProvider = { "先导出当前应用数据库，再全量上传到配置的 WebDAV URL" },
+                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else "请先配置" },
                             action = { uploadWebDavBackup() }
                         ),
                         SettingsItem(
                             title = "从 WebDAV 下载并恢复",
                             descriptionProvider = { "从 WebDAV 下载备份并覆盖当前应用数据库，不会自动同步" },
-                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.remoteDirectory else "请先配置" },
+                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else "请先配置" },
                             action = { confirmDownloadWebDavBackup() }
                         )
                     )
@@ -621,16 +623,17 @@ class SettingsActivity : BaseActivity() {
     private fun showWebDavConfigDialog() {
         val store = WebDavConfigStore(this)
         val current = store.load()
-        val dialog = modalCoordinator.showFormModal(
+        lateinit var dialog: Dialog
+        dialog = modalCoordinator.showFormModal(
             FormModalSpec(
                 sectionLabel = "备份恢复",
                 title = "WebDAV 配置",
                 fields = listOf(
                     FormFieldSpec(
-                        key = "serverUrl",
-                        label = "服务器地址",
-                        initialValue = current.serverUrl,
-                        hint = "https://example.com/remote.php/dav/files/user",
+                        key = "url",
+                        label = "WebDAV URL",
+                        initialValue = current.url,
+                        hint = "https://example.com/remote.php/dav/files/user/backups",
                         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
                     ),
                     FormFieldSpec(
@@ -646,30 +649,23 @@ class SettingsActivity : BaseActivity() {
                         initialValue = current.password,
                         hint = "可留空",
                         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-                    ),
-                    FormFieldSpec(
-                        key = "remoteDirectory",
-                        label = "远端目录",
-                        initialValue = current.remoteDirectory.ifBlank { WebDavConfigStore.DEFAULT_REMOTE_DIRECTORY },
-                        hint = WebDavConfigStore.DEFAULT_REMOTE_DIRECTORY,
-                        inputType = InputType.TYPE_CLASS_TEXT
                     )
                 ),
+                leadingAction = ModalAction("测试连接") {
+                    testWebDavConnectionFromDialog(dialog)
+                },
                 primaryAction = ModalAction("保存", isPrimary = true),
                 secondaryAction = ModalAction("取消")
             )
         )
-        modalCoordinator.bindFormPrimaryAction(dialog, "serverUrl", "username", "password", "remoteDirectory") { values ->
+        modalCoordinator.bindFormPrimaryAction(dialog, "url", "username", "password") { values ->
             val config = WebDavConfig(
-                serverUrl = values["serverUrl"].orEmpty(),
+                url = values["url"].orEmpty(),
                 username = values["username"].orEmpty(),
-                password = values["password"].orEmpty(),
-                remoteDirectory = values["remoteDirectory"].orEmpty()
-                    .ifBlank { WebDavConfigStore.DEFAULT_REMOTE_DIRECTORY }
+                password = values["password"].orEmpty()
             )
             if (!config.isReady()) {
-                modalCoordinator.updateFieldError(dialog, "serverUrl", "请填写服务器地址")
-                modalCoordinator.updateFieldError(dialog, "remoteDirectory", "请填写远端目录")
+                modalCoordinator.updateFieldError(dialog, "url", "请填写 WebDAV URL")
                 return@bindFormPrimaryAction false
             }
             store.save(config)
@@ -677,6 +673,33 @@ class SettingsActivity : BaseActivity() {
             rebuildCurrentCategory(moveFocusToDetail = false)
             true
         }
+    }
+
+    private fun testWebDavConnectionFromDialog(dialog: Dialog) {
+        val config = WebDavConfig(
+            url = dialog.formValue("url"),
+            username = dialog.formValue("username"),
+            password = dialog.formValue("password")
+        )
+        if (!config.isReady()) {
+            modalCoordinator.updateFieldError(dialog, "url", "请填写 WebDAV URL")
+            Toast.makeText(this, "请先配置 WebDAV URL", Toast.LENGTH_SHORT).show()
+            return
+        }
+        modalCoordinator.updateFieldError(dialog, "url", null)
+        Toast.makeText(this, "正在测试 WebDAV 连接...", Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                WebDavBackupClient().testConnection(config)
+            }
+            Toast.makeText(this@SettingsActivity, result.message, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun Dialog.formValue(key: String): String {
+        val contentView = findViewById<View>(android.R.id.content) ?: return ""
+        val field = contentView.findViewWithTag<View>(key) ?: return ""
+        return field.findViewById<EditText>(R.id.et_modal_field_input)?.text?.toString().orEmpty()
     }
 
     private fun uploadWebDavBackup() {
@@ -692,7 +715,7 @@ class SettingsActivity : BaseActivity() {
                 title = "上传备份",
                 fileName = backupManager.localBackupFile().name,
                 initialState = DownloadProgressState(0L, 1L, 0L),
-                message = "正在全量上传当前 SQLite 备份。"
+                message = "正在全量上传当前应用数据库备份。"
             )
         )
         lifecycleScope.launch {

@@ -199,6 +199,34 @@ class TsmModalCoordinatorTest {
     }
 
     @Test
+    fun `showFormModal places leading action before primary and secondary actions`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showFormModal(
+            FormModalSpec(
+                sectionLabel = "备份恢复",
+                title = "WebDAV 配置",
+                fields = listOf(
+                    FormFieldSpec("url", "WebDAV URL", "", "", InputType.TYPE_CLASS_TEXT),
+                ),
+                leadingAction = ModalAction("测试连接"),
+                primaryAction = ModalAction("保存", isPrimary = true),
+                secondaryAction = ModalAction("取消"),
+            )
+        )
+
+        val actionsContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_actions)
+
+        assertEquals(3, actionsContainer.childCount)
+        assertEquals("测试连接", (actionsContainer.getChildAt(0) as Button).text.toString())
+        assertEquals("保存", (actionsContainer.getChildAt(1) as Button).text.toString())
+        assertEquals("取消", (actionsContainer.getChildAt(2) as Button).text.toString())
+    }
+
+    @Test
     fun `computeFormPanelLayout constrains tall content into scroll area`() {
         val result = TsmModalCoordinator.computeFormPanelLayoutForTest(
             panelMeasuredHeight = 980,

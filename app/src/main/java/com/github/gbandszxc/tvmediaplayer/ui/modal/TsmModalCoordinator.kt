@@ -177,6 +177,12 @@ class TsmModalCoordinator(
         actionsContainer.visibility = View.VISIBLE
         actionsContainer.removeAllViews()
 
+        spec.leadingAction?.let { leading ->
+            val leadingBtn = createActionButton(leading)
+            leadingBtn.tag = TAG_ACTION_LEADING
+            actionsContainer.addView(leadingBtn)
+        }
+
         // 主操作按钮
         val primaryBtn = createActionButton(spec.primaryAction)
         primaryBtn.tag = TAG_ACTION_PRIMARY
@@ -198,6 +204,12 @@ class TsmModalCoordinator(
                 lastFocusedView?.requestFocus()
             }
             show()
+
+            spec.leadingAction?.let { leading ->
+                actionsContainer.findViewWithTag<Button>(TAG_ACTION_LEADING)?.setOnClickListener {
+                    leading.onClick?.invoke()
+                }
+            }
 
             // 次要按钮点击后自动关闭
             spec.secondaryAction?.let { sec ->
@@ -646,5 +658,6 @@ class TsmModalCoordinator(
 
         internal const val TAG_ACTION_PRIMARY = "action_primary"
         internal const val TAG_ACTION_SECONDARY = "action_secondary"
+        internal const val TAG_ACTION_LEADING = "action_leading"
     }
 }
