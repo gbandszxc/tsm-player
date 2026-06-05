@@ -95,6 +95,45 @@ class TvBrowseFragmentLayoutTest {
         assertNotNull(leftIcon.colorFilter)
     }
 
+    @Test
+    fun `browser playback button renderer uses compact expanded width for short labels`() {
+        val context = RuntimeEnvironment.getApplication()
+        val shortButton = Button(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        val longButton = Button(context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+
+        BrowserPlaybackButtonRenderer.apply(
+            context = context,
+            button = shortButton,
+            spec = PlaybackButtonPresentation.browserHistory(focused = true),
+            hasFocus = true,
+        )
+        BrowserPlaybackButtonRenderer.apply(
+            context = context,
+            button = longButton,
+            spec = PlaybackButtonPresentation.browserPlayOrder(focused = true),
+            hasFocus = true,
+        )
+
+        assertEquals(
+            context.resources.getDimensionPixelSize(R.dimen.ui_playback_favorite_button_expanded_min_width),
+            shortButton.layoutParams.width,
+        )
+        assertEquals(
+            context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width),
+            longButton.layoutParams.width,
+        )
+    }
+
     private fun isDescendantOf(parent: ViewParent?, ancestor: View): Boolean {
         var current = parent
         while (current != null) {

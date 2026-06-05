@@ -206,17 +206,26 @@ class TvBrowseFragment : Fragment() {
 
     private fun updateBrowserPlaybackButtonPresentation() {
         applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(btnFavorites.hasFocus()))
-        applyBrowserButtonSpec(btnHistory, PlaybackButtonPresentation.browserHistory(btnHistory.hasFocus()))
+        applyBrowserButtonSpec(
+            button = btnHistory,
+            spec = PlaybackButtonPresentation.browserHistory(btnHistory.hasFocus()),
+            iconColorResId = R.color.ui_text_warning_dark,
+        )
         applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(btnPlayAll.hasFocus()))
         applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(btnPlayShuffle.hasFocus()))
     }
 
-    private fun applyBrowserButtonSpec(button: Button, spec: PlaybackButtonSpec) {
+    private fun applyBrowserButtonSpec(
+        button: Button,
+        spec: PlaybackButtonSpec,
+        iconColorResId: Int = R.color.ui_text_on_accent,
+    ) {
         BrowserPlaybackButtonRenderer.apply(
             context = requireContext(),
             button = button,
             spec = spec,
             hasFocus = button.hasFocus(),
+            iconColorResId = iconColorResId,
         )
     }
 

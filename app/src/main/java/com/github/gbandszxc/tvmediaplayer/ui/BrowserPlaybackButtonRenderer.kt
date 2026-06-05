@@ -16,6 +16,7 @@ internal object BrowserPlaybackButtonRenderer {
         button: Button,
         spec: PlaybackButtonSpec,
         hasFocus: Boolean,
+        iconColorResId: Int = R.color.ui_text_on_accent,
     ) {
         button.text = spec.text
         button.contentDescription = spec.contentDescription
@@ -23,7 +24,7 @@ internal object BrowserPlaybackButtonRenderer {
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
         val wrapped = icon?.let(DrawableCompat::wrap)
         if (wrapped != null) {
-            val iconColor = ContextCompat.getColor(context, R.color.ui_text_on_accent)
+            val iconColor = ContextCompat.getColor(context, iconColorResId)
             DrawableCompat.setTint(wrapped, iconColor)
             wrapped.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
                 iconColor,
@@ -32,11 +33,7 @@ internal object BrowserPlaybackButtonRenderer {
             wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
         }
 
-        val width = if (hasFocus) {
-            context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width)
-        } else {
-            context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
-        }
+        val width = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
         button.minWidth = width
         button.layoutParams = button.layoutParams.apply { this.width = width }
 
@@ -63,4 +60,15 @@ internal object BrowserPlaybackButtonRenderer {
         icon.setBounds(left, top, left + iconWidth, top + iconHeight)
         button.overlay.add(icon)
     }
+
+    private fun expandedWidthResId(spec: PlaybackButtonSpec, hasFocus: Boolean): Int {
+        if (!hasFocus) return R.dimen.ui_playback_mode_button_collapsed_width
+        return if (spec.contentDescription.length <= SHORT_LABEL_MAX_LENGTH) {
+            R.dimen.ui_playback_favorite_button_expanded_min_width
+        } else {
+            R.dimen.ui_playback_mode_button_expanded_min_width
+        }
+    }
+
+    private const val SHORT_LABEL_MAX_LENGTH = 2
 }
