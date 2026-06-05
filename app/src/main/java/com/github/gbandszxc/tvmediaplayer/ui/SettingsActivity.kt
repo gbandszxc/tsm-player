@@ -1,5 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -61,6 +63,7 @@ class SettingsActivity : BaseActivity() {
     private var selectedCategoryIndex = 0
     private val categoryViews = mutableListOf<View>()
     private val modalCoordinator by lazy { TsmModalCoordinator(this) }
+    private var pendingImportUri: Uri? = null
 
     private val categories by lazy {
         listOf(
@@ -224,20 +227,19 @@ class SettingsActivity : BaseActivity() {
             SettingsCategory(
                 title = "备份恢复",
                 itemsProvider = {
-                    val backupManager = SqliteBackupManager(this)
                     val webDavConfig = WebDavConfigStore(this).load()
                     listOf(
                         SettingsItem(
                             title = "导出本地备份",
-                            descriptionProvider = { "将当前应用持久化数据库全量导出到应用备份目录" },
-                            valueProvider = { formatFileSize(backupManager.localBackupFile()) },
-                            action = { exportLocalBackup() }
+                            descriptionProvider = { "将当前应用持久化数据库全量导出到你选择的位置" },
+                            valueProvider = { "选择保存位置" },
+                            action = { launchExportBackupPicker() }
                         ),
                         SettingsItem(
                             title = "导入本地备份",
-                            descriptionProvider = { "从应用备份目录恢复应用持久化数据库，会覆盖当前配置与收藏数据" },
-                            valueProvider = { formatFileSize(backupManager.localBackupFile()) },
-                            action = { confirmImportLocalBackup() }
+                            descriptionProvider = { "从你选择的备份文件恢复应用持久化数据库，会覆盖当前配置与收藏数据" },
+                            valueProvider = { "选择备份文件" },
+                            action = { launchImportBackupPicker() }
                         ),
                         SettingsItem(title = "WebDAV", isGroupHeader = true),
                         SettingsItem(
@@ -533,42 +535,83 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun exportLocalBackup() {
+    private fun launchExportBackupPicker() {
+        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/octet-stream"
+            putExtra(Intent.EXTRA_TITLE, FavoritesDbHelper.DB_NAME)
+        }
+        try {
+            startActivityForResult(intent, REQUEST_EXPORT_BACKUP)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "当前设备没有可用的文件保存器", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun launchImportBackupPicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        try {
+            startActivityForResult(intent, REQUEST_IMPORT_BACKUP)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "当前设备没有可用的文件选择器", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun exportLocalBackup(uri: Uri) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                SqliteBackupManager(applicationContext).exportToLocalBackup()
+                val output = contentResolver.openOutputStream(uri)
+                    ?: return@withContext com.github.gbandszxc.tvmediaplayer.backup.BackupOperationResult(
+                        BackupOperationStatus.FAILED,
+                        File(FavoritesDbHelper.DB_NAME),
+                        "无法打开目标文件"
+                    )
+                SqliteBackupManager(applicationContext).exportToStream(output)
             }
             Toast.makeText(
                 this@SettingsActivity,
-                backupResultToast("本地备份导出", result.status, result.file),
+                backupResultToast("本地备份导出", result.status, result.file, includePath = false),
                 Toast.LENGTH_LONG
             ).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
         }
     }
 
-    private fun confirmImportLocalBackup() {
+    private fun confirmImportLocalBackup(uri: Uri) {
+        pendingImportUri = uri
         modalCoordinator.showConfirmModal(
             ConfirmModalSpec(
                 sectionLabel = "备份恢复",
                 title = "从本地备份恢复？",
                 message = "会用备份文件覆盖当前配置、播放状态与收藏数据。该操作不会修改 SMB 原文件。",
                 confirmAction = ModalAction("恢复", isPrimary = true) {
-                    importLocalBackup()
+                    pendingImportUri?.let { importLocalBackup(it) }
+                    pendingImportUri = null
                 },
-                cancelAction = ModalAction("取消")
+                cancelAction = ModalAction("取消") {
+                    pendingImportUri = null
+                }
             )
         )
     }
 
-    private fun importLocalBackup() {
+    private fun importLocalBackup(uri: Uri) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                SqliteBackupManager(applicationContext).importFromLocalBackup()
+                val input = contentResolver.openInputStream(uri)
+                    ?: return@withContext com.github.gbandszxc.tvmediaplayer.backup.BackupOperationResult(
+                        BackupOperationStatus.FAILED,
+                        File(FavoritesDbHelper.DB_NAME),
+                        "无法打开备份文件"
+                    )
+                SqliteBackupManager(applicationContext).importFromStream(input)
             }
             Toast.makeText(
                 this@SettingsActivity,
-                backupResultToast("本地备份恢复", result.status, result.file),
+                backupResultToast("本地备份恢复", result.status, result.file, includePath = false),
                 Toast.LENGTH_LONG
             ).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
@@ -742,19 +785,18 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
-    private fun backupResultToast(operation: String, status: BackupOperationStatus, file: File): String =
+    private fun backupResultToast(
+        operation: String,
+        status: BackupOperationStatus,
+        file: File,
+        includePath: Boolean = true,
+    ): String =
         when (status) {
-            BackupOperationStatus.SUCCESS -> "${operation}完成：${file.path}"
+            BackupOperationStatus.SUCCESS -> if (includePath) "${operation}完成：${file.path}" else "${operation}完成"
             BackupOperationStatus.MISSING_SOURCE -> "${operation}失败：未找到备份文件"
             BackupOperationStatus.INVALID_SOURCE -> "${operation}失败：备份文件不是有效应用数据库"
             BackupOperationStatus.FAILED -> "${operation}失败"
         }
-
-    private fun formatFileSize(file: File): String {
-        if (!file.exists()) return "无备份"
-        val kb = file.length() / 1024
-        return if (kb < 1024) "${kb.coerceAtLeast(1L)} KB" else "${"%.1f".format(kb / 1024.0)} MB"
-    }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -764,8 +806,24 @@ class SettingsActivity : BaseActivity() {
         return super.onKeyUp(keyCode, event)
     }
 
+    @Deprecated("Deprecated in Android framework; kept for minSdk 21 document picker flow.")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != Activity.RESULT_OK) return
+        val uri = data?.data ?: return
+        when (requestCode) {
+            REQUEST_EXPORT_BACKUP -> exportLocalBackup(uri)
+            REQUEST_IMPORT_BACKUP -> confirmImportLocalBackup(uri)
+        }
+    }
+
     private fun dp(value: Int): Int =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, value.toFloat(), resources.displayMetrics
         ).toInt()
+
+    companion object {
+        private const val REQUEST_EXPORT_BACKUP = 4001
+        private const val REQUEST_IMPORT_BACKUP = 4002
+    }
 }
