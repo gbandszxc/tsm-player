@@ -82,22 +82,28 @@ class PlaybackButtonPresentationTest {
     @Test
     fun browserPlaybackButtonsUseCollapsedIconsAndFocusedText() {
         val collapsedFavorites = PlaybackButtonPresentation.browserFavorites(focused = false)
+        val collapsedHistory = PlaybackButtonPresentation.browserHistory(focused = false)
         val collapsedOrder = PlaybackButtonPresentation.browserPlayOrder(focused = false)
         val collapsedShuffle = PlaybackButtonPresentation.browserPlayShuffle(focused = false)
         val favorites = PlaybackButtonPresentation.browserFavorites(focused = true)
+        val history = PlaybackButtonPresentation.browserHistory(focused = true)
         val order = PlaybackButtonPresentation.browserPlayOrder(focused = true)
         val shuffle = PlaybackButtonPresentation.browserPlayShuffle(focused = true)
 
         assertEquals("", collapsedFavorites.text)
+        assertEquals("", collapsedHistory.text)
         assertEquals("", collapsedOrder.text)
         assertEquals("", collapsedShuffle.text)
         assertEquals("收藏", collapsedFavorites.contentDescription)
+        assertEquals("历史", collapsedHistory.contentDescription)
         assertEquals("顺序播放", collapsedOrder.contentDescription)
         assertEquals("随机播放", collapsedShuffle.contentDescription)
         assertEquals("收藏", favorites.text)
+        assertEquals("历史", history.text)
         assertEquals("顺序播放", order.text)
         assertEquals("随机播放", shuffle.text)
         assertEquals(R.drawable.ic_favorite_filled, favorites.iconResId)
+        assertEquals(R.drawable.ic_history, history.iconResId)
         assertEquals(R.drawable.ic_play_order, order.iconResId)
         assertEquals(R.drawable.ic_shuffle, shuffle.iconResId)
     }

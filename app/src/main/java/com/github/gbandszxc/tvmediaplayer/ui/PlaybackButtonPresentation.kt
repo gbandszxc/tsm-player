@@ -68,6 +68,14 @@ object PlaybackButtonPresentation {
         )
     }
 
+    fun browserHistory(focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = "历史",
+            iconResId = R.drawable.ic_history,
+            focused = focused,
+        )
+    }
+
     fun browserPlayOrder(focused: Boolean): PlaybackButtonSpec {
         return expandable(
             label = "顺序播放",

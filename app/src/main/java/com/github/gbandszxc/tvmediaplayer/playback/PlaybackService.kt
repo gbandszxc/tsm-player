@@ -10,6 +10,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.github.gbandszxc.tvmediaplayer.history.PlayHistoryRepository
+import com.github.gbandszxc.tvmediaplayer.history.PlayHistoryTrackFactory
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepAppExitController
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
@@ -33,6 +35,7 @@ class PlaybackService : MediaSessionService() {
     private var sleepTimerJob: Job? = null
     private lateinit var sleepTimerManager: SleepTimerManager
     private lateinit var sleepDeviceController: SleepDeviceController
+    private val playHistoryRepository by lazy { PlayHistoryRepository(applicationContext) }
 
     /**
      * 监听歌曲切换事件，在服务侧（player 状态永远最新）立即保存快照。
@@ -41,6 +44,7 @@ class PlaybackService : MediaSessionService() {
     private val snapshotListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             saveSnapshotFromPlayer()
+            recordHistory(mediaItem)
         }
     }
 
@@ -105,6 +109,20 @@ class PlaybackService : MediaSessionService() {
                 sourceConfig = sourceConfig
             )
         )
+    }
+
+    private fun recordHistory(mediaItem: MediaItem?) {
+        mediaItem ?: return
+        serviceScope.launch(Dispatchers.IO) {
+            runCatching {
+                playHistoryRepository.record(
+                    PlayHistoryTrackFactory.fromMediaItem(
+                        mediaItem = mediaItem,
+                        sourceConfig = PlaybackConfigStore.current(),
+                    )
+                )
+            }
+        }
     }
 
     private fun startSleepTimerChecker() {

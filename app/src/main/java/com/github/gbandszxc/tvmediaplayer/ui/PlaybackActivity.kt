@@ -49,6 +49,8 @@ import com.github.gbandszxc.tvmediaplayer.favorites.FavoritePlaylist
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrack
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoriteTrackIdentity
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesRepository
+import com.github.gbandszxc.tvmediaplayer.history.PlayHistoryRepository
+import com.github.gbandszxc.tvmediaplayer.history.PlayHistoryTrackFactory
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcTimeline
 import com.github.gbandszxc.tvmediaplayer.lyrics.SmbLyricsRepository
@@ -129,6 +131,7 @@ class PlaybackActivity : BaseActivity() {
     private val playbackSeekController = PlaybackSeekController()
     private val lyricsRepository = SmbLyricsRepository()
     private val favoritesRepository by lazy { FavoritesRepository(applicationContext) }
+    private val playHistoryRepository by lazy { PlayHistoryRepository(applicationContext) }
     private lateinit var configStore: SmbConfigStore
 
     private var currentTimeline: LrcTimeline? = null
@@ -1319,8 +1322,25 @@ class PlaybackActivity : BaseActivity() {
             if (currentTagKey != key) return@launch
             if (info != null) {
                 trackInfoStore.remember(key, info)
+                updateHistoryTagInfo(mediaItem, config, info)
                 renderTrackInfo(player)
             }
+        }
+    }
+
+    private fun updateHistoryTagInfo(
+        mediaItem: MediaItem,
+        config: SmbConfig,
+        info: PlaybackTrackInfo,
+    ) {
+        val base = PlayHistoryTrackFactory.fromMediaItem(mediaItem, config)
+        val updated = base.copy(
+            title = info.title?.takeIf { it.isNotBlank() } ?: base.title,
+            artist = info.artist?.takeIf { it.isNotBlank() } ?: base.artist,
+            album = info.albumTitle?.takeIf { it.isNotBlank() } ?: base.album,
+        )
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching { playHistoryRepository.record(updated) }
         }
     }
 

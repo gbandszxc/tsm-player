@@ -102,6 +102,18 @@
                         android:textAllCaps="false" />
 
                     <Button
+                        android:id="@+id/btn_history"
+                        style="@style/TsmButtonWarning"
+                        android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/ui_space_lg"
+                        android:drawablePadding="@dimen/ui_space_sm"
+                        android:gravity="center"
+                        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                        android:text=""
+                        android:textAllCaps="false" />
+
+                    <Button
                         android:id="@+id/btn_play_all"
                         style="@style/TsmButtonSuccess"
                         android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"

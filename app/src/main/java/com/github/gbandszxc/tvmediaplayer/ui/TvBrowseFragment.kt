@@ -87,6 +87,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var fastLocateTrack: View
     private lateinit var fastLocateIndicator: View
     private lateinit var btnFavorites: Button
+    private lateinit var btnHistory: Button
     private lateinit var btnPlayAll: Button
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
@@ -157,6 +158,7 @@ class TvBrowseFragment : Fragment() {
         fastLocateTrack = root.findViewById(R.id.view_fast_locate_track)
         fastLocateIndicator = root.findViewById(R.id.view_fast_locate_indicator)
         btnFavorites = root.findViewById(R.id.btn_favorites)
+        btnHistory = root.findViewById(R.id.btn_history)
         btnPlayAll = root.findViewById(R.id.btn_play_all)
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
@@ -175,6 +177,9 @@ class TvBrowseFragment : Fragment() {
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
         }
+        btnHistory.setOnClickListener {
+            startActivity(Intent(requireContext(), HistoryActivity::class.java))
+        }
         btnPlayAll.setOnClickListener { playDirectory(shuffle = false) }
         btnPlayShuffle.setOnClickListener { playDirectory(shuffle = true) }
         btnNowPlaying.setOnClickListener {
@@ -185,6 +190,7 @@ class TvBrowseFragment : Fragment() {
             }
         }
         btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
+        btnHistory.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayShuffle.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
 
@@ -200,6 +206,7 @@ class TvBrowseFragment : Fragment() {
 
     private fun updateBrowserPlaybackButtonPresentation() {
         applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(btnFavorites.hasFocus()))
+        applyBrowserButtonSpec(btnHistory, PlaybackButtonPresentation.browserHistory(btnHistory.hasFocus()))
         applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(btnPlayAll.hasFocus()))
         applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(btnPlayShuffle.hasFocus()))
     }

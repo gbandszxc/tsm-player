@@ -20,6 +20,7 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
         createFavoritesTables(db)
         createAppSettingsTable(db)
         createSmbTables(db)
+        createPlayHistoryTable(db)
         insertDefaultPlaylist(db)
     }
 
@@ -30,6 +31,9 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
         if (oldVersion < 3) {
             createAppSettingsTable(db)
             createSmbTables(db)
+        }
+        if (oldVersion < 4) {
+            createPlayHistoryTable(db)
         }
     }
 
@@ -145,6 +149,44 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY(namespace, directory_path)
             )
+            """.trimIndent()
+        )
+    }
+
+    private fun createPlayHistoryTable(db: SQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS play_history (
+                id TEXT PRIMARY KEY,
+                track_key TEXT NOT NULL UNIQUE,
+                media_id TEXT NOT NULL,
+                stream_uri TEXT NOT NULL,
+                title TEXT NOT NULL,
+                artist TEXT,
+                album TEXT,
+                artwork_uri TEXT,
+                source_connection_id TEXT,
+                source_host TEXT,
+                source_share TEXT,
+                source_path TEXT,
+                source_username TEXT,
+                source_password TEXT,
+                source_guest INTEGER,
+                source_smb1 INTEGER,
+                played_at INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS idx_play_history_played_at
+            ON play_history(played_at DESC)
+            """.trimIndent()
+        )
+        db.execSQL(
+            """
+            CREATE INDEX IF NOT EXISTS idx_play_history_search
+            ON play_history(title, artist, album, media_id)
             """.trimIndent()
         )
     }
@@ -342,7 +384,7 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
     companion object {
         const val DB_NAME = "tsm-player.db"
         const val LEGACY_FAVORITES_DB_NAME = "favorites.db"
-        const val DB_VERSION = 3
+        const val DB_VERSION = 4
         const val DEFAULT_PLAYLIST_NAME = "收藏夹"
     }
 }
