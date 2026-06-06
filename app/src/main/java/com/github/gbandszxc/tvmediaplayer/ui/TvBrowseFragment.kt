@@ -909,6 +909,13 @@ class TvBrowseFragment : Fragment() {
             safetyMargin: Int,
         ): Int = calculateSortDropdownScrollDelta(dropdownBottom, visibleBottom, safetyMargin)
 
+        @VisibleForTesting
+        fun sortDropdownInitialFocusIndexForTest(option: BrowserSortOption): Int =
+            sortDropdownInitialFocusIndex(option)
+
+        private fun sortDropdownInitialFocusIndex(option: BrowserSortOption): Int =
+            BrowserSortOption.entries.indexOf(option).coerceAtLeast(0)
+
         private fun calculateSortDropdownScrollDelta(
             dropdownBottom: Int,
             visibleBottom: Int,
@@ -954,7 +961,7 @@ class TvBrowseFragment : Fragment() {
         sortOutsideDismissView = outsideDismissView
         sortDropdownView = dropdown
 
-        optionsContainer.getChildAt(0)?.requestFocus()
+        optionsContainer.getChildAt(sortDropdownInitialFocusIndex(viewModel.state.value.sortOption))?.requestFocus()
     }
 
     private fun scrollToRevealSortDropdown(dropdown: View) {

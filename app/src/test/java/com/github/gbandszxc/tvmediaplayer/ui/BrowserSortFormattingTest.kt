@@ -50,4 +50,11 @@ class BrowserSortFormattingTest {
             )
         )
     }
+
+    @Test
+    fun `sort dropdown initial focus follows current sort option`() {
+        assertEquals(0, TvBrowseFragment.sortDropdownInitialFocusIndexForTest(BrowserSortOption.NAME_ASC))
+        assertEquals(3, TvBrowseFragment.sortDropdownInitialFocusIndexForTest(BrowserSortOption.SIZE_DESC))
+        assertEquals(5, TvBrowseFragment.sortDropdownInitialFocusIndexForTest(BrowserSortOption.MODIFIED_DESC))
+    }
 }
