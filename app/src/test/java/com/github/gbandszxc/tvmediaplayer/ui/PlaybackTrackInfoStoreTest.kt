@@ -80,4 +80,33 @@ class PlaybackTrackInfoStoreTest {
         assertEquals("YOASOBI", display.artist)
         assertEquals("THE BOOK", display.albumTitle)
     }
+
+    @Test
+    fun `keeps remembered tag info when returning from another screen with empty metadata`() {
+        val store = PlaybackTrackInfoStore()
+        val key = "smb://nas/Music/album/01.flac"
+        store.remember(
+            key,
+            PlaybackTrackInfo(
+                title = "Tag Title",
+                artist = "Tag Artist",
+                albumTitle = "Tag Album"
+            )
+        )
+
+        val display = PlaybackTrackInfoResolver.resolve(
+            store = store,
+            key = key,
+            mediaItemTitle = "",
+            mediaItemArtist = "",
+            mediaItemAlbumTitle = "",
+            playerTitle = "",
+            playerArtist = "",
+            playerAlbumTitle = ""
+        )
+
+        assertEquals("Tag Title", display.title)
+        assertEquals("Tag Artist", display.artist)
+        assertEquals("Tag Album", display.albumTitle)
+    }
 }

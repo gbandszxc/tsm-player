@@ -103,6 +103,8 @@ class PlaybackService : MediaSessionService() {
                 currentIndex = player.currentMediaItemIndex,
                 positionMs = player.currentPosition.coerceAtLeast(0L),
                 title = player.mediaMetadata.title?.toString().orEmpty(),
+                artist = player.mediaMetadata.artist?.toString().orEmpty(),
+                albumTitle = player.mediaMetadata.albumTitle?.toString().orEmpty(),
                 currentMediaId = currentMediaId,
                 currentDirectoryPath = currentDirectoryPath,
                 sourceConnectionId = null,

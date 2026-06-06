@@ -15,6 +15,8 @@ object LastPlaybackStore {
     private const val KEY_INDEX = "current_index"
     private const val KEY_POSITION_MS = "position_ms"
     private const val KEY_TITLE = "current_title"
+    private const val KEY_ARTIST = "current_artist"
+    private const val KEY_ALBUM_TITLE = "current_album_title"
     private const val KEY_CURRENT_MEDIA_ID = "current_media_id"
     private const val KEY_CURRENT_DIRECTORY_PATH = "current_directory_path"
     private const val KEY_SOURCE_CONNECTION_ID = "source_connection_id"
@@ -32,6 +34,8 @@ object LastPlaybackStore {
         val currentIndex: Int,
         val positionMs: Long,
         val title: String,
+        val artist: String = "",
+        val albumTitle: String = "",
         val currentMediaId: String? = null,
         val currentDirectoryPath: String? = null,
         val sourceConnectionId: String? = null,
@@ -44,6 +48,8 @@ object LastPlaybackStore {
                 currentIndex: Int,
                 positionMs: Long,
                 title: String,
+                artist: String = "",
+                albumTitle: String = "",
                 currentMediaId: String?,
                 currentDirectoryPath: String?,
                 sourceConnectionId: String?,
@@ -59,6 +65,8 @@ object LastPlaybackStore {
                     currentIndex = currentIndex,
                     positionMs = positionMs,
                     title = title,
+                    artist = artist,
+                    albumTitle = albumTitle,
                     currentMediaId = resolvedMediaId,
                     currentDirectoryPath = resolvedDirectory,
                     sourceConnectionId = normalizedConnectionId,
@@ -105,6 +113,8 @@ object LastPlaybackStore {
         db.putInt(dbKey(KEY_INDEX), snapshot.currentIndex)
         db.putLong(dbKey(KEY_POSITION_MS), snapshot.positionMs)
         db.putString(dbKey(KEY_TITLE), snapshot.title)
+        db.putString(dbKey(KEY_ARTIST), snapshot.artist)
+        db.putString(dbKey(KEY_ALBUM_TITLE), snapshot.albumTitle)
         putNullable(db, dbKey(KEY_CURRENT_MEDIA_ID), snapshot.currentMediaId)
         putNullable(db, dbKey(KEY_CURRENT_DIRECTORY_PATH), snapshot.currentDirectoryPath)
         putNullable(db, dbKey(KEY_SOURCE_CONNECTION_ID), snapshot.sourceConnectionId)
@@ -143,6 +153,8 @@ object LastPlaybackStore {
                 currentIndex = db.getInt(dbKey(KEY_INDEX)) ?: 0,
                 positionMs = db.getLong(dbKey(KEY_POSITION_MS)) ?: 0L,
                 title = db.getString(dbKey(KEY_TITLE)).orEmpty(),
+                artist = db.getString(dbKey(KEY_ARTIST)).orEmpty(),
+                albumTitle = db.getString(dbKey(KEY_ALBUM_TITLE)).orEmpty(),
                 currentMediaId = db.getString(dbKey(KEY_CURRENT_MEDIA_ID)),
                 currentDirectoryPath = db.getString(dbKey(KEY_CURRENT_DIRECTORY_PATH)),
                 sourceConnectionId = db.getString(dbKey(KEY_SOURCE_CONNECTION_ID)),
@@ -192,6 +204,8 @@ object LastPlaybackStore {
         db.putInt(dbKey(KEY_INDEX), prefs.getInt(KEY_INDEX, 0))
         db.putLong(dbKey(KEY_POSITION_MS), prefs.getLong(KEY_POSITION_MS, 0L))
         db.putString(dbKey(KEY_TITLE), prefs.getString(KEY_TITLE, "").orEmpty())
+        db.putString(dbKey(KEY_ARTIST), "")
+        db.putString(dbKey(KEY_ALBUM_TITLE), "")
         putNullable(db, dbKey(KEY_CURRENT_MEDIA_ID), prefs.getString(KEY_CURRENT_MEDIA_ID, null))
         putNullable(db, dbKey(KEY_CURRENT_DIRECTORY_PATH), prefs.getString(KEY_CURRENT_DIRECTORY_PATH, null))
         putNullable(db, dbKey(KEY_SOURCE_CONNECTION_ID), prefs.getString(KEY_SOURCE_CONNECTION_ID, null))

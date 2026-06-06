@@ -17,9 +17,19 @@ object LastPlaybackResumeBuilder {
         val mediaItems = snapshot.queueUris.mapIndexed { index, uri ->
             val mediaId = snapshot.queueMediaIds.getOrElse(index) { "" }
             val title = if (index == startIndex) {
-                snapshot.title.ifBlank { deriveTitle(mediaId) }
+                snapshot.title.ifBlank { PlaybackMetadataFallbacks.titleFromMediaId(mediaId) }
             } else {
-                deriveTitle(mediaId)
+                PlaybackMetadataFallbacks.titleFromMediaId(mediaId)
+            }
+            val artist = if (index == startIndex) {
+                snapshot.artist.ifBlank { PlaybackMetadataFallbacks.artistFromConfig(snapshot.sourceConfig) }
+            } else {
+                PlaybackMetadataFallbacks.artistFromConfig(snapshot.sourceConfig)
+            }
+            val albumTitle = if (index == startIndex) {
+                snapshot.albumTitle.ifBlank { PlaybackMetadataFallbacks.albumFromMediaId(snapshot.sourceConfig, mediaId) }
+            } else {
+                PlaybackMetadataFallbacks.albumFromMediaId(snapshot.sourceConfig, mediaId)
             }
             MediaItem.Builder()
                 .setUri(uri)
@@ -27,6 +37,8 @@ object LastPlaybackResumeBuilder {
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(title.ifBlank { null })
+                        .setArtist(artist?.ifBlank { null })
+                        .setAlbumTitle(albumTitle?.ifBlank { null })
                         .build()
                 )
                 .build()
@@ -38,7 +50,4 @@ object LastPlaybackResumeBuilder {
             playWhenReady = true
         )
     }
-
-    private fun deriveTitle(mediaId: String): String =
-        mediaId.substringAfterLast('/').substringBeforeLast('.')
 }

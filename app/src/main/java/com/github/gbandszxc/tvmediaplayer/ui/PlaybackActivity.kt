@@ -1419,6 +1419,17 @@ class PlaybackActivity : BaseActivity() {
             }
         }
         if (uris.isEmpty()) return
+        val currentMediaItem = controller.currentMediaItem
+        val display = PlaybackTrackInfoResolver.resolve(
+            store = trackInfoStore,
+            key = currentMediaItem?.let(::mediaCacheKey),
+            mediaItemTitle = currentMediaItem?.mediaMetadata?.title?.toString(),
+            mediaItemArtist = currentMediaItem?.mediaMetadata?.artist?.toString(),
+            mediaItemAlbumTitle = currentMediaItem?.mediaMetadata?.albumTitle?.toString(),
+            playerTitle = controller.mediaMetadata.title?.toString(),
+            playerArtist = controller.mediaMetadata.artist?.toString(),
+            playerAlbumTitle = controller.mediaMetadata.albumTitle?.toString()
+        )
         LastPlaybackStore.save(
             this,
             LastPlaybackStore.Snapshot(
@@ -1426,7 +1437,9 @@ class PlaybackActivity : BaseActivity() {
                 queueMediaIds = ids,
                 currentIndex = controller.currentMediaItemIndex,
                 positionMs = controller.currentPosition.coerceAtLeast(0L),
-                title = controller.mediaMetadata.title?.toString().orEmpty(),
+                title = display.title.orEmpty(),
+                artist = display.artist.orEmpty(),
+                albumTitle = display.albumTitle.orEmpty(),
                 currentMediaId = currentMediaId,
                 currentDirectoryPath = currentDirectoryPath,
                 sourceConnectionId = null,

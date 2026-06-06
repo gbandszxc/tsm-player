@@ -28,7 +28,7 @@ class SmbMediaItemFactory {
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(parseTitle(entry.name))
-                        .setArtist(config.share.ifBlank { config.host })
+                        .setArtist(PlaybackMetadataFallbacks.artistFromConfig(config))
                         .setAlbumTitle(parseAlbum(config, entry.fullPath))
                         .setArtworkUri(artworkUri?.let(Uri::parse))
                         .build()
@@ -40,9 +40,7 @@ class SmbMediaItemFactory {
     internal fun parseTitle(fileName: String): String = fileName.substringBeforeLast('.', fileName)
 
     internal fun parseAlbum(config: SmbConfig, fullPath: String): String {
-        val parent = fullPath.substringBeforeLast('/', "")
-        val fallback = config.share.ifBlank { "SMB" }
-        return if (parent.isBlank()) fallback else parent.substringAfterLast('/')
+        return PlaybackMetadataFallbacks.albumFromMediaId(config, fullPath) ?: "SMB"
     }
 
     private fun resolveArtworkUri(config: SmbConfig, directoryPath: String, context: CIFSContext): String? {
