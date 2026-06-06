@@ -9,7 +9,9 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ListModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalListRow
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ProgressModalHandle
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ProgressModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
@@ -65,6 +67,10 @@ object AppUpdateManager {
                             if (!silentWhenNoUpdate) {
                                 Toast.makeText(activity, "当前已是最新版本", Toast.LENGTH_SHORT).show()
                             }
+                        } else if (silentWhenNoUpdate &&
+                            UpdatePromptSnoozeStore(activity).shouldSkipAutomaticPrompt(update.versionName)
+                        ) {
+                            return@launchSafely
                         } else {
                             showUpdateDialog(activity, update)
                         }
@@ -138,17 +144,74 @@ object AppUpdateManager {
         )
     }
 
-    private fun showUpdateDialog(activity: Activity, update: UpdateInfo) {
+    private fun showUpdateDialog(activity: Activity, update: UpdateInfo, previewOnly: Boolean = false) {
         TsmModalCoordinator(activity).showActionModal(
             ActionModalSpec(
-                sectionLabel = "更新",
+                sectionLabel = "",
                 title = "发现新版本 ${update.versionName}",
                 message = "检测到适用于 ${currentAbi()} 的安装包：${update.assetName}",
                 actions = listOf(
-                    ModalAction("稍后"),
-                    ModalAction("下载并安装", isPrimary = true) { downloadAndInstall(activity, update) },
+                    ModalAction("稍后") { showSnoozeOptions(activity, update, previewOnly) },
+                    ModalAction("下载并安装", isPrimary = true) {
+                        if (previewOnly) {
+                            Toast.makeText(activity, "预览模式不会下载或安装 APK", Toast.LENGTH_SHORT).show()
+                        } else {
+                            downloadAndInstall(activity, update)
+                        }
+                    },
                 ),
+                cancelable = false,
             )
+        )
+    }
+
+    private fun showSnoozeOptions(activity: Activity, update: UpdateInfo, previewOnly: Boolean = false) {
+        val store = UpdatePromptSnoozeStore(activity)
+        activity.window.decorView.post {
+            if (activity.isFinishing || activity.isDestroyed) return@post
+            TsmModalCoordinator(activity).showListModal(
+                ListModalSpec(
+                    sectionLabel = "",
+                    title = "稍后提醒",
+                    message = if (previewOnly) {
+                        "预览模式：仅展示稍后选择效果，不保存设置。"
+                    } else {
+                        "选择本次跳过的时长。手动检查更新不受影响。"
+                    },
+                    rows = createSnoozeRows(update, store, previewOnly),
+                    cancelable = false,
+                )
+            )
+        }
+    }
+
+    internal fun createSnoozeRows(
+        update: UpdateInfo,
+        store: UpdatePromptSnoozeStore,
+        previewOnly: Boolean,
+    ): List<ModalListRow> {
+        return listOf(
+            ModalListRow(
+                key = "once",
+                label = "本次",
+                dismissOnClick = true,
+            ) {
+                if (!previewOnly) store.snoozeOnce(update.versionName)
+            },
+            ModalListRow(
+                key = "seven_days",
+                label = "7天",
+                dismissOnClick = true,
+            ) {
+                if (!previewOnly) store.snoozeForSevenDays(update.versionName)
+            },
+            ModalListRow(
+                key = "until_next_version",
+                label = "下个版本",
+                dismissOnClick = true,
+            ) {
+                if (!previewOnly) store.snoozeUntilNextVersion(update.versionName)
+            },
         )
     }
 
@@ -283,6 +346,20 @@ object AppUpdateManager {
             delay(500L)
             progressHandle.onDismiss()
         }
+    }
+
+    fun previewStartupUpdatePrompt(activity: Activity) {
+        if (!BuildConfig.DEBUG) return
+        showUpdateDialog(
+            activity,
+            UpdateInfo(
+                versionName = "9.9.9-preview",
+                assetName = "tsm-player-release-${currentAbi()}-9.9.9-preview.apk",
+                downloadUrl = "https://example.invalid/tsm-player-preview.apk",
+                sizeBytes = 0L,
+            ),
+            previewOnly = true,
+        )
     }
 
     private fun installApk(activity: Activity, apk: File) {

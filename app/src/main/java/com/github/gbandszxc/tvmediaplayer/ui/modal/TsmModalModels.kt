@@ -28,12 +28,16 @@ data class ModalAction(
  * @param title        标题，如"确认删除"
  * @param message      可选说明文案，为 null 时隐藏消息行
  * @param actions      操作按钮列表
+ * @param cancelable   是否允许 Back 或外部触摸取消弹窗
+ * @param onDismiss    弹窗关闭后的可选回调
  */
 data class ActionModalSpec(
     val sectionLabel: String,
     val title: String,
     val message: String? = null,
     val actions: List<ModalAction>,
+    val cancelable: Boolean = true,
+    val onDismiss: (() -> Unit)? = null,
 )
 
 /**
@@ -111,12 +115,14 @@ data class ConfirmModalSpec(
  * @param title        标题
  * @param message      可选说明文案
  * @param rows         列表行
+ * @param cancelable   是否允许 Back 或外部触摸取消弹窗
  */
 data class ListModalSpec(
     val sectionLabel: String,
     val title: String,
     val message: String? = null,
     val rows: List<ModalListRow>,
+    val cancelable: Boolean = true,
 )
 
 /**

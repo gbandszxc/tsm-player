@@ -53,8 +53,7 @@ class TsmModalCoordinator(
         val content = LayoutInflater.from(host)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
-        // 分区标签
-        content.findViewById<TextView>(R.id.tv_modal_section).text = spec.sectionLabel
+        bindSectionLabel(content, spec.sectionLabel)
 
         // 标题
         content.findViewById<TextView>(R.id.tv_modal_title).text = spec.title
@@ -92,11 +91,12 @@ class TsmModalCoordinator(
 
         dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
             setContentView(content)
-            setCancelable(true)
-            setCanceledOnTouchOutside(true)
+            setCancelable(spec.cancelable)
+            setCanceledOnTouchOutside(spec.cancelable)
             window?.setBackgroundDrawable(null)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
+                spec.onDismiss?.invoke()
             }
             show()
             // 自动聚焦第一个操作按钮，方便遥控器立即操作
@@ -122,8 +122,7 @@ class TsmModalCoordinator(
         val content = LayoutInflater.from(host)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
-        // 分区标签
-        content.findViewById<TextView>(R.id.tv_modal_section).text = spec.sectionLabel
+        bindSectionLabel(content, spec.sectionLabel)
 
         // 标题
         content.findViewById<TextView>(R.id.tv_modal_title).text = spec.title
@@ -242,8 +241,7 @@ class TsmModalCoordinator(
         val content = LayoutInflater.from(host)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
-        // 分区标签
-        content.findViewById<TextView>(R.id.tv_modal_section).text = spec.sectionLabel
+        bindSectionLabel(content, spec.sectionLabel)
 
         // 标题
         content.findViewById<TextView>(R.id.tv_modal_title).text = spec.title
@@ -310,8 +308,7 @@ class TsmModalCoordinator(
         val content = LayoutInflater.from(host)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
-        // 分区标签
-        content.findViewById<TextView>(R.id.tv_modal_section).text = spec.sectionLabel
+        bindSectionLabel(content, spec.sectionLabel)
 
         // 标题
         content.findViewById<TextView>(R.id.tv_modal_title).text = spec.title
@@ -338,8 +335,8 @@ class TsmModalCoordinator(
 
         dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
             setContentView(content)
-            setCancelable(true)
-            setCanceledOnTouchOutside(true)
+            setCancelable(spec.cancelable)
+            setCanceledOnTouchOutside(spec.cancelable)
             window?.setBackgroundDrawable(null)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
@@ -379,8 +376,7 @@ class TsmModalCoordinator(
         val content = LayoutInflater.from(host)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
-        // 分区标签
-        content.findViewById<TextView>(R.id.tv_modal_section).text = spec.sectionLabel
+        bindSectionLabel(content, spec.sectionLabel)
 
         // 标题
         content.findViewById<TextView>(R.id.tv_modal_title).text = spec.title
@@ -551,6 +547,12 @@ class TsmModalCoordinator(
             params.marginEnd = host.resources.getDimensionPixelSize(R.dimen.ui_space_md)
             layoutParams = params
         }
+    }
+
+    private fun bindSectionLabel(root: View, sectionLabel: String) {
+        val sectionView = root.findViewById<TextView>(R.id.tv_modal_section)
+        sectionView.text = sectionLabel
+        sectionView.visibility = if (sectionLabel.isBlank()) View.GONE else View.VISIBLE
     }
 
     private fun renderListRows(

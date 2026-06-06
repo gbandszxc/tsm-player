@@ -3,6 +3,7 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.text.InputType
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
@@ -117,6 +119,73 @@ class TsmModalCoordinatorTest {
         val sectionView = dialog.findViewById<TextView>(R.id.tv_modal_section)
         assertNotNull(sectionView)
         assertEquals("文件操作", sectionView?.text.toString())
+    }
+
+    @Test
+    fun `showActionModal hides blank section label`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "",
+                title = "发现新版本",
+                actions = listOf(ModalAction("稍后")),
+            )
+        )
+
+        val sectionView = dialog.findViewById<TextView>(R.id.tv_modal_section)
+        assertEquals(View.GONE, sectionView.visibility)
+    }
+
+    @Test
+    fun `showActionModal invokes dismiss callback after dialog closes`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+        var dismissCount = 0
+
+        val dialog = coordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "权限",
+                title = "开启睡眠权限",
+                actions = listOf(ModalAction("暂不授权")),
+                onDismiss = { dismissCount += 1 },
+            )
+        )
+
+        dialog.dismiss()
+        Shadows.shadowOf(activity.mainLooper).idle()
+
+        assertEquals(1, dismissCount)
+    }
+
+    @Test
+    fun `showActionModal can require an explicit action before closing`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "更新",
+                title = "发现新版本",
+                actions = listOf(
+                    ModalAction("稍后"),
+                    ModalAction("下载并安装", isPrimary = true),
+                ),
+                cancelable = false,
+            )
+        )
+
+        dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+        dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+
+        assertTrue("Dialog should stay visible until an action is chosen", dialog.isShowing)
     }
 
     @Test
@@ -492,6 +561,50 @@ class TsmModalCoordinatorTest {
 
         assertEquals("conn_1", selectedKey)
         assertFalse("List modal should close after selecting a row", dialog.isShowing)
+    }
+
+    @Test
+    fun `showListModal hides blank section label`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "",
+                title = "稍后提醒",
+                rows = listOf(ModalListRow(key = "once", label = "本次")),
+            )
+        )
+
+        val sectionView = dialog.findViewById<TextView>(R.id.tv_modal_section)
+        assertEquals(View.GONE, sectionView.visibility)
+    }
+
+    @Test
+    fun `showListModal can require an explicit row before closing`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = "更新",
+                title = "稍后提醒",
+                rows = listOf(
+                    ModalListRow(key = "once", label = "本次", dismissOnClick = true),
+                    ModalListRow(key = "seven_days", label = "7天", dismissOnClick = true),
+                ),
+                cancelable = false,
+            )
+        )
+
+        dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+        dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+
+        assertTrue("List modal should stay visible until a row is chosen", dialog.isShowing)
     }
 
     @Test

@@ -290,6 +290,15 @@ class SettingsActivity : BaseActivity() {
                         if (BuildConfig.DEBUG) {
                             add(
                                 SettingsItem(
+                                    title = "预览启动更新提示",
+                                    descriptionProvider = { "仅 Debug 包显示；不访问 GitHub，不下载 APK，不保存稍后设置" },
+                                    action = {
+                                        AppUpdateManager.previewStartupUpdatePrompt(this@SettingsActivity)
+                                    }
+                                )
+                            )
+                            add(
+                                SettingsItem(
                                     title = "预览更新下载样式",
                                     descriptionProvider = { "仅 Debug 包显示；不访问 GitHub，不安装 APK" },
                                     action = {

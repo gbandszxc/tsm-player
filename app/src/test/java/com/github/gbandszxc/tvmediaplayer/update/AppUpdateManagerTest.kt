@@ -3,8 +3,10 @@ package com.github.gbandszxc.tvmediaplayer.update
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -54,5 +56,24 @@ class AppUpdateManagerTest {
         )
 
         assertNull(update)
+    }
+
+    @Test
+    fun `preview snooze rows do not write real snooze state`() {
+        val context = RuntimeEnvironment.getApplication()
+        val store = UpdatePromptSnoozeStore(context)
+        store.clear()
+        val update = AppUpdateManager.UpdateInfo(
+            versionName = "9.9.9-preview",
+            assetName = "tsm-player-release-arm64-v8a-9.9.9-preview.apk",
+            downloadUrl = "https://example.invalid/preview.apk",
+            sizeBytes = 0L,
+        )
+
+        AppUpdateManager.createSnoozeRows(update, store, previewOnly = true)
+            .forEach { row -> row.onClick?.invoke() }
+
+        assertFalse(store.shouldSkipAutomaticPrompt("9.9.9-preview", nowMs = 1_000L))
+        assertFalse(store.shouldSkipAutomaticPrompt("9.9.10", nowMs = 1_000L))
     }
 }

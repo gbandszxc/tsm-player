@@ -28,8 +28,9 @@ class MainActivity : BaseActivity() {
                 .commitNow()
         }
         deliverPlaybackLocateTarget()
-        AppUpdateManager.maybeCheckOnAppStart(this)
-        maybePromptSleepDeviceAdmin()
+        if (!maybePromptSleepDeviceAdmin()) {
+            AppUpdateManager.maybeCheckOnAppStart(this)
+        }
     }
 
     override fun onResume() {
@@ -43,10 +44,10 @@ class MainActivity : BaseActivity() {
         deliverPlaybackLocateTarget()
     }
 
-    private fun maybePromptSleepDeviceAdmin() {
+    private fun maybePromptSleepDeviceAdmin(): Boolean {
         val controller = SleepDeviceController(this)
-        if (controller.isDeviceAdminActive()) return
-        if (UiSettingsStore.sleepAdminPromptShown(this)) return
+        if (controller.isDeviceAdminActive()) return false
+        if (UiSettingsStore.sleepAdminPromptShown(this)) return false
         UiSettingsStore.setSleepAdminPromptShown(this, true)
         TsmModalCoordinator(this).showActionModal(
             ActionModalSpec(
@@ -57,8 +58,10 @@ class MainActivity : BaseActivity() {
                     ModalAction("暂不授权"),
                     ModalAction("去授权", isPrimary = true) { controller.openDeviceAdminSettings(this) },
                 ),
+                onDismiss = { AppUpdateManager.maybeCheckOnAppStart(this) },
             )
         )
+        return true
     }
 
     private fun deliverPlaybackLocateTarget() {
