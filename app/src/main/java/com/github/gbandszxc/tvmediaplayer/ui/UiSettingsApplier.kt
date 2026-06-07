@@ -19,6 +19,12 @@ object UiSettingsApplier {
     }
 
     fun applyImmersiveFullscreen(activity: Activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            activity.window.attributes = activity.window.attributes.apply {
+                layoutInDisplayCutoutMode =
+                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             activity.window.insetsController?.let { controller ->
                 controller.hide(WindowInsets.Type.systemBars())

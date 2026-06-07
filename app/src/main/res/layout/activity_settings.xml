@@ -21,12 +21,21 @@
             android:paddingBottom="@dimen/ui_space_4xl"
             style="@style/TsmTextPageTitle" />
 
-        <!-- 分类列表（动态填充） -->
-        <LinearLayout
-            android:id="@+id/container_categories"
+        <!-- 分类列表（动态填充）：小屏触摸设备可纵向滑动 -->
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="false"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/container_categories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+        </ScrollView>
 
     </LinearLayout>
 
