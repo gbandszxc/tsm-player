@@ -8,13 +8,17 @@ import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
 import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.View
+import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
 import com.github.gbandszxc.tvmediaplayer.R
@@ -80,12 +84,7 @@ class SettingsActivity : BaseActivity() {
                             title = getString(R.string.settings_global_scale),
                             descriptionProvider = { getString(R.string.settings_global_scale_desc) },
                             valueProvider = { "${UiSettingsStore.globalScalePercent(this)}%" }
-                        ) {
-                            val next = UiSettingsStore.cycleGlobalScalePreset(this)
-                            UiSettingsApplier.applyGlobalScale(this)
-                            Toast.makeText(this, getString(R.string.settings_global_scale_changed, next), Toast.LENGTH_SHORT).show()
-                            rebuildCurrentCategory(moveFocusToDetail = false)
-                        },
+                        ) { showGlobalScaleDialog() },
                         SettingsItem(
                             title = getString(R.string.settings_language),
                             descriptionProvider = { getString(R.string.settings_language_desc) },
@@ -519,6 +518,113 @@ class SettingsActivity : BaseActivity() {
             true
         }
     }
+
+    private fun showGlobalScaleDialog() {
+        val lastFocusedView = currentFocus
+        val content = LayoutInflater.from(this)
+            .inflate(R.layout.dialog_tsm_modal_shell, null, false)
+
+        content.findViewById<TextView>(R.id.tv_modal_section).apply {
+            text = getString(R.string.settings_category_display)
+            visibility = View.VISIBLE
+        }
+        content.findViewById<TextView>(R.id.tv_modal_title).text = getString(R.string.settings_global_scale)
+        content.findViewById<TextView>(R.id.tv_modal_message).apply {
+            text = getString(R.string.settings_global_scale_desc)
+            visibility = View.VISIBLE
+        }
+        content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
+
+        val container = content.findViewById<LinearLayout>(R.id.container_modal_content)
+        container.removeAllViews()
+
+        val minusButton = createScaleStepButton("-").apply {
+            id = View.generateViewId()
+        }
+        val plusButton = createScaleStepButton("+").apply {
+            id = View.generateViewId()
+        }
+        minusButton.nextFocusRightId = plusButton.id
+        plusButton.nextFocusLeftId = minusButton.id
+
+        val valueView = TextView(this).apply {
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_primary))
+            setTextSize(
+                TypedValue.COMPLEX_UNIT_PX,
+                resources.getDimension(R.dimen.ui_text_page_title),
+            )
+            gravity = android.view.Gravity.CENTER
+            minWidth = dp(160)
+            setPadding(dp(24), dp(10), dp(24), dp(10))
+            setBackgroundResource(R.drawable.bg_modal_input)
+        }
+
+        fun refreshControls() {
+            val current = UiSettingsStore.globalScalePercent(this)
+            valueView.text = "$current%"
+            minusButton.isEnabled = current > UiSettingsStore.globalScalePresets.first()
+            plusButton.isEnabled = current < UiSettingsStore.globalScalePresets.last()
+        }
+
+        fun applyScale(value: Int) {
+            UiSettingsStore.setGlobalScalePercent(this, value)
+            UiSettingsApplier.applyGlobalScale(this)
+            rebuildCurrentCategory(moveFocusToDetail = false)
+            refreshControls()
+        }
+
+        minusButton.setOnClickListener {
+            applyScale(UiSettingsStore.previousGlobalScalePreset(UiSettingsStore.globalScalePercent(this)))
+        }
+        plusButton.setOnClickListener {
+            applyScale(UiSettingsStore.nextGlobalScalePreset(UiSettingsStore.globalScalePercent(this)))
+        }
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER
+            addView(minusButton)
+            addView(valueView, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginStart = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+                marginEnd = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+            })
+            addView(plusButton)
+        }
+        container.addView(controls, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ))
+
+        val dialog = Dialog(this, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+            setContentView(content)
+            setCancelable(true)
+            setCanceledOnTouchOutside(true)
+            window?.setBackgroundDrawable(null)
+            setOnDismissListener {
+                lastFocusedView?.requestFocus()
+            }
+            show()
+        }
+
+        refreshControls()
+        dialog.findViewById<FrameLayout>(android.R.id.content)
+            ?.post { minusButton.requestFocus() }
+    }
+
+    private fun createScaleStepButton(label: String): Button =
+        Button(this, null, 0, R.style.TsmModalActionButton).apply {
+            text = label
+            minWidth = dp(72)
+            setBackgroundResource(R.drawable.bg_button_dark)
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_on_accent))
+            layoutParams = LinearLayout.LayoutParams(
+                dp(88),
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
 
     private fun showLanguageDialog() {
         val current = UiSettingsStore.appLanguage(this)

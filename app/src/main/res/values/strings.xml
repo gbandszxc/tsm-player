@@ -189,7 +189,7 @@
     <string name="settings_category_backup">备份恢复</string>
     <string name="settings_category_about">关于</string>
     <string name="settings_global_scale">全局缩放</string>
-    <string name="settings_global_scale_desc">预设档位：90%% / 95%% / 100%% / 105%% / 110%%</string>
+    <string name="settings_global_scale_desc">全局缩放倍率高则字大信息密度低，反之字少信息密度高。</string>
     <string name="settings_global_scale_changed">全局缩放已切换到 %1$d%%</string>
     <string name="settings_language">语言</string>
     <string name="settings_language_desc">选择应用显示语言；跟随系统会自动使用设备语言</string>

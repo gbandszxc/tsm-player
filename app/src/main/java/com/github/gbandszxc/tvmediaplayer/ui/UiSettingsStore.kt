@@ -16,7 +16,7 @@ object UiSettingsStore {
     private const val KEY_SLEEP_ADMIN_PROMPT_SHOWN = "sleep_admin_prompt_shown"
     private const val KEY_APP_LANGUAGE = "app_language"
 
-    val globalScalePresets: IntArray = intArrayOf(90, 95, 100, 105, 110)
+    val globalScalePresets: IntArray = intArrayOf(80, 85, 90, 95, 100, 105, 110, 115, 120)
     const val defaultGlobalScalePercent: Int = 100
     const val defaultPlaybackLyricsFontSp: Int = 20
     const val defaultFullscreenLyricsFontSp: Int = 28
@@ -39,6 +39,18 @@ object UiSettingsStore {
     fun setGlobalScalePercent(context: Context, value: Int) {
         if (!globalScalePresets.contains(value)) return
         db(context).putInt(dbKey(KEY_GLOBAL_SCALE_PERCENT), value)
+    }
+
+    fun previousGlobalScalePreset(current: Int): Int {
+        val index = globalScalePresets.indexOf(current).takeIf { it >= 0 }
+            ?: globalScalePresets.indexOf(defaultGlobalScalePercent).coerceAtLeast(0)
+        return globalScalePresets[(index - 1).coerceAtLeast(0)]
+    }
+
+    fun nextGlobalScalePreset(current: Int): Int {
+        val index = globalScalePresets.indexOf(current).takeIf { it >= 0 }
+            ?: globalScalePresets.indexOf(defaultGlobalScalePercent).coerceAtLeast(0)
+        return globalScalePresets[(index + 1).coerceAtMost(globalScalePresets.lastIndex)]
     }
 
     fun cycleGlobalScalePreset(context: Context): Int {

@@ -189,7 +189,7 @@
     <string name="settings_category_backup">Backup &amp; Restore</string>
     <string name="settings_category_about">About</string>
     <string name="settings_global_scale">Global Scale</string>
-    <string name="settings_global_scale_desc">Presets: 90%% / 95%% / 100%% / 105%% / 110%%</string>
+    <string name="settings_global_scale_desc">Higher global scale makes text larger and lowers information density; lower scale makes text smaller and increases information density.</string>
     <string name="settings_global_scale_changed">Global scale changed to %1$d%%</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_desc">Choose the app display language. Follow System uses the device language automatically</string>
