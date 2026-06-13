@@ -1,3 +1,5 @@
+中文 | **[English](./docs/README_EN.md)**
+
 # <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="32" alt="TSM Player"> TSM Player
 
 > TV SMB Music Player
