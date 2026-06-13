@@ -96,15 +96,9 @@ class TvBrowseFragmentLayoutTest {
     }
 
     @Test
-    fun `browser playback button renderer uses compact expanded width for short labels`() {
+    fun `browser playback button renderer lets focused labels size to one line`() {
         val context = RuntimeEnvironment.getApplication()
-        val shortButton = Button(context).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            )
-        }
-        val longButton = Button(context).apply {
+        val button = Button(context).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -113,24 +107,23 @@ class TvBrowseFragmentLayoutTest {
 
         BrowserPlaybackButtonRenderer.apply(
             context = context,
-            button = shortButton,
+            button = button,
             spec = PlaybackButtonPresentation.browserHistory(context, focused = true),
             hasFocus = true,
         )
-        BrowserPlaybackButtonRenderer.apply(
-            context = context,
-            button = longButton,
-            spec = PlaybackButtonPresentation.browserPlayOrder(context, focused = true),
-            hasFocus = true,
-        )
 
         assertEquals(
-            context.resources.getDimensionPixelSize(R.dimen.ui_playback_favorite_button_expanded_min_width),
-            shortButton.layoutParams.width,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            button.layoutParams.width,
         )
         assertEquals(
-            context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_expanded_min_width),
-            longButton.layoutParams.width,
+            1,
+            button.maxLines,
+        )
+        assertTrue(
+            "Focused browser controls should keep a compact minimum while allowing longer English labels to expand",
+            button.minWidth >=
+            context.resources.getDimensionPixelSize(R.dimen.ui_playback_favorite_button_expanded_min_width),
         )
     }
 

@@ -2,6 +2,8 @@ package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
 import android.graphics.drawable.Drawable
+import android.text.TextUtils
+import android.view.ViewGroup
 import android.widget.Button
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.BlendModeColorFilterCompat
@@ -20,6 +22,8 @@ internal object BrowserPlaybackButtonRenderer {
     ) {
         button.text = spec.text
         button.contentDescription = spec.contentDescription
+        button.maxLines = 1
+        button.ellipsize = TextUtils.TruncateAt.END
 
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
         val wrapped = icon?.let(DrawableCompat::wrap)
@@ -33,9 +37,15 @@ internal object BrowserPlaybackButtonRenderer {
             wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
         }
 
-        val width = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
-        button.minWidth = width
-        button.layoutParams = button.layoutParams.apply { this.width = width }
+        val minWidth = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
+        button.minWidth = minWidth
+        button.layoutParams = button.layoutParams.apply {
+            width = if (hasFocus) {
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            } else {
+                minWidth
+            }
+        }
 
         if (hasFocus) {
             button.overlay.clear()
