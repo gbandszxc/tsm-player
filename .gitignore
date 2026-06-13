@@ -91,3 +91,4 @@ Thumbs.db
 .agent_prompt/
 .worktrees/
 /.superpowers/
+.codex-remote-attachments/
