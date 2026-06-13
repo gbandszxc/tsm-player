@@ -1,6 +1,6 @@
 **[中文](../README.md)** | English
 
-# <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="32" alt="TSM Player"> TSM Player
+# <img src="../app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="32" alt="TSM Player"> TSM Player
 
 > TV SMB Music Player
 >
@@ -33,7 +33,7 @@ I'm also genuinely amazed by how far AI has come — I had zero Android developm
 
 ### Home Screen
 
-![Home Screen](docs/screenshots/home_en.png)
+![Home Screen](screenshots/home_en.png)
 
 ## ✨ Features
 
@@ -73,7 +73,7 @@ Directory-level focus anchors automatically remember your last browsed position.
 
 ### Playback Screen
 
-![Playback Screen](docs/screenshots/playback_en.png)
+![Playback Screen](screenshots/playback_en.png)
 
 ## 🔧 Building
 
