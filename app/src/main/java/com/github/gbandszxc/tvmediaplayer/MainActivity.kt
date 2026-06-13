@@ -51,12 +51,14 @@ class MainActivity : BaseActivity() {
         UiSettingsStore.setSleepAdminPromptShown(this, true)
         TsmModalCoordinator(this).showActionModal(
             ActionModalSpec(
-                sectionLabel = "权限",
-                title = "开启睡眠权限",
-                message = "授权后，睡眠定时结束时可以让电视进入睡眠或息屏。暂不授权也可以继续使用播放器，并可之后在设置页重新授权。",
+                sectionLabel = getString(R.string.permission_section),
+                title = getString(R.string.sleep_permission_title),
+                message = getString(R.string.sleep_permission_message),
                 actions = listOf(
-                    ModalAction("暂不授权"),
-                    ModalAction("去授权", isPrimary = true) { controller.openDeviceAdminSettings(this) },
+                    ModalAction(getString(R.string.sleep_permission_skip)),
+                    ModalAction(getString(R.string.sleep_permission_open), isPrimary = true) {
+                        controller.openDeviceAdminSettings(this)
+                    },
                 ),
                 onDismiss = { AppUpdateManager.maybeCheckOnAppStart(this) },
             )

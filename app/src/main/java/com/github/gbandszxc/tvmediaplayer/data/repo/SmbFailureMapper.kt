@@ -44,15 +44,5 @@ object SmbFailureMapper {
         val nested = throwable.cause
         return if (nested != null && nested !== throwable) map(nested) else SmbFailure.UNKNOWN
     }
-
-    fun toUserMessage(failure: SmbFailure): String =
-        when (failure) {
-            SmbFailure.AUTH_FAILED -> "SMB 认证失败，请检查用户名和密码"
-            SmbFailure.HOST_UNREACHABLE -> "服务器不可达，请检查网络或主机地址"
-            SmbFailure.SHARE_NOT_FOUND -> "共享名不存在，请确认 NAS 共享配置"
-            SmbFailure.INVALID_PATH -> "路径无效，请检查子目录配置"
-            SmbFailure.TIMEOUT -> "连接超时，请稍后重试"
-            SmbFailure.UNKNOWN -> "SMB 浏览失败，请检查配置后重试"
-        }
 }
 

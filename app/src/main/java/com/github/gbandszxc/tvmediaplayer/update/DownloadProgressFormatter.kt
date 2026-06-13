@@ -1,5 +1,8 @@
 package com.github.gbandszxc.tvmediaplayer.update
 
+import android.content.Context
+import com.github.gbandszxc.tvmediaplayer.R
+
 data class DownloadProgressState(
     val downloadedBytes: Long,
     val totalBytes: Long,
@@ -17,7 +20,16 @@ object DownloadProgressFormatter {
         return if (state.totalBytes > 0L) {
             "$downloaded / ${formatMb(state.totalBytes)} MB"
         } else {
-            "已下载 $downloaded MB"
+            "Downloaded $downloaded MB"
+        }
+    }
+
+    fun formatBytes(context: Context, state: DownloadProgressState): String {
+        val downloaded = formatMb(state.downloadedBytes)
+        return if (state.totalBytes > 0L) {
+            "$downloaded / ${formatMb(state.totalBytes)} MB"
+        } else {
+            context.getString(R.string.download_progress_downloaded_only, downloaded)
         }
     }
 

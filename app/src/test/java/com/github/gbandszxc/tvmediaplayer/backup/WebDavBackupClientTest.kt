@@ -116,7 +116,7 @@ class WebDavBackupClientTest {
         assertEquals("https://dav.example.com/base/backups", request.url.toString())
         assertEquals("HEAD", request.requestMethod)
         assertEquals(true, result.success)
-        assertEquals("连接成功：HTTP 207", result.message)
+        assertEquals("Connection succeeded: HTTP 207", result.message)
     }
 
     @Test
@@ -147,7 +147,7 @@ class WebDavBackupClientTest {
             opened.map { "${it.requestMethod} ${it.url}" }
         )
         assertEquals(true, result.success)
-        assertEquals("连接成功：已创建 WebDAV 目录（HTTP 201 Created）", result.message)
+        assertEquals("Connection succeeded: WebDAV folder created (HTTP 201 Created)", result.message)
     }
 
     @Test
@@ -193,7 +193,7 @@ class WebDavBackupClientTest {
             opened.map { "${it.requestMethod} ${it.url}" }
         )
         assertEquals(true, result.success)
-        assertEquals("连接成功：已创建 WebDAV 目录（HTTP 201 Created）", result.message)
+        assertEquals("Connection succeeded: WebDAV folder created (HTTP 201 Created)", result.message)
     }
 
     @Test
@@ -250,7 +250,7 @@ class WebDavBackupClientTest {
             opened.map { "${it.requestMethod} ${it.url}" }
         )
         assertEquals(true, result.success)
-        assertEquals("连接成功：已创建 WebDAV 目录（HTTP 201 Created）", result.message)
+        assertEquals("Connection succeeded: WebDAV folder created (HTTP 201 Created)", result.message)
     }
 
     @Test
@@ -262,7 +262,7 @@ class WebDavBackupClientTest {
         val result = client.testConnection(WebDavConfig("https://dav.example.com/backups", "bad", "bad"))
 
         assertEquals(false, result.success)
-        assertEquals("认证失败：HTTP 401 Unauthorized，请检查用户名或密码", result.message)
+        assertEquals("Authentication failed: HTTP 401 Unauthorized. Check username or password", result.message)
     }
 
     private class FakeConnection(

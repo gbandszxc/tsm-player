@@ -66,7 +66,7 @@ class TvBrowseFragmentLayoutTest {
         BrowserPlaybackButtonRenderer.apply(
             context = context,
             button = button,
-            spec = PlaybackButtonPresentation.browserPlayOrder(focused = false),
+            spec = PlaybackButtonPresentation.browserPlayOrder(context, focused = false),
             hasFocus = false,
         )
 
@@ -86,7 +86,7 @@ class TvBrowseFragmentLayoutTest {
         BrowserPlaybackButtonRenderer.apply(
             context = context,
             button = button,
-            spec = PlaybackButtonPresentation.browserPlayOrder(focused = true),
+            spec = PlaybackButtonPresentation.browserPlayOrder(context, focused = true),
             hasFocus = true,
         )
 
@@ -114,13 +114,13 @@ class TvBrowseFragmentLayoutTest {
         BrowserPlaybackButtonRenderer.apply(
             context = context,
             button = shortButton,
-            spec = PlaybackButtonPresentation.browserHistory(focused = true),
+            spec = PlaybackButtonPresentation.browserHistory(context, focused = true),
             hasFocus = true,
         )
         BrowserPlaybackButtonRenderer.apply(
             context = context,
             button = longButton,
-            spec = PlaybackButtonPresentation.browserPlayOrder(focused = true),
+            spec = PlaybackButtonPresentation.browserPlayOrder(context, focused = true),
             hasFocus = true,
         )
 
@@ -156,7 +156,7 @@ class TvBrowseFragmentLayoutTest {
             hasEditableConnection = true,
             hasSavedActiveConnection = true,
         )
-        assertEquals(listOf("编辑当前连接", "删除当前连接", "新建连接", "切换连接"), labels)
+        assertEquals(listOf("Edit Current Connection", "Delete Current Connection", "New Connection", "Switch Connection"), labels)
     }
 
     @Test
@@ -165,7 +165,7 @@ class TvBrowseFragmentLayoutTest {
             hasEditableConnection = false,
             hasSavedActiveConnection = false,
         )
-        assertEquals(listOf("新建连接", "切换连接"), labels)
+        assertEquals(listOf("New Connection", "Switch Connection"), labels)
     }
 
     @Test
@@ -174,7 +174,7 @@ class TvBrowseFragmentLayoutTest {
             hasEditableConnection = true,
             hasSavedActiveConnection = false,
         )
-        assertEquals(listOf("编辑当前连接", "新建连接", "切换连接"), labels)
+        assertEquals(listOf("Edit Current Connection", "New Connection", "Switch Connection"), labels)
     }
 
     @Test

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.JcifsSmbRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
@@ -25,14 +26,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 enum class BrowserSortOption(
-    val label: String,
+    val labelResId: Int,
 ) {
-    NAME_ASC("文件名 ↑"),
-    NAME_DESC("文件名 ↓"),
-    SIZE_ASC("文件大小 ↑"),
-    SIZE_DESC("文件大小 ↓"),
-    MODIFIED_ASC("修改时间 ↑"),
-    MODIFIED_DESC("修改时间 ↓"),
+    NAME_ASC(R.string.browser_sort_name_asc),
+    NAME_DESC(R.string.browser_sort_name_desc),
+    SIZE_ASC(R.string.browser_sort_size_asc),
+    SIZE_DESC(R.string.browser_sort_size_desc),
+    MODIFIED_ASC(R.string.browser_sort_modified_asc),
+    MODIFIED_DESC(R.string.browser_sort_modified_desc),
 }
 
 data class TvBrowserState(
@@ -53,7 +54,8 @@ data class TvBrowserState(
 
 class TvBrowserViewModel(
     private val repository: SmbRepository,
-    private val configStore: BrowserConfigStore
+    private val configStore: BrowserConfigStore,
+    private val appContext: Context? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TvBrowserState())
@@ -136,7 +138,7 @@ class TvBrowserViewModel(
                     entries = emptyList(),
                     loading = false,
                     error = null,
-                    toast = "已删除当前连接",
+                    toast = string(R.string.smb_deleted_connection),
                     restoredFocusIndex = null,
                     inlineMessage = null,
                     fastLocate = null,
@@ -161,7 +163,7 @@ class TvBrowserViewModel(
     private fun loadCurrentPath(manualRetry: Boolean) {
         val snapshot = _state.value
         if (snapshot.config.host.isBlank()) {
-            _state.update { it.copy(error = "SMB 主机地址不能为空") }
+            _state.update { it.copy(error = string(R.string.smb_host_required)) }
             return
         }
         val connectionKey = failureLockKey(snapshot.activeConnectionId, snapshot.config)
@@ -231,13 +233,13 @@ class TvBrowserViewModel(
                 }
             }.onFailure { ex ->
                 if (generation != loadGeneration) return@launch
-                val message = SmbFailureMapper.toUserMessage(SmbFailureMapper.map(ex))
+                val message = smbFailureMessage(SmbFailureMapper.map(ex))
                 lockedConnectionKey = connectionKey
                 _state.update {
                     it.copy(
                         loading = false,
                         error = message,
-                        toast = "SMB 连接失败：$message"
+                        toast = string(R.string.browser_smb_connection_failed, message)
                     )
                 }
             }
@@ -258,12 +260,12 @@ class TvBrowserViewModel(
                 delay(SMB_CONNECT_BACKOFF_MS[attempt])
             }
         }
-        throw lastError ?: IllegalStateException("SMB 浏览失败")
+        throw lastError ?: IllegalStateException(string(R.string.smb_error_unknown))
     }
 
     fun enterDirectory(entry: SmbEntry) {
         if (!entry.isDirectory) {
-            _state.update { it.copy(toast = "待实现：播放 ${entry.name}") }
+            _state.update { it.copy(toast = entry.name) }
             return
         }
         val nextPath = if (entry.name == "..") {
@@ -291,7 +293,7 @@ class TvBrowserViewModel(
     fun locateToPlaybackDirectory(target: PlaybackLocationResolver.Target) {
         val targetPath = normalizePath(target.directoryPath)
         if (targetPath.isBlank()) {
-            _state.update { it.copy(toast = "无法定位当前播放目录") }
+            _state.update { it.copy(toast = string(R.string.playback_locate_failed)) }
             return
         }
         pendingLocateMediaId = target.mediaId?.let(PlaybackLocationResolver::normalizePath)
@@ -314,7 +316,7 @@ class TvBrowserViewModel(
         }
 
         if (target.sourceConfig.host.isBlank()) {
-            _state.update { it.copy(toast = "无法定位当前播放目录") }
+            _state.update { it.copy(toast = string(R.string.playback_locate_failed)) }
             return
         }
 
@@ -430,9 +432,21 @@ class TvBrowserViewModel(
     }
 
     private fun defaultConnectionName(config: SmbConfig): String {
-        val share = config.share.ifBlank { "全部共享" }
+        val share = config.share.ifBlank { string(R.string.browser_all_shares_label) }
         return "${config.host} / $share"
     }
+
+    private fun smbFailureMessage(failure: SmbFailure): String =
+        string(
+            when (failure) {
+                SmbFailure.AUTH_FAILED -> R.string.smb_error_auth_failed
+                SmbFailure.HOST_UNREACHABLE -> R.string.smb_error_host_unreachable
+                SmbFailure.SHARE_NOT_FOUND -> R.string.smb_error_share_not_found
+                SmbFailure.INVALID_PATH -> R.string.smb_error_invalid_path
+                SmbFailure.TIMEOUT -> R.string.smb_error_timeout
+                SmbFailure.UNKNOWN -> R.string.smb_error_unknown
+            }
+        )
 
     private fun isCurrentConnectionTarget(state: TvBrowserState, target: PlaybackLocationResolver.Target): Boolean {
         if (target.sourceConnectionId != null && target.sourceConnectionId == state.activeConnectionId) {
@@ -543,7 +557,7 @@ class TvBrowserViewModel(
         } else {
             AnchorRestoreResult(
                 index = anchor.index.coerceIn(0, entries.lastIndex),
-                message = "目录内容已变化，已回到开头"
+                message = string(R.string.browser_directory_changed)
             )
         }
     }
@@ -596,9 +610,34 @@ class TvBrowserViewModel(
                 val appContext = context.applicationContext
                 return TvBrowserViewModel(
                     repository = JcifsSmbRepository(),
-                    configStore = SmbConfigStore(appContext)
+                    configStore = SmbConfigStore(appContext),
+                    appContext = appContext,
                 ) as T
             }
         }
+    }
+
+    private fun string(resId: Int, vararg args: Any): String {
+        val value = appContext?.getString(resId, *args) ?: fallbackString(resId, *args)
+        return value
+    }
+
+    private fun fallbackString(resId: Int, vararg args: Any): String {
+        val template = when (resId) {
+            R.string.smb_deleted_connection -> "Current connection deleted"
+            R.string.smb_host_required -> "SMB host address cannot be empty"
+            R.string.browser_smb_connection_failed -> "SMB connection failed: %1\$s"
+            R.string.smb_error_auth_failed -> "SMB authentication failed. Check username and password"
+            R.string.smb_error_host_unreachable -> "Server unreachable. Check the network or host address"
+            R.string.smb_error_share_not_found -> "Share not found. Check the NAS share settings"
+            R.string.smb_error_invalid_path -> "Invalid path. Check the subfolder setting"
+            R.string.smb_error_timeout -> "Connection timed out. Try again later"
+            R.string.smb_error_unknown -> "SMB browsing failed. Check the configuration and try again"
+            R.string.playback_locate_failed -> "Could not locate the current playback folder"
+            R.string.browser_all_shares_label -> "all shares"
+            R.string.browser_directory_changed -> "Folder contents changed. Returned to the top"
+            else -> ""
+        }
+        return if (args.isEmpty()) template else String.format(Locale.US, template, *args)
     }
 }

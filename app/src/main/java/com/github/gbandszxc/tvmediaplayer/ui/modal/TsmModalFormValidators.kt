@@ -15,10 +15,15 @@ object TsmModalFormValidators {
      * @param existing  已存在的播放列表名称集合
      * @return 错误文案，null 表示通过
      */
-    fun validatePlaylistName(name: String, existing: Set<String>): String? {
+    fun validatePlaylistName(
+        name: String,
+        existing: Set<String>,
+        emptyMessage: String = "Playlist name is required",
+        duplicateMessage: String = "Playlist already exists",
+    ): String? {
         val normalized = name.trim()
-        if (normalized.isBlank()) return "请输入播放列表名称"
-        if (normalized in existing) return "播放列表已存在"
+        if (normalized.isBlank()) return emptyMessage
+        if (normalized in existing) return duplicateMessage
         return null
     }
 
@@ -30,9 +35,15 @@ object TsmModalFormValidators {
      * @param max   允许的最大值
      * @return 错误文案，null 表示通过
      */
-    fun validateLyricsFont(value: Int?, min: Int, max: Int): String? {
-        if (value == null) return "请输入有效数字"
-        if (value !in min..max) return "字号范围需在 ${min}-${max}sp"
+    fun validateLyricsFont(
+        value: Int?,
+        min: Int,
+        max: Int,
+        invalidNumberMessage: String = "Enter a valid number",
+        rangeMessage: String = "Font size must be $min-${max}sp",
+    ): String? {
+        if (value == null) return invalidNumberMessage
+        if (value !in min..max) return rangeMessage
         return null
     }
 
@@ -44,10 +55,16 @@ object TsmModalFormValidators {
      * @param max   允许的最大值
      * @return 错误文案，null 表示通过
      */
-    fun validateLyricsSpacing(value: Float?, min: Float, max: Float): String? {
-        if (value == null) return "请输入有效数字"
+    fun validateLyricsSpacing(
+        value: Float?,
+        min: Float,
+        max: Float,
+        invalidNumberMessage: String = "Enter a valid number",
+        rangeMessage: String = "Spacing must be ${"%.1f".format(min)} - ${"%.1f".format(max)}",
+    ): String? {
+        if (value == null) return invalidNumberMessage
         if (value < min || value > max) {
-            return "间距范围需在 ${"%.1f".format(min)} - ${"%.1f".format(max)}"
+            return rangeMessage
         }
         return null
     }
@@ -58,8 +75,11 @@ object TsmModalFormValidators {
      * @param value 用户输入的主机地址
      * @return 错误文案，null 表示通过
      */
-    fun validateSmbHost(value: String): String? {
-        if (value.trim().isBlank()) return "请输入 SMB 服务器地址"
+    fun validateSmbHost(
+        value: String,
+        emptyMessage: String = "Enter an SMB server address",
+    ): String? {
+        if (value.trim().isBlank()) return emptyMessage
         return null
     }
 }

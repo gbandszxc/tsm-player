@@ -762,7 +762,7 @@ class TsmModalCoordinatorTest {
         val speedText = contentView.findViewById<TextView>(R.id.tv_modal_progress_speed)
         assertEquals("-- MB/s", speedText.text.toString())
         val sizeText = contentView.findViewById<TextView>(R.id.tv_modal_progress_size)
-        assertEquals("已下载 1.0 MB", sizeText.text.toString())
+        assertEquals("Downloaded 1.0 MB", sizeText.text.toString())
     }
 
     // ─── bindFormPrimaryAction 测试 ───

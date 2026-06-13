@@ -26,7 +26,7 @@ class DownloadProgressFormatterTest {
         )
 
         assertEquals("-- MB/s", DownloadProgressFormatter.formatSpeed(state))
-        assertEquals("已下载 1.5 MB", DownloadProgressFormatter.formatBytes(state))
+        assertEquals("Downloaded 1.5 MB", DownloadProgressFormatter.formatBytes(state))
         assertEquals(0, DownloadProgressFormatter.progressPermille(state))
     }
 }

@@ -21,6 +21,7 @@ import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.backup.BackupOperationStatus
 import com.github.gbandszxc.tvmediaplayer.backup.SqliteBackupManager
 import com.github.gbandszxc.tvmediaplayer.backup.WebDavBackupClient
+import com.github.gbandszxc.tvmediaplayer.backup.WebDavClientMessages
 import com.github.gbandszxc.tvmediaplayer.backup.WebDavConfig
 import com.github.gbandszxc.tvmediaplayer.backup.WebDavConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
@@ -33,7 +34,9 @@ import com.github.gbandszxc.tvmediaplayer.ui.modal.ConfirmModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormModalSpec
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ListModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
+import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalListRow
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ProgressModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
 import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalFormValidators
@@ -70,81 +73,87 @@ class SettingsActivity : BaseActivity() {
     private val categories by lazy {
         listOf(
             SettingsCategory(
-                title = "显示设置",
+                title = getString(R.string.settings_category_display),
                 itemsProvider = {
                     listOf(
                         SettingsItem(
-                            title = "全局缩放",
-                            descriptionProvider = { "预设档位：90% / 95% / 100% / 105% / 110%" },
+                            title = getString(R.string.settings_global_scale),
+                            descriptionProvider = { getString(R.string.settings_global_scale_desc) },
                             valueProvider = { "${UiSettingsStore.globalScalePercent(this)}%" }
                         ) {
                             val next = UiSettingsStore.cycleGlobalScalePreset(this)
                             UiSettingsApplier.applyGlobalScale(this)
-                            Toast.makeText(this, "全局缩放已切换到 ${next}%", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, getString(R.string.settings_global_scale_changed, next), Toast.LENGTH_SHORT).show()
                             rebuildCurrentCategory(moveFocusToDetail = false)
-                        }
+                        },
+                        SettingsItem(
+                            title = getString(R.string.settings_language),
+                            descriptionProvider = { getString(R.string.settings_language_desc) },
+                            valueProvider = { appLanguageLabel(UiSettingsStore.appLanguage(this)) },
+                            action = { showLanguageDialog() }
+                        )
                     )
                 }
             ),
             SettingsCategory(
-                title = "播放设置",
+                title = getString(R.string.settings_category_playback),
                 itemsProvider = {
                     listOf(
-                        SettingsItem(title = "歌词", isGroupHeader = true),
+                        SettingsItem(title = getString(R.string.settings_lyrics_group), isGroupHeader = true),
                         SettingsItem(
-                            title = "播放页歌词字号",
-                            descriptionProvider = { "默认值 ${UiSettingsStore.defaultPlaybackLyricsFontSp}sp，可手动输入" },
+                            title = getString(R.string.settings_playback_lyrics_font),
+                            descriptionProvider = { getString(R.string.settings_lyrics_font_desc, UiSettingsStore.defaultPlaybackLyricsFontSp) },
                             valueProvider = { "${UiSettingsStore.playbackLyricsFontSp(this)}sp" }
                         ) {
                             showLyricsFontDialog(
-                                title = "设置播放页歌词字号",
+                                title = getString(R.string.settings_playback_lyrics_font_title),
                                 currentValue = UiSettingsStore.playbackLyricsFontSp(this),
                                 defaultValue = UiSettingsStore.defaultPlaybackLyricsFontSp,
                                 onSave = { value -> UiSettingsStore.setPlaybackLyricsFontSp(this, value) }
                             )
                         },
                         SettingsItem(
-                            title = "全屏歌词字号",
-                            descriptionProvider = { "默认值 ${UiSettingsStore.defaultFullscreenLyricsFontSp}sp，可手动输入" },
+                            title = getString(R.string.settings_fullscreen_lyrics_font),
+                            descriptionProvider = { getString(R.string.settings_lyrics_font_desc, UiSettingsStore.defaultFullscreenLyricsFontSp) },
                             valueProvider = { "${UiSettingsStore.fullscreenLyricsFontSp(this)}sp" }
                         ) {
                             showLyricsFontDialog(
-                                title = "设置全屏歌词字号",
+                                title = getString(R.string.settings_fullscreen_lyrics_font_title),
                                 currentValue = UiSettingsStore.fullscreenLyricsFontSp(this),
                                 defaultValue = UiSettingsStore.defaultFullscreenLyricsFontSp,
                                 onSave = { value -> UiSettingsStore.setFullscreenLyricsFontSp(this, value) }
                             )
                         },
                         SettingsItem(
-                            title = "播放页歌词间距",
-                            descriptionProvider = { "默认值 ${"%.1f".format(UiSettingsStore.defaultPlaybackLyricsLineSpacing)}x，范围 1.0 - 3.0" },
+                            title = getString(R.string.settings_playback_lyrics_spacing),
+                            descriptionProvider = { getString(R.string.settings_lyrics_spacing_desc, "%.1f".format(UiSettingsStore.defaultPlaybackLyricsLineSpacing)) },
                             valueProvider = { "${"%.1f".format(UiSettingsStore.playbackLyricsLineSpacing(this))}x" }
                         ) {
                             showLyricsSpacingDialog(
-                                title = "设置播放页歌词间距",
+                                title = getString(R.string.settings_playback_lyrics_spacing_title),
                                 currentValue = UiSettingsStore.playbackLyricsLineSpacing(this),
                                 defaultValue = UiSettingsStore.defaultPlaybackLyricsLineSpacing,
                                 onSave = { value -> UiSettingsStore.setPlaybackLyricsLineSpacing(this, value) }
                             )
                         },
                         SettingsItem(
-                            title = "全屏歌词间距",
-                            descriptionProvider = { "默认值 ${"%.1f".format(UiSettingsStore.defaultFullscreenLyricsLineSpacing)}x，范围 1.0 - 3.0" },
+                            title = getString(R.string.settings_fullscreen_lyrics_spacing),
+                            descriptionProvider = { getString(R.string.settings_lyrics_spacing_desc, "%.1f".format(UiSettingsStore.defaultFullscreenLyricsLineSpacing)) },
                             valueProvider = { "${"%.1f".format(UiSettingsStore.fullscreenLyricsLineSpacing(this))}x" }
                         ) {
                             showLyricsSpacingDialog(
-                                title = "设置全屏歌词间距",
+                                title = getString(R.string.settings_fullscreen_lyrics_spacing_title),
                                 currentValue = UiSettingsStore.fullscreenLyricsLineSpacing(this),
                                 defaultValue = UiSettingsStore.defaultFullscreenLyricsLineSpacing,
                                 onSave = { value -> UiSettingsStore.setFullscreenLyricsLineSpacing(this, value) }
                             )
                         },
-                        SettingsItem(title = "其它", isGroupHeader = true),
+                        SettingsItem(title = getString(R.string.settings_other_group), isGroupHeader = true),
                         SettingsItem(
-                            title = "记忆上次播放",
-                            descriptionProvider = { "记录上次播放的曲目与进度，下次打开可一键继续" },
+                            title = getString(R.string.settings_remember_last_playback),
+                            descriptionProvider = { getString(R.string.settings_remember_last_playback_desc) },
                             valueProvider = {
-                                if (UiSettingsStore.rememberLastPlayback(this)) "已开启" else "已关闭"
+                                getString(if (UiSettingsStore.rememberLastPlayback(this)) R.string.common_enabled else R.string.common_disabled)
                             }
                         ) {
                             val next = !UiSettingsStore.rememberLastPlayback(this)
@@ -152,7 +161,7 @@ class SettingsActivity : BaseActivity() {
                             if (!next) LastPlaybackStore.clear(this)
                             Toast.makeText(
                                 this,
-                                if (next) "已开启记忆上次播放" else "已关闭记忆上次播放（已清除记录）",
+                                getString(if (next) R.string.settings_remember_enabled else R.string.settings_remember_disabled),
                                 Toast.LENGTH_SHORT
                             ).show()
                             rebuildCurrentCategory(moveFocusToDetail = false)
@@ -161,14 +170,14 @@ class SettingsActivity : BaseActivity() {
                 }
             ),
             SettingsCategory(
-                title = "应用设置",
+                title = getString(R.string.settings_category_app),
                 itemsProvider = {
                     listOf(
                         SettingsItem(
-                            title = "应用休眠保护",
-                            descriptionProvider = { "开启后应用运行时保持常亮，不触发休眠/息屏" },
+                            title = getString(R.string.settings_keep_screen_awake),
+                            descriptionProvider = { getString(R.string.settings_keep_screen_awake_desc) },
                             valueProvider = {
-                                if (UiSettingsStore.keepScreenAwake(this)) "已开启" else "已关闭"
+                                getString(if (UiSettingsStore.keepScreenAwake(this)) R.string.common_enabled else R.string.common_disabled)
                             }
                         ) {
                             val next = !UiSettingsStore.keepScreenAwake(this)
@@ -176,16 +185,16 @@ class SettingsActivity : BaseActivity() {
                             UiSettingsApplier.applyKeepScreenAwake(this)
                             Toast.makeText(
                                 this,
-                                if (next) "已开启休眠保护" else "已关闭休眠保护",
+                                getString(if (next) R.string.settings_keep_screen_awake_enabled else R.string.settings_keep_screen_awake_disabled),
                                 Toast.LENGTH_SHORT
                             ).show()
                             rebuildCurrentCategory(moveFocusToDetail = false)
                         },
                         SettingsItem(
-                            title = "睡眠权限",
-                            descriptionProvider = { "用于睡眠定时结束时让电视进入睡眠或息屏；未授权时仍会停播并退出应用" },
+                            title = getString(R.string.settings_sleep_permission),
+                            descriptionProvider = { getString(R.string.settings_sleep_permission_desc) },
                             valueProvider = {
-                                if (SleepDeviceController(this).isDeviceAdminActive()) "已授权" else "未授权"
+                                getString(if (SleepDeviceController(this).isDeviceAdminActive()) R.string.common_authorized else R.string.common_unauthorized)
                             }
                         ) {
                             SleepDeviceController(this).openDeviceAdminSettings(this)
@@ -194,13 +203,13 @@ class SettingsActivity : BaseActivity() {
                 }
             ),
             SettingsCategory(
-                title = "其它设置",
+                title = getString(R.string.settings_category_other),
                 itemsProvider = {
                     listOf(
                         SettingsItem(
-                            title = "清理缓存",
+                            title = getString(R.string.settings_clear_cache),
                             descriptionProvider = {
-                                "歌词与封面缓存提升播放页体验；浏览锚点缓存用于目录焦点恢复"
+                                getString(R.string.settings_clear_cache_desc)
                             },
                             valueProvider = {
                                 val total = PlaybackLyricsCache.diskCacheSize(this) +
@@ -213,7 +222,7 @@ class SettingsActivity : BaseActivity() {
                             PlaybackArtworkCache.clearDisk(this)
                             Toast.makeText(
                                 this,
-                                "缓存已清除（包含歌词、封面与浏览锚点）",
+                                getString(R.string.settings_cache_cleared),
                                 Toast.LENGTH_SHORT
                             ).show()
                             lifecycleScope.launch {
@@ -227,61 +236,61 @@ class SettingsActivity : BaseActivity() {
                 }
             ),
             SettingsCategory(
-                title = "备份恢复",
+                title = getString(R.string.settings_category_backup),
                 itemsProvider = {
                     val webDavConfig = WebDavConfigStore(this).load()
                     listOf(
                         SettingsItem(
-                            title = "导出本地备份",
-                            descriptionProvider = { "将当前应用持久化数据库全量导出到你选择的位置" },
-                            valueProvider = { "选择保存位置" },
+                            title = getString(R.string.settings_export_local_backup),
+                            descriptionProvider = { getString(R.string.settings_export_local_backup_desc) },
+                            valueProvider = { getString(R.string.settings_choose_save_location) },
                             action = { launchExportBackupPicker() }
                         ),
                         SettingsItem(
-                            title = "导入本地备份",
-                            descriptionProvider = { "从你选择的备份文件恢复应用持久化数据库，会覆盖当前配置与收藏数据" },
-                            valueProvider = { "选择备份文件" },
+                            title = getString(R.string.settings_import_local_backup),
+                            descriptionProvider = { getString(R.string.settings_import_local_backup_desc) },
+                            valueProvider = { getString(R.string.settings_choose_backup_file) },
                             action = { launchImportBackupPicker() }
                         ),
-                        SettingsItem(title = "WebDAV", isGroupHeader = true),
+                        SettingsItem(title = getString(R.string.settings_webdav_group), isGroupHeader = true),
                         SettingsItem(
-                            title = "WebDAV 配置",
-                            descriptionProvider = { "配置 WebDAV 目录 URL、用户名和密码；仅用于手动上传/下载" },
-                            valueProvider = { if (webDavConfig.isReady()) "已配置" else "未配置" },
+                            title = getString(R.string.settings_webdav_config),
+                            descriptionProvider = { getString(R.string.settings_webdav_config_desc) },
+                            valueProvider = { getString(if (webDavConfig.isReady()) R.string.common_configured else R.string.common_not_configured) },
                             action = { showWebDavConfigDialog() }
                         ),
                         SettingsItem(
-                            title = "上传到 WebDAV",
-                            descriptionProvider = { "先导出当前应用数据库，再全量上传到配置的 WebDAV URL" },
-                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else "请先配置" },
+                            title = getString(R.string.settings_upload_webdav),
+                            descriptionProvider = { getString(R.string.settings_upload_webdav_desc) },
+                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else getString(R.string.settings_configure_first) },
                             action = { uploadWebDavBackup() }
                         ),
                         SettingsItem(
-                            title = "从 WebDAV 下载并恢复",
-                            descriptionProvider = { "从 WebDAV 下载备份并覆盖当前应用数据库，不会自动同步" },
-                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else "请先配置" },
+                            title = getString(R.string.settings_download_webdav),
+                            descriptionProvider = { getString(R.string.settings_download_webdav_desc) },
+                            valueProvider = { if (webDavConfig.isReady()) webDavConfig.url else getString(R.string.settings_configure_first) },
                             action = { confirmDownloadWebDavBackup() }
                         )
                     )
                 }
             ),
             SettingsCategory(
-                title = "关于",
+                title = getString(R.string.settings_category_about),
                 itemsProvider = {
                     buildList {
                         add(
                             SettingsItem(
-                                title = "项目描述",
+                                title = getString(R.string.settings_project_description),
                                 descriptionProvider = {
-                                    "一款适配安卓TV，基于遥控器操作的本地SMB网络音乐播放器。"
+                                    getString(R.string.settings_project_description_value)
                                 },
                                 valueProvider = { "v${BuildConfig.VERSION_NAME} / ${AppUpdateManager.currentAbi()}" }
                             )
                         )
                         add(
                             SettingsItem(
-                                title = "检查更新",
-                                descriptionProvider = { "从 GitHub Release 查找适用于当前设备架构的新版本安装包" },
+                                title = getString(R.string.settings_check_update),
+                                descriptionProvider = { getString(R.string.settings_check_update_desc) },
                                 action = {
                                     AppUpdateManager.checkAndPrompt(this@SettingsActivity, silentWhenNoUpdate = false)
                                 }
@@ -290,8 +299,8 @@ class SettingsActivity : BaseActivity() {
                         if (BuildConfig.DEBUG) {
                             add(
                                 SettingsItem(
-                                    title = "预览启动更新提示",
-                                    descriptionProvider = { "仅 Debug 包显示；不访问 GitHub，不下载 APK，不保存稍后设置" },
+                                    title = getString(R.string.settings_preview_startup_update),
+                                    descriptionProvider = { getString(R.string.settings_preview_startup_update_desc) },
                                     action = {
                                         AppUpdateManager.previewStartupUpdatePrompt(this@SettingsActivity)
                                     }
@@ -299,8 +308,8 @@ class SettingsActivity : BaseActivity() {
                             )
                             add(
                                 SettingsItem(
-                                    title = "预览更新下载样式",
-                                    descriptionProvider = { "仅 Debug 包显示；不访问 GitHub，不安装 APK" },
+                                    title = getString(R.string.settings_preview_download_progress),
+                                    descriptionProvider = { getString(R.string.settings_preview_download_progress_desc) },
                                     action = {
                                         AppUpdateManager.previewDownloadProgress(this@SettingsActivity)
                                     }
@@ -310,7 +319,7 @@ class SettingsActivity : BaseActivity() {
                         add(
                             SettingsItem(
                                 title = "GitHub",
-                                descriptionProvider = { "项目主页" },
+                                descriptionProvider = { getString(R.string.settings_github_desc) },
                                 iconResId = R.drawable.ic_github,
                                 action = {
                                     startActivity(
@@ -447,7 +456,7 @@ class SettingsActivity : BaseActivity() {
                 if (item.action != null) {
                     item.action.invoke()
                 } else {
-                    Toast.makeText(this, "该项仅用于展示", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.common_not_supported_display_only, Toast.LENGTH_SHORT).show()
                 }
             }
             containerDetail.addView(itemView)
@@ -468,21 +477,21 @@ class SettingsActivity : BaseActivity() {
     ) {
         val dialog = modalCoordinator.showFormModal(
             FormModalSpec(
-                sectionLabel = "显示设置",
+                sectionLabel = getString(R.string.settings_category_display),
                 title = title,
                 fields = listOf(
                     FormFieldSpec(
                         key = "value",
-                        label = "字号 (sp)",
+                        label = getString(R.string.settings_field_font_size),
                         initialValue = currentValue.toString(),
                         hint = "${UiSettingsStore.minLyricsFontSp}-${UiSettingsStore.maxLyricsFontSp}",
                         inputType = InputType.TYPE_CLASS_NUMBER,
                     )
                 ),
-                primaryAction = ModalAction("保存", isPrimary = true),
-                secondaryAction = ModalAction("恢复默认($defaultValue)") {
+                primaryAction = ModalAction(getString(R.string.common_save), isPrimary = true),
+                secondaryAction = ModalAction(getString(R.string.settings_restore_default, defaultValue.toString())) {
                     onSave(defaultValue)
-                    Toast.makeText(this, "已恢复默认字号 ${defaultValue}sp", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.settings_font_default_restored, defaultValue), Toast.LENGTH_SHORT).show()
                     rebuildCurrentCategory(moveFocusToDetail = false)
                 },
             )
@@ -490,18 +499,63 @@ class SettingsActivity : BaseActivity() {
         modalCoordinator.bindFormPrimaryAction(dialog, "value") { values ->
             val parsed = values["value"]?.trim()?.toIntOrNull()
             val error = TsmModalFormValidators.validateLyricsFont(
-                parsed, UiSettingsStore.minLyricsFontSp, UiSettingsStore.maxLyricsFontSp
+                parsed,
+                UiSettingsStore.minLyricsFontSp,
+                UiSettingsStore.maxLyricsFontSp,
+                invalidNumberMessage = getString(R.string.validation_number_required),
+                rangeMessage = getString(
+                    R.string.validation_lyrics_font_range,
+                    UiSettingsStore.minLyricsFontSp,
+                    UiSettingsStore.maxLyricsFontSp,
+                ),
             )
             if (error != null) {
                 modalCoordinator.updateFieldError(dialog, "value", error)
                 return@bindFormPrimaryAction false
             }
             onSave(parsed!!)
-            Toast.makeText(this, "字号已设置为 ${parsed}sp", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.settings_font_saved, parsed), Toast.LENGTH_SHORT).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
             true
         }
     }
+
+    private fun showLanguageDialog() {
+        val current = UiSettingsStore.appLanguage(this)
+        modalCoordinator.showListModal(
+            ListModalSpec(
+                sectionLabel = getString(R.string.settings_category_display),
+                title = getString(R.string.settings_language),
+                rows = AppLanguage.entries.map { language ->
+                    val label = appLanguageLabel(language)
+                    ModalListRow(
+                        key = language.storageValue,
+                        label = label,
+                        enabled = language != current,
+                        dismissOnClick = true,
+                        onClick = {
+                            if (language != UiSettingsStore.appLanguage(this)) {
+                                UiSettingsStore.setAppLanguage(this, language)
+                                Toast.makeText(
+                                    this,
+                                    getString(R.string.settings_language_changed, appLanguageLabel(language)),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                                recreate()
+                            }
+                        },
+                    )
+                },
+            )
+        )
+    }
+
+    private fun appLanguageLabel(language: AppLanguage): String =
+        when (language) {
+            AppLanguage.SYSTEM -> getString(R.string.settings_language_system)
+            AppLanguage.CHINESE -> getString(R.string.settings_language_chinese)
+            AppLanguage.ENGLISH -> getString(R.string.settings_language_english)
+        }
 
     private fun showLyricsSpacingDialog(
         title: String,
@@ -511,21 +565,21 @@ class SettingsActivity : BaseActivity() {
     ) {
         val dialog = modalCoordinator.showFormModal(
             FormModalSpec(
-                sectionLabel = "显示设置",
+                sectionLabel = getString(R.string.settings_category_display),
                 title = title,
                 fields = listOf(
                     FormFieldSpec(
                         key = "value",
-                        label = "间距 (x)",
+                        label = getString(R.string.settings_field_spacing),
                         initialValue = "%.1f".format(currentValue),
                         hint = "${"%.1f".format(UiSettingsStore.minLyricsLineSpacing)} - ${"%.1f".format(UiSettingsStore.maxLyricsLineSpacing)}",
                         inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL,
                     )
                 ),
-                primaryAction = ModalAction("保存", isPrimary = true),
-                secondaryAction = ModalAction("恢复默认(${"%.1f".format(defaultValue)})") {
+                primaryAction = ModalAction(getString(R.string.common_save), isPrimary = true),
+                secondaryAction = ModalAction(getString(R.string.settings_restore_default, "%.1f".format(defaultValue))) {
                     onSave(defaultValue)
-                    Toast.makeText(this, "已恢复默认间距 ${"%.1f".format(defaultValue)}x", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.settings_spacing_default_restored, "%.1f".format(defaultValue)), Toast.LENGTH_SHORT).show()
                     rebuildCurrentCategory(moveFocusToDetail = false)
                 },
             )
@@ -533,14 +587,22 @@ class SettingsActivity : BaseActivity() {
         modalCoordinator.bindFormPrimaryAction(dialog, "value") { values ->
             val parsed = values["value"]?.trim()?.toFloatOrNull()
             val error = TsmModalFormValidators.validateLyricsSpacing(
-                parsed, UiSettingsStore.minLyricsLineSpacing, UiSettingsStore.maxLyricsLineSpacing
+                parsed,
+                UiSettingsStore.minLyricsLineSpacing,
+                UiSettingsStore.maxLyricsLineSpacing,
+                invalidNumberMessage = getString(R.string.validation_number_required),
+                rangeMessage = getString(
+                    R.string.validation_lyrics_spacing_range,
+                    "%.1f".format(UiSettingsStore.minLyricsLineSpacing),
+                    "%.1f".format(UiSettingsStore.maxLyricsLineSpacing),
+                ),
             )
             if (error != null) {
                 modalCoordinator.updateFieldError(dialog, "value", error)
                 return@bindFormPrimaryAction false
             }
             onSave(parsed!!)
-            Toast.makeText(this, "间距已设置为 ${"%.1f".format(parsed)}x", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.settings_spacing_saved, "%.1f".format(parsed)), Toast.LENGTH_SHORT).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
             true
         }
@@ -555,7 +617,7 @@ class SettingsActivity : BaseActivity() {
         try {
             startActivityForResult(intent, REQUEST_EXPORT_BACKUP)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, "当前设备没有可用的文件保存器", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.common_no_file_saver, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -567,7 +629,7 @@ class SettingsActivity : BaseActivity() {
         try {
             startActivityForResult(intent, REQUEST_IMPORT_BACKUP)
         } catch (_: ActivityNotFoundException) {
-            Toast.makeText(this, "当前设备没有可用的文件选择器", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.common_no_file_picker, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -578,13 +640,13 @@ class SettingsActivity : BaseActivity() {
                     ?: return@withContext com.github.gbandszxc.tvmediaplayer.backup.BackupOperationResult(
                         BackupOperationStatus.FAILED,
                         File(FavoritesDbHelper.DB_NAME),
-                        "无法打开目标文件"
+                        getString(R.string.settings_backup_open_target_failed)
                     )
                 SqliteBackupManager(applicationContext).exportToStream(output)
             }
             Toast.makeText(
                 this@SettingsActivity,
-                backupResultToast("本地备份导出", result.status, result.file, includePath = false),
+                backupResultToast(getString(R.string.settings_backup_export_local), result.status, result.file, includePath = false),
                 Toast.LENGTH_LONG
             ).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
@@ -595,14 +657,14 @@ class SettingsActivity : BaseActivity() {
         pendingImportUri = uri
         modalCoordinator.showConfirmModal(
             ConfirmModalSpec(
-                sectionLabel = "备份恢复",
-                title = "从本地备份恢复？",
-                message = "会用备份文件覆盖当前配置、播放状态与收藏数据。该操作不会修改 SMB 原文件。",
-                confirmAction = ModalAction("恢复", isPrimary = true) {
+                sectionLabel = getString(R.string.settings_category_backup),
+                title = getString(R.string.settings_confirm_import_title),
+                message = getString(R.string.settings_confirm_import_message),
+                confirmAction = ModalAction(getString(R.string.settings_restore), isPrimary = true) {
                     pendingImportUri?.let { importLocalBackup(it) }
                     pendingImportUri = null
                 },
-                cancelAction = ModalAction("取消") {
+                cancelAction = ModalAction(getString(R.string.common_cancel)) {
                     pendingImportUri = null
                 }
             )
@@ -616,13 +678,13 @@ class SettingsActivity : BaseActivity() {
                     ?: return@withContext com.github.gbandszxc.tvmediaplayer.backup.BackupOperationResult(
                         BackupOperationStatus.FAILED,
                         File(FavoritesDbHelper.DB_NAME),
-                        "无法打开备份文件"
+                        getString(R.string.settings_backup_open_source_failed)
                     )
                 SqliteBackupManager(applicationContext).importFromStream(input)
             }
             Toast.makeText(
                 this@SettingsActivity,
-                backupResultToast("本地备份恢复", result.status, result.file, includePath = false),
+                backupResultToast(getString(R.string.settings_backup_import_local), result.status, result.file, includePath = false),
                 Toast.LENGTH_LONG
             ).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
@@ -635,8 +697,8 @@ class SettingsActivity : BaseActivity() {
         lateinit var dialog: Dialog
         dialog = modalCoordinator.showFormModal(
             FormModalSpec(
-                sectionLabel = "备份恢复",
-                title = "WebDAV 配置",
+                sectionLabel = getString(R.string.settings_category_backup),
+                title = getString(R.string.settings_webdav_config),
                 fields = listOf(
                     FormFieldSpec(
                         key = "url",
@@ -647,24 +709,24 @@ class SettingsActivity : BaseActivity() {
                     ),
                     FormFieldSpec(
                         key = "username",
-                        label = "用户名",
+                        label = getString(R.string.browser_form_username),
                         initialValue = current.username,
-                        hint = "可留空",
+                        hint = getString(R.string.common_optional),
                         inputType = InputType.TYPE_CLASS_TEXT
                     ),
                     FormFieldSpec(
                         key = "password",
-                        label = "密码",
+                        label = getString(R.string.browser_form_password),
                         initialValue = current.password,
-                        hint = "可留空",
+                        hint = getString(R.string.common_optional),
                         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
                     )
                 ),
-                leadingAction = ModalAction("测试连接") {
+                leadingAction = ModalAction(getString(R.string.settings_webdav_test)) {
                     testWebDavConnectionFromDialog(dialog)
                 },
-                primaryAction = ModalAction("保存", isPrimary = true),
-                secondaryAction = ModalAction("取消")
+                primaryAction = ModalAction(getString(R.string.common_save), isPrimary = true),
+                secondaryAction = ModalAction(getString(R.string.common_cancel))
             )
         )
         modalCoordinator.bindFormPrimaryAction(dialog, "url", "username", "password") { values ->
@@ -674,11 +736,11 @@ class SettingsActivity : BaseActivity() {
                 password = values["password"].orEmpty()
             )
             if (!config.isReady()) {
-                modalCoordinator.updateFieldError(dialog, "url", "请填写 WebDAV URL")
+                modalCoordinator.updateFieldError(dialog, "url", getString(R.string.settings_webdav_url_required))
                 return@bindFormPrimaryAction false
             }
             store.save(config)
-            Toast.makeText(this, "WebDAV 配置已保存", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.settings_webdav_saved, Toast.LENGTH_SHORT).show()
             rebuildCurrentCategory(moveFocusToDetail = false)
             true
         }
@@ -691,15 +753,15 @@ class SettingsActivity : BaseActivity() {
             password = dialog.formValue("password")
         )
         if (!config.isReady()) {
-            modalCoordinator.updateFieldError(dialog, "url", "请填写 WebDAV URL")
-            Toast.makeText(this, "请先配置 WebDAV URL", Toast.LENGTH_SHORT).show()
+            modalCoordinator.updateFieldError(dialog, "url", getString(R.string.settings_webdav_url_required))
+            Toast.makeText(this, R.string.settings_webdav_configure_url_first, Toast.LENGTH_SHORT).show()
             return
         }
         modalCoordinator.updateFieldError(dialog, "url", null)
-        Toast.makeText(this, "正在测试 WebDAV 连接...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, R.string.settings_webdav_testing, Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
-                WebDavBackupClient().testConnection(config)
+                WebDavBackupClient(messages = webDavClientMessages()).testConnection(config)
             }
             Toast.makeText(this@SettingsActivity, result.message, Toast.LENGTH_LONG).show()
         }
@@ -714,17 +776,17 @@ class SettingsActivity : BaseActivity() {
     private fun uploadWebDavBackup() {
         val config = WebDavConfigStore(this).load()
         if (!config.isReady()) {
-            Toast.makeText(this, "请先配置 WebDAV", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.settings_webdav_configure_first, Toast.LENGTH_SHORT).show()
             return
         }
         val backupManager = SqliteBackupManager(this)
         val progress = modalCoordinator.showProgressModal(
             ProgressModalSpec(
-                sectionLabel = "备份恢复",
-                title = "上传备份",
+                sectionLabel = getString(R.string.settings_category_backup),
+                title = getString(R.string.settings_upload_backup_title),
                 fileName = backupManager.localBackupFile().name,
                 initialState = DownloadProgressState(0L, 1L, 0L),
-                message = "正在全量上传当前应用数据库备份。"
+                message = getString(R.string.settings_upload_backup_message)
             )
         )
         lifecycleScope.launch {
@@ -732,9 +794,9 @@ class SettingsActivity : BaseActivity() {
                 runCatching {
                     val exportResult = backupManager.exportToLocalBackup()
                     if (exportResult.status != BackupOperationStatus.SUCCESS) {
-                        error(backupResultToast("本地备份导出", exportResult.status, exportResult.file))
+                        error(backupResultToast(getString(R.string.settings_backup_export_local), exportResult.status, exportResult.file))
                     }
-                    WebDavBackupClient().upload(
+                    WebDavBackupClient(messages = webDavClientMessages()).upload(
                         config,
                         FavoritesDbHelper.DB_NAME,
                         exportResult.file.inputStream()
@@ -746,11 +808,15 @@ class SettingsActivity : BaseActivity() {
                 .onSuccess { bytes ->
                     progress.onProgress(DownloadProgressState(bytes, bytes.coerceAtLeast(1L), 0L))
                     progress.onDismiss()
-                    Toast.makeText(this@SettingsActivity, "WebDAV 备份上传完成", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@SettingsActivity, R.string.settings_webdav_upload_done, Toast.LENGTH_LONG).show()
                 }
                 .onFailure { ex ->
                     progress.onDismiss()
-                    Toast.makeText(this@SettingsActivity, "WebDAV 上传失败：${ex.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.settings_webdav_upload_failed, ex.message.orEmpty()),
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
         }
     }
@@ -758,13 +824,13 @@ class SettingsActivity : BaseActivity() {
     private fun confirmDownloadWebDavBackup() {
         modalCoordinator.showConfirmModal(
             ConfirmModalSpec(
-                sectionLabel = "备份恢复",
-                title = "从 WebDAV 下载并恢复？",
-                message = "会下载远端备份并覆盖当前配置、播放状态与收藏数据。该操作不会修改 SMB 原文件。",
-                confirmAction = ModalAction("下载并恢复", isPrimary = true) {
+                sectionLabel = getString(R.string.settings_category_backup),
+                title = getString(R.string.settings_confirm_download_webdav_title),
+                message = getString(R.string.settings_confirm_download_webdav_message),
+                confirmAction = ModalAction(getString(R.string.settings_download_and_restore), isPrimary = true) {
                     downloadWebDavBackup()
                 },
-                cancelAction = ModalAction("取消")
+                cancelAction = ModalAction(getString(R.string.common_cancel))
             )
         )
     }
@@ -772,23 +838,23 @@ class SettingsActivity : BaseActivity() {
     private fun downloadWebDavBackup() {
         val config = WebDavConfigStore(this).load()
         if (!config.isReady()) {
-            Toast.makeText(this, "请先配置 WebDAV", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.settings_webdav_configure_first, Toast.LENGTH_SHORT).show()
             return
         }
         val tempFile = File(cacheDir, "webdav-${FavoritesDbHelper.DB_NAME}")
         val progress = modalCoordinator.showProgressModal(
             ProgressModalSpec(
-                sectionLabel = "备份恢复",
-                title = "下载备份",
+                sectionLabel = getString(R.string.settings_category_backup),
+                title = getString(R.string.settings_download_backup_title),
                 fileName = FavoritesDbHelper.DB_NAME,
                 initialState = DownloadProgressState(0L, 1L, 0L),
-                message = "正在从 WebDAV 下载备份并准备恢复。"
+                message = getString(R.string.settings_download_backup_message)
             )
         )
         lifecycleScope.launch {
             val outcome = withContext(Dispatchers.IO) {
                 runCatching {
-                    WebDavBackupClient().download(
+                    WebDavBackupClient(messages = webDavClientMessages()).download(
                         config,
                         FavoritesDbHelper.DB_NAME,
                         tempFile.outputStream()
@@ -804,7 +870,7 @@ class SettingsActivity : BaseActivity() {
                     progress.onDismiss()
                     Toast.makeText(
                         this@SettingsActivity,
-                        backupResultToast("WebDAV 备份恢复", result.status, result.file),
+                        backupResultToast(getString(R.string.settings_backup_restore_webdav), result.status, result.file),
                         Toast.LENGTH_LONG
                     ).show()
                     rebuildCurrentCategory(moveFocusToDetail = false)
@@ -812,7 +878,11 @@ class SettingsActivity : BaseActivity() {
                 .onFailure { ex ->
                     progress.onDismiss()
                     tempFile.delete()
-                    Toast.makeText(this@SettingsActivity, "WebDAV 下载失败：${ex.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@SettingsActivity,
+                        getString(R.string.settings_webdav_download_failed, ex.message.orEmpty()),
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
         }
     }
@@ -824,11 +894,42 @@ class SettingsActivity : BaseActivity() {
         includePath: Boolean = true,
     ): String =
         when (status) {
-            BackupOperationStatus.SUCCESS -> if (includePath) "${operation}完成：${file.path}" else "${operation}完成"
-            BackupOperationStatus.MISSING_SOURCE -> "${operation}失败：未找到备份文件"
-            BackupOperationStatus.INVALID_SOURCE -> "${operation}失败：备份文件不是有效应用数据库"
-            BackupOperationStatus.FAILED -> "${operation}失败"
+            BackupOperationStatus.SUCCESS -> {
+                val suffix = if (includePath) {
+                    getString(R.string.settings_backup_done_with_path, file.path)
+                } else {
+                    getString(R.string.settings_backup_done)
+                }
+                "$operation$suffix"
+            }
+            BackupOperationStatus.MISSING_SOURCE -> "$operation${getString(R.string.settings_backup_missing_source)}"
+            BackupOperationStatus.INVALID_SOURCE -> "$operation${getString(R.string.settings_backup_invalid_source)}"
+            BackupOperationStatus.FAILED -> "$operation${getString(R.string.settings_backup_failed)}"
         }
+
+    private fun webDavClientMessages(): WebDavClientMessages =
+        WebDavClientMessages(
+            uploadFailedHttp = { getString(R.string.webdav_upload_failed_http, it) },
+            downloadFailedHttp = { getString(R.string.webdav_download_failed_http, it) },
+            missingUrl = getString(R.string.webdav_connection_missing_url),
+            createdDirectory = { getString(R.string.webdav_connection_created_dir, it) },
+            connectionSuccess = { getString(R.string.webdav_connection_success, it) },
+            connectionFailed = { getString(R.string.webdav_connection_failed, it) },
+            createLoop = getString(R.string.webdav_create_loop),
+            invalidRoot = { getString(R.string.webdav_root_invalid, it) },
+            createParentFailed = { getString(R.string.webdav_create_parent_failed, it) },
+            authFailed = { getString(R.string.webdav_auth_failed, it) },
+            invalidDirectory = { getString(R.string.webdav_invalid_dir, it) },
+            probeNotAllowed = { getString(R.string.webdav_probe_not_allowed, it) },
+            parentInaccessible = { getString(R.string.webdav_parent_inaccessible, it) },
+            serverError = { getString(R.string.webdav_server_error, it) },
+            createAuthFailed = { getString(R.string.webdav_create_auth_failed, it) },
+            createServerError = { getString(R.string.webdav_create_server_error, it) },
+            createFailed = { getString(R.string.webdav_create_failed, it) },
+            unknownHost = getString(R.string.webdav_unknown_host),
+            timeout = getString(R.string.webdav_timeout),
+            sslError = getString(R.string.webdav_ssl_error),
+        )
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {

@@ -219,7 +219,7 @@ class HistoryActivity : BaseActivity() {
         }
         val selected = currentTracks.getOrNull(index) ?: return
         if (selected.streamUri.isBlank()) {
-            Toast.makeText(this, getString(R.string.history_play_failed, "播放地址为空"), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.history_play_failed, getString(R.string.history_empty_play_uri)), Toast.LENGTH_SHORT).show()
             return
         }
 

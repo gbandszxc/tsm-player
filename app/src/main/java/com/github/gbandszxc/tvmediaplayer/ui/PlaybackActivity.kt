@@ -429,7 +429,7 @@ class PlaybackActivity : BaseActivity() {
                     }
                     .onFailure {
                         controllerFuture = null
-                        Toast.makeText(this, "播放器连接失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
                     }
             },
             MoreExecutors.directExecutor()
@@ -461,11 +461,12 @@ class PlaybackActivity : BaseActivity() {
             mediaItemAlbumTitle = mediaItem?.mediaMetadata?.albumTitle?.toString(),
             playerTitle = player.mediaMetadata.title?.toString(),
             playerArtist = player.mediaMetadata.artist?.toString(),
-            playerAlbumTitle = player.mediaMetadata.albumTitle?.toString()
+            playerAlbumTitle = player.mediaMetadata.albumTitle?.toString(),
+            emptyTitleFallback = getString(R.string.playback_empty_title),
         )
-        tvTitle.text = "歌曲：${display.title}"
-        tvArtist.text = "艺术家：${display.artist}"
-        tvAlbum.text = "专辑：${display.albumTitle}"
+        tvTitle.text = getString(R.string.playback_title_format, display.title)
+        tvArtist.text = getString(R.string.playback_artist_format, display.artist)
+        tvAlbum.text = getString(R.string.playback_album_format, display.albumTitle)
     }
 
     private fun applyPlaybackMode(mode: PlaybackMode, showNotice: Boolean) {
@@ -477,7 +478,7 @@ class PlaybackActivity : BaseActivity() {
         }
         renderPlaybackModeButton()
         if (showNotice) {
-            showPlaybackToast("已切换为：${mode.label}")
+            showPlaybackToast(getString(R.string.playback_mode_changed, getString(mode.labelResId)))
         }
     }
 
@@ -497,7 +498,7 @@ class PlaybackActivity : BaseActivity() {
         renderedPlaybackModeFocused = focused
         renderCompactIconButton(
             button = btnPlayMode,
-            label = playbackMode.label,
+            label = getString(playbackMode.labelResId),
             iconResId = playbackMode.iconResId,
             focused = focused,
             backgroundResId = R.drawable.bg_button_amber,
@@ -532,6 +533,7 @@ class PlaybackActivity : BaseActivity() {
         renderPlaybackButton(
             button = btnFavorite,
             spec = PlaybackButtonPresentation.favorite(
+                context = this,
                 inDefaultFavorites = currentTrackInDefaultFavorites,
                 focused = focused,
             ),
@@ -563,7 +565,7 @@ class PlaybackActivity : BaseActivity() {
     private fun renderPreviousButton() {
         renderPlaybackButton(
             button = btnPrevious,
-            spec = PlaybackButtonPresentation.previous(),
+            spec = PlaybackButtonPresentation.previous(this),
             backgroundResId = R.drawable.bg_button_dark,
             iconColorResId = R.color.ui_text_on_accent,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
@@ -576,7 +578,7 @@ class PlaybackActivity : BaseActivity() {
         renderedPlayPausePlaying = isPlaying
         renderPlaybackButton(
             button = btnPlayPause,
-            spec = PlaybackButtonPresentation.playPause(isPlaying = isPlaying),
+            spec = PlaybackButtonPresentation.playPause(this, isPlaying = isPlaying),
             backgroundResId = if (isPlaying) R.drawable.bg_button_amber else R.drawable.bg_button_green,
             iconColorResId = R.color.ui_text_on_accent,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
@@ -587,7 +589,7 @@ class PlaybackActivity : BaseActivity() {
     private fun renderNextButton() {
         renderPlaybackButton(
             button = btnNext,
-            spec = PlaybackButtonPresentation.next(),
+            spec = PlaybackButtonPresentation.next(this),
             backgroundResId = R.drawable.bg_button_dark,
             iconColorResId = R.color.ui_text_on_accent,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
@@ -601,7 +603,7 @@ class PlaybackActivity : BaseActivity() {
         renderedLocateFocused = focused
         renderCompactIconButton(
             button = btnLocate,
-            label = "定位",
+            label = getString(R.string.playback_locate),
             iconResId = R.drawable.ic_locate_crosshair,
             focused = focused,
             backgroundResId = R.drawable.bg_button_light_yellow,
@@ -617,7 +619,7 @@ class PlaybackActivity : BaseActivity() {
         renderedLyricsFullscreenFocused = focused
         renderPlaybackButton(
             button = btnLyricsFullscreen,
-            spec = PlaybackButtonPresentation.lyricsFullscreen(focused = focused),
+            spec = PlaybackButtonPresentation.lyricsFullscreen(this, focused = focused),
             backgroundResId = R.drawable.bg_button_primary,
             iconColorResId = R.color.ui_text_on_accent,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
@@ -631,7 +633,7 @@ class PlaybackActivity : BaseActivity() {
         renderedBackFocused = focused
         renderPlaybackButton(
             button = btnBack,
-            spec = PlaybackButtonPresentation.backToBrowser(focused = focused),
+            spec = PlaybackButtonPresentation.backToBrowser(this, focused = focused),
             backgroundResId = R.drawable.bg_button_primary,
             iconColorResId = R.color.ui_text_on_accent,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
@@ -641,7 +643,11 @@ class PlaybackActivity : BaseActivity() {
 
     private fun renderSleepTimerButton(force: Boolean = false) {
         val remaining = sleepTimerManager.remainingMinutesCeil()
-        val label = if (remaining != null) "睡眠 ${remaining}分" else "睡眠定时"
+        val label = if (remaining != null) {
+            getString(R.string.sleep_timer_button_remaining, remaining)
+        } else {
+            getString(R.string.sleep_timer_button_inactive)
+        }
         val focused = btnSleepTimer.hasFocus()
         if (!force && renderedSleepTimerLabel == label && renderedSleepTimerFocused == focused) return
         renderedSleepTimerLabel = label
@@ -827,7 +833,7 @@ class PlaybackActivity : BaseActivity() {
             ListModalSpec(
                 sectionLabel = getString(R.string.favorites_title),
                 title = getString(R.string.favorites_select_playlist),
-                message = "将当前歌曲加入以下播放列表",
+                message = getString(R.string.playback_add_to_playlist_message),
                 rows = rebuildRows(),
             )
         )
@@ -888,9 +894,9 @@ class PlaybackActivity : BaseActivity() {
             FavoritePlaylistChoice(
                 playlistId = playlist.id,
                 label = if (contains) {
-                    "${playlist.name}（${getString(R.string.favorites_already_in_playlist)}）"
+                    getString(R.string.favorites_playlist_already_added, favoritePlaylistDisplayName(playlist))
                 } else {
-                    playlist.name
+                    favoritePlaylistDisplayName(playlist)
                 },
                 disabled = contains,
             )
@@ -901,6 +907,9 @@ class PlaybackActivity : BaseActivity() {
             createNew = true,
         )
     }
+
+    private fun favoritePlaylistDisplayName(playlist: FavoritePlaylist): String =
+        if (playlist.isDefault) getString(R.string.favorites_default_playlist) else playlist.name
 
     private fun addTrackToPlaylist(playlistId: String, track: FavoriteTrack) {
         val added = favoritesRepository.addTrack(
@@ -936,7 +945,7 @@ class PlaybackActivity : BaseActivity() {
                 fields = listOf(
                     FormFieldSpec(
                         key = "playlist_name",
-                        label = "名称",
+                        label = getString(R.string.favorites_name_label),
                         initialValue = "",
                         hint = getString(R.string.favorites_playlist_name_hint),
                         inputType = android.text.InputType.TYPE_CLASS_TEXT or
@@ -949,7 +958,12 @@ class PlaybackActivity : BaseActivity() {
         )
         modalCoordinator.bindFormPrimaryAction(dialog, "playlist_name") { values ->
             val name = values.getValue("playlist_name")
-            val error = TsmModalFormValidators.validatePlaylistName(name, existing)
+            val error = TsmModalFormValidators.validatePlaylistName(
+                name,
+                existing,
+                emptyMessage = getString(R.string.favorites_playlist_name_empty),
+                duplicateMessage = getString(R.string.favorites_playlist_name_duplicate),
+            )
             if (error != null) {
                 modalCoordinator.updateFieldError(dialog, "playlist_name", error)
                 return@bindFormPrimaryAction false
@@ -1097,10 +1111,10 @@ class PlaybackActivity : BaseActivity() {
             return
         }
         if (PlaybackLyricsCache.isMissCached(applicationContext, key)) {
-            showLyricsStatus("暂无歌词")
+            showLyricsStatus(getString(R.string.playback_lyrics_empty))
             return
         }
-        showLyricsStatus("歌词加载中...")
+        showLyricsStatus(getString(R.string.playback_lyrics_loading))
 
         val config = PlaybackConfigStore.current()
         if (config.host.isBlank()) {
@@ -1148,7 +1162,7 @@ class PlaybackActivity : BaseActivity() {
                 if (outcome.isMiss) {
                     PlaybackLyricsCache.markMissAsync(applicationContext, key)
                 }
-                showLyricsStatus("暂无歌词")
+                showLyricsStatus(getString(R.string.playback_lyrics_empty))
                 return@launch
             }
             PlaybackLyricsCache.put(key, outcome.timeline)
@@ -1428,7 +1442,8 @@ class PlaybackActivity : BaseActivity() {
             mediaItemAlbumTitle = currentMediaItem?.mediaMetadata?.albumTitle?.toString(),
             playerTitle = controller.mediaMetadata.title?.toString(),
             playerArtist = controller.mediaMetadata.artist?.toString(),
-            playerAlbumTitle = controller.mediaMetadata.albumTitle?.toString()
+            playerAlbumTitle = controller.mediaMetadata.albumTitle?.toString(),
+            emptyTitleFallback = getString(R.string.playback_empty_title),
         )
         LastPlaybackStore.save(
             this,
@@ -1455,7 +1470,7 @@ class PlaybackActivity : BaseActivity() {
                 ?: LastPlaybackStore.load(this@PlaybackActivity)?.let(PlaybackLocationResolver::fromSnapshot)
 
             if (target == null) {
-                Toast.makeText(this@PlaybackActivity, "无法定位当前播放目录", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PlaybackActivity, R.string.playback_locate_failed, Toast.LENGTH_SHORT).show()
                 return@launch
             }
 
@@ -1478,14 +1493,14 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun showLocateConfirmationDialog(target: PlaybackLocationResolver.Target) {
-        val targetLabel = target.sourceConfig.rootUrl().ifBlank { "目标 SMB 连接" }
+        val targetLabel = target.sourceConfig.rootUrl().ifBlank { getString(R.string.playback_target_smb_connection) }
         AlertDialog.Builder(this)
-            .setTitle("切换 SMB 连接")
-            .setMessage("当前播放文件位于另一个 SMB 连接，是否切换到 $targetLabel 并定位到该目录？")
-            .setPositiveButton("切换并定位") { _, _ ->
+            .setTitle(getString(R.string.playback_switch_smb_connection))
+            .setMessage(getString(R.string.playback_switch_smb_message, targetLabel))
+            .setPositiveButton(getString(R.string.playback_switch_and_locate)) { _, _ ->
                 openBrowserAtPlaybackDirectory(target)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(getString(R.string.common_cancel), null)
             .show()
     }
 
@@ -1595,7 +1610,7 @@ class PlaybackActivity : BaseActivity() {
                 FavoritePlaylistChoice(
                     playlistId = playlist.id,
                     label = if (contains) {
-                        "${playlist.name}（已在播放列表中）"
+                        "${playlist.name} (already in playlist)"
                     } else {
                         playlist.name
                     },
@@ -1603,7 +1618,7 @@ class PlaybackActivity : BaseActivity() {
                 )
             } + FavoritePlaylistChoice(
                 playlistId = null,
-                label = "+ 新建播放列表",
+                label = "+ New Playlist",
                 disabled = false,
                 createNew = true,
             )

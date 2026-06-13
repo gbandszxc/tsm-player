@@ -205,14 +205,14 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun updateBrowserPlaybackButtonPresentation() {
-        applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(btnFavorites.hasFocus()))
+        applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(requireContext(), btnFavorites.hasFocus()))
         applyBrowserButtonSpec(
             button = btnHistory,
-            spec = PlaybackButtonPresentation.browserHistory(btnHistory.hasFocus()),
+            spec = PlaybackButtonPresentation.browserHistory(requireContext(), btnHistory.hasFocus()),
             iconColorResId = R.color.ui_text_warning_dark,
         )
-        applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(btnPlayAll.hasFocus()))
-        applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(btnPlayShuffle.hasFocus()))
+        applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(requireContext(), btnPlayAll.hasFocus()))
+        applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(requireContext(), btnPlayShuffle.hasFocus()))
     }
 
     private fun applyBrowserButtonSpec(
@@ -270,11 +270,11 @@ class TvBrowseFragment : Fragment() {
         btnBackTop.isEnabled = state.currentPath.isNotBlank()
         btnBackTop.alpha = if (btnBackTop.isEnabled) 1f else 0.55f
 
-        tvConnection.text = "当前连接：${configText(state.config)}"
-        tvSavedCount.text = "已保存连接：${state.savedConnections.size} 个"
+        tvConnection.text = getString(R.string.browser_connection_current, configText(state.config))
+        tvSavedCount.text = getString(R.string.browser_saved_count, state.savedConnections.size)
 
         val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
-        tvPath.text = "当前路径：$pathLabel"
+        tvPath.text = getString(R.string.browser_current_path, pathLabel)
 
         when {
             state.error != null -> {
@@ -284,7 +284,7 @@ class TvBrowseFragment : Fragment() {
             }
             state.loading -> {
                 tvStatus.visibility = View.VISIBLE
-                tvStatus.text = "加载中..."
+                tvStatus.text = getString(R.string.common_loading)
                 tvStatus.setTextColor(Color.parseColor("#BFDBFE"))
             }
             !state.inlineMessage.isNullOrBlank() -> {
@@ -297,7 +297,7 @@ class TvBrowseFragment : Fragment() {
 
         renderFastLocatePanel(state)
 
-        btnSort.text = state.sortOption.label
+        btnSort.text = getString(state.sortOption.labelResId)
 
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
@@ -344,7 +344,7 @@ class TvBrowseFragment : Fragment() {
             itemView.setOnLongClickListener {
                 val entered = viewModel.enterFastLocate(estimateVisibleWindowSize())
                 if (!entered) {
-                    Toast.makeText(requireContext(), "当前列表较短，无法进入快速定位", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), R.string.browser_fast_locate_too_short, Toast.LENGTH_SHORT).show()
                 } else {
                     fastLocateConfirmGuard.arm()
                 }
@@ -402,9 +402,12 @@ class TvBrowseFragment : Fragment() {
             return
         }
 
-        tvFastLocateHint.text = "快速定位模式 ${locate.progressPercent}%"
-        tvFastLocateTarget.text =
-            "当前：${locate.currentIndex + 1}/${locate.totalCount}\n↑/↓整屏跳  ←/→10%跳  确认接受  返回取消"
+        tvFastLocateHint.text = getString(R.string.browser_fast_locate_hint, locate.progressPercent)
+        tvFastLocateTarget.text = getString(
+            R.string.browser_fast_locate_target,
+            locate.currentIndex + 1,
+            locate.totalCount,
+        )
 
         fastLocateTrack.post {
             val trackHeight = fastLocateTrack.height
@@ -527,12 +530,12 @@ class TvBrowseFragment : Fragment() {
 
     private fun playQueue(queue: List<SmbEntry>, startIndex: Int, shuffle: Boolean) {
         if (queue.isEmpty()) {
-            Toast.makeText(requireContext(), "当前目录没有可播放音频", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.browser_no_playable_audio, Toast.LENGTH_SHORT).show()
             return
         }
         val controller = mediaController
         if (controller == null) {
-            Toast.makeText(requireContext(), "播放器初始化中，请稍后重试", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.browser_player_init_failed, Toast.LENGTH_SHORT).show()
             ensureController()
             return
         }
@@ -576,7 +579,10 @@ class TvBrowseFragment : Fragment() {
             }.onFailure { ex ->
                 Toast.makeText(
                     requireContext(),
-                    "播放失败：${ex.message ?: "请检查 SMB 连接与账号"}",
+                    getString(
+                        R.string.browser_play_failed,
+                        ex.message ?: getString(R.string.browser_play_failed_fallback),
+                    ),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -602,7 +608,7 @@ class TvBrowseFragment : Fragment() {
                     }
                     .onFailure {
                         controllerFuture = null
-                        Toast.makeText(requireContext(), "播放器连接失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.browser_player_connect_failed, Toast.LENGTH_SHORT).show()
                     }
             },
             MoreExecutors.directExecutor()
@@ -624,7 +630,10 @@ class TvBrowseFragment : Fragment() {
 
         if (hasActivePlaying) {
             val title = activeNowPlayingTitle(requireNotNull(controller), requireNotNull(currentMediaItem))
-            showNowPlayingButton(if (title.isBlank()) "回到当前播放" else "回到当前播放：$title")
+            showNowPlayingButton(
+                if (title.isBlank()) getString(R.string.browser_now_playing)
+                else getString(R.string.browser_now_playing_with_title, title)
+            )
             return
         }
 
@@ -632,7 +641,10 @@ class TvBrowseFragment : Fragment() {
         if (UiSettingsStore.rememberLastPlayback(ctx) && LastPlaybackStore.hasSnapshot(ctx)) {
             val snapshot = LastPlaybackStore.load(ctx)
             if (snapshot != null) {
-                showNowPlayingButton(if (snapshot.title.isBlank()) "继续上次播放" else "继续上次播放：${snapshot.title}")
+                showNowPlayingButton(
+                    if (snapshot.title.isBlank()) getString(R.string.browser_resume_playback)
+                    else getString(R.string.browser_resume_playback_with_title, snapshot.title)
+                )
                 return
             }
         }
@@ -672,7 +684,7 @@ class TvBrowseFragment : Fragment() {
         val snapshot = LastPlaybackStore.load(context) ?: return
         val controller = mediaController
         if (controller == null) {
-            Toast.makeText(context, "播放器初始化中，请稍后重试", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.browser_player_init_failed, Toast.LENGTH_SHORT).show()
             ensureController()
             return
         }
@@ -683,7 +695,7 @@ class TvBrowseFragment : Fragment() {
         lifecycleScope.launch {
             runCatching {
                 val request = LastPlaybackResumeBuilder.fromSnapshot(snapshot)
-                    ?: error("上次播放队列为空")
+                    ?: error(getString(R.string.browser_last_queue_empty))
                 controller.repeatMode = Player.REPEAT_MODE_OFF
                 controller.setShuffleModeEnabled(false)
                 controller.setMediaItems(request.mediaItems, request.startIndex, request.positionMs)
@@ -696,7 +708,10 @@ class TvBrowseFragment : Fragment() {
             }.onFailure { ex ->
                 Toast.makeText(
                     context,
-                    "恢复播放失败：${ex.message ?: "请检查 SMB 连接"}",
+                    getString(
+                        R.string.browser_resume_failed,
+                        ex.message ?: getString(R.string.browser_resume_failed_fallback),
+                    ),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -712,18 +727,20 @@ class TvBrowseFragment : Fragment() {
             ActionModalSpec(
                 sectionLabel = "SMB",
                 title = getString(R.string.smb_connection_manager),
-                message = "当前连接：$configDesc",
+                message = getString(R.string.browser_connection_current, configDesc),
                 actions = listOfNotNull(
                     if (hasEditable) {
-                        ModalAction("编辑当前连接", isPrimary = true) { showConfigDialog(false) }
+                        ModalAction(getString(R.string.browser_edit_current_connection), isPrimary = true) {
+                            showConfigDialog(false)
+                        }
                     } else null,
                     if (hasSavedActiveConnection) {
                         ModalAction(getString(R.string.smb_delete_current_connection), isDanger = true) {
                             showDeleteCurrentConnectionConfirm()
                         }
                     } else null,
-                    ModalAction("新建连接") { showConfigDialog(true) },
-                    ModalAction("切换连接") { showSwitchDialog() },
+                    ModalAction(getString(R.string.browser_new_connection)) { showConfigDialog(true) },
+                    ModalAction(getString(R.string.browser_switch_connection)) { showSwitchDialog() },
                 ),
             )
         )
@@ -765,8 +782,8 @@ class TvBrowseFragment : Fragment() {
                 sectionLabel = "SMB",
                 title = getString(R.string.smb_config_title),
                 fields = fields,
-                primaryAction = ModalAction("保存并连接", isPrimary = true),
-                secondaryAction = ModalAction("取消"),
+                primaryAction = ModalAction(getString(R.string.browser_save_and_connect), isPrimary = true),
+                secondaryAction = ModalAction(getString(R.string.common_cancel)),
             )
         )
 
@@ -775,7 +792,10 @@ class TvBrowseFragment : Fragment() {
             dialog,
             "name", "host", "share", "path", "username", "password", "guest", "smb1", "saveAsNew",
         ) { values ->
-            val hostError = TsmModalFormValidators.validateSmbHost(values.getValue("host"))
+            val hostError = TsmModalFormValidators.validateSmbHost(
+                values.getValue("host"),
+                emptyMessage = getString(R.string.validation_smb_host_required),
+            )
             if (hostError != null) {
                 modalCoordinator.updateFieldError(dialog, "host", hostError)
                 return@bindFormPrimaryAction false
@@ -799,9 +819,9 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun configText(config: SmbConfig): String {
-        if (config.host.isBlank()) return "未配置"
+        if (config.host.isBlank()) return getString(R.string.common_not_configured)
         return if (config.share.isBlank()) {
-            "smb://${config.host}（全部共享）"
+            getString(R.string.browser_smb_all_shares, config.host)
         } else {
             val path = config.normalizedPath()
             if (path.isBlank()) "smb://${config.host}/${config.share}"
@@ -813,7 +833,17 @@ class TvBrowseFragment : Fragment() {
         config: SmbConfig,
         connectionName: String,
         saveAsNewDefault: Boolean,
-    ): List<FormFieldSpec> = buildConfigFormFieldsForTest(config, connectionName, saveAsNewDefault)
+    ): List<FormFieldSpec> = listOf(
+        FormFieldSpec("name", getString(R.string.browser_form_connection_name), connectionName, getString(R.string.common_optional), InputType.TYPE_CLASS_TEXT),
+        FormFieldSpec("host", getString(R.string.browser_form_host), config.host, "", InputType.TYPE_CLASS_TEXT),
+        FormFieldSpec("share", getString(R.string.browser_form_share), config.share, getString(R.string.common_optional), InputType.TYPE_CLASS_TEXT),
+        FormFieldSpec("path", getString(R.string.browser_form_path), config.path, getString(R.string.common_optional), InputType.TYPE_CLASS_TEXT),
+        FormFieldSpec("username", getString(R.string.browser_form_username), config.username, getString(R.string.common_optional), InputType.TYPE_CLASS_TEXT),
+        FormFieldSpec("password", getString(R.string.browser_form_password), config.password, getString(R.string.common_optional), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD),
+        FormFieldSpec("guest", getString(R.string.browser_form_guest), config.guest.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+        FormFieldSpec("smb1", getString(R.string.browser_form_smb1), config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+        FormFieldSpec("saveAsNew", getString(R.string.browser_form_save_as_new), saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+    )
 
     @VisibleForTesting
     internal fun formatFileSize(sizeBytes: Long?, isDirectory: Boolean): String {
@@ -855,10 +885,10 @@ class TvBrowseFragment : Fragment() {
             hasSavedActiveConnection: Boolean,
         ): List<String> {
             return listOfNotNull(
-                if (hasEditableConnection) "编辑当前连接" else null,
-                if (hasSavedActiveConnection) "删除当前连接" else null,
-                "新建连接",
-                "切换连接",
+                if (hasEditableConnection) "Edit Current Connection" else null,
+                if (hasSavedActiveConnection) "Delete Current Connection" else null,
+                "New Connection",
+                "Switch Connection",
             )
         }
 
@@ -871,15 +901,15 @@ class TvBrowseFragment : Fragment() {
             connectionName: String,
             saveAsNewDefault: Boolean,
         ): List<FormFieldSpec> = listOf(
-            FormFieldSpec("name", "连接名称", connectionName, "可留空", InputType.TYPE_CLASS_TEXT),
-            FormFieldSpec("host", "SMB 服务器", config.host, "", InputType.TYPE_CLASS_TEXT),
-            FormFieldSpec("share", "共享名", config.share, "可留空", InputType.TYPE_CLASS_TEXT),
-            FormFieldSpec("path", "子路径", config.path, "可留空", InputType.TYPE_CLASS_TEXT),
-            FormFieldSpec("username", "用户名", config.username, "可留空", InputType.TYPE_CLASS_TEXT),
-            FormFieldSpec("password", "密码", config.password, "可留空", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD),
-            FormFieldSpec("guest", "访客 / 匿名", config.guest.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
-            FormFieldSpec("smb1", "启用 SMB1 兼容（默认关闭）", config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
-            FormFieldSpec("saveAsNew", "另存为新连接", saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+            FormFieldSpec("name", "Connection Name", connectionName, "Optional", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("host", "SMB Server", config.host, "", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("share", "Share Name", config.share, "Optional", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("path", "Subfolder", config.path, "Optional", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("username", "Username", config.username, "Optional", InputType.TYPE_CLASS_TEXT),
+            FormFieldSpec("password", "Password", config.password, "Optional", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD),
+            FormFieldSpec("guest", "Guest / Anonymous", config.guest.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+            FormFieldSpec("smb1", "Enable SMB1 Compatibility (off by default)", config.smb1Enabled.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
+            FormFieldSpec("saveAsNew", "Save as New Connection", saveAsNewDefault.toString(), "", 0, type = FormFieldSpecType.CHECKBOX),
         )
 
         @VisibleForTesting
@@ -1000,7 +1030,7 @@ class TvBrowseFragment : Fragment() {
             val itemView = layoutInflater.inflate(R.layout.item_browser_sort_option, container, false)
             val tvOption = itemView as TextView
             itemView.id = View.generateViewId()
-            tvOption.text = option.label
+            tvOption.text = getString(option.labelResId)
             itemView.setOnClickListener {
                 viewModel.selectSortOption(option)
                 dismissSortDropdown()

@@ -1,5 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.content.Context
 import com.github.gbandszxc.tvmediaplayer.R
 
 data class PlaybackButtonSpec(
@@ -7,34 +8,35 @@ data class PlaybackButtonSpec(
     val contentDescription: String,
     val iconResId: Int,
     val expandsOnFocus: Boolean,
+    val browserExpandedWidthResId: Int? = null,
 )
 
 object PlaybackButtonPresentation {
 
-    fun previous(): PlaybackButtonSpec {
+    fun previous(context: Context): PlaybackButtonSpec {
         return iconOnly(
-            label = "上一首",
+            label = context.getString(R.string.common_previous),
             iconResId = R.drawable.ic_skip_previous,
         )
     }
 
-    fun playPause(isPlaying: Boolean): PlaybackButtonSpec {
+    fun playPause(context: Context, isPlaying: Boolean): PlaybackButtonSpec {
         return iconOnly(
-            label = if (isPlaying) "暂停" else "播放",
+            label = context.getString(if (isPlaying) R.string.common_pause else R.string.common_play),
             iconResId = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
         )
     }
 
-    fun next(): PlaybackButtonSpec {
+    fun next(context: Context): PlaybackButtonSpec {
         return iconOnly(
-            label = "下一首",
+            label = context.getString(R.string.common_next),
             iconResId = R.drawable.ic_skip_next,
         )
     }
 
-    fun favorite(inDefaultFavorites: Boolean, focused: Boolean): PlaybackButtonSpec {
+    fun favorite(context: Context, inDefaultFavorites: Boolean, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "收藏",
+            label = context.getString(R.string.playback_favorite),
             iconResId = if (inDefaultFavorites) {
                 R.drawable.ic_favorite_filled
             } else {
@@ -44,51 +46,55 @@ object PlaybackButtonPresentation {
         )
     }
 
-    fun lyricsFullscreen(focused: Boolean): PlaybackButtonSpec {
+    fun lyricsFullscreen(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "歌词全屏",
+            label = context.getString(R.string.playback_lyrics_fullscreen),
             iconResId = R.drawable.ic_lyrics_fullscreen,
             focused = focused,
         )
     }
 
-    fun backToBrowser(focused: Boolean): PlaybackButtonSpec {
+    fun backToBrowser(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "返回文件页",
+            label = context.getString(R.string.playback_back_to_browser),
             iconResId = R.drawable.ic_back_to_folder,
             focused = focused,
         )
     }
 
-    fun browserFavorites(focused: Boolean): PlaybackButtonSpec {
+    fun browserFavorites(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "收藏",
+            label = context.getString(R.string.playback_favorite),
             iconResId = R.drawable.ic_favorite_filled,
             focused = focused,
+            browserExpandedWidthResId = R.dimen.ui_playback_favorite_button_expanded_min_width,
         )
     }
 
-    fun browserHistory(focused: Boolean): PlaybackButtonSpec {
+    fun browserHistory(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "历史",
+            label = context.getString(R.string.history_title),
             iconResId = R.drawable.ic_history,
             focused = focused,
+            browserExpandedWidthResId = R.dimen.ui_playback_favorite_button_expanded_min_width,
         )
     }
 
-    fun browserPlayOrder(focused: Boolean): PlaybackButtonSpec {
+    fun browserPlayOrder(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "顺序播放",
+            label = context.getString(R.string.playback_mode_order),
             iconResId = R.drawable.ic_play_order,
             focused = focused,
+            browserExpandedWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
         )
     }
 
-    fun browserPlayShuffle(focused: Boolean): PlaybackButtonSpec {
+    fun browserPlayShuffle(context: Context, focused: Boolean): PlaybackButtonSpec {
         return expandable(
-            label = "随机播放",
+            label = context.getString(R.string.playback_mode_shuffle),
             iconResId = R.drawable.ic_shuffle,
             focused = focused,
+            browserExpandedWidthResId = R.dimen.ui_playback_mode_button_expanded_min_width,
         )
     }
 
@@ -112,12 +118,14 @@ object PlaybackButtonPresentation {
         label: String,
         iconResId: Int,
         focused: Boolean,
+        browserExpandedWidthResId: Int? = null,
     ): PlaybackButtonSpec {
         return PlaybackButtonSpec(
             text = if (focused) label else "",
             contentDescription = label,
             iconResId = iconResId,
             expandsOnFocus = true,
+            browserExpandedWidthResId = browserExpandedWidthResId,
         )
     }
 }

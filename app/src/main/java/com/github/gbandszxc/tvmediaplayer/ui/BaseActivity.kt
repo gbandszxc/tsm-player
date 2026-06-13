@@ -1,5 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepAppExitController
@@ -9,6 +10,12 @@ import com.github.gbandszxc.tvmediaplayer.sleep.SleepAppExitController
  * 继承此类的 Activity 无需手动处理 onWindowFocusChanged。
  */
 abstract class BaseActivity : FragmentActivity() {
+    private var attachedLanguage: AppLanguage = AppLanguage.SYSTEM
+
+    override fun attachBaseContext(newBase: Context) {
+        attachedLanguage = UiSettingsStore.appLanguage(newBase)
+        super.attachBaseContext(AppLocaleApplier.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,6 +30,10 @@ abstract class BaseActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        if (UiSettingsStore.appLanguage(this) != attachedLanguage) {
+            recreate()
+            return
+        }
         UiSettingsApplier.applyImmersiveFullscreen(this)
     }
 

@@ -111,7 +111,7 @@ class LyricsFullscreenActivity : BaseActivity() {
                     }
                     .onFailure {
                         controllerFuture = null
-                        Toast.makeText(this, "播放器连接失败", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
                     }
             },
             MoreExecutors.directExecutor()
@@ -141,7 +141,11 @@ class LyricsFullscreenActivity : BaseActivity() {
     private fun maybeLoadLyrics(player: Player) {
         val mediaItem = player.currentMediaItem ?: return
         val title = mediaItem.mediaMetadata.title?.toString().orEmpty()
-        tvTitle.text = if (title.isBlank()) "歌词全屏" else "歌词全屏 - $title"
+        tvTitle.text = if (title.isBlank()) {
+            getString(R.string.playback_lyrics_fullscreen)
+        } else {
+            "${getString(R.string.playback_lyrics_fullscreen)} - $title"
+        }
 
         // key 与 PlaybackActivity 保持一致：uri 优先，否则 mediaId
         val uri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
@@ -158,10 +162,10 @@ class LyricsFullscreenActivity : BaseActivity() {
             return
         }
         if (PlaybackLyricsCache.isMissCached(applicationContext, key)) {
-            showLyricsStatus("暂无歌词")
+            showLyricsStatus(getString(R.string.playback_lyrics_empty))
             return
         }
-        showLyricsStatus("歌词加载中...")
+        showLyricsStatus(getString(R.string.playback_lyrics_loading))
 
         val fullPath = mediaItem.mediaId
         val entry = SmbEntry(
@@ -197,7 +201,7 @@ class LyricsFullscreenActivity : BaseActivity() {
                 if (timeline?.status == SmbLyricsRepository.Status.MISS) {
                     PlaybackLyricsCache.markMissAsync(applicationContext, key)
                 }
-                showLyricsStatus("暂无歌词")
+                showLyricsStatus(getString(R.string.playback_lyrics_empty))
                 return@launch
             }
             PlaybackLyricsCache.put(key, loadedTimeline)

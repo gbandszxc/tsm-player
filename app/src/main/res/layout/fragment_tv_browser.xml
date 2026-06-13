@@ -30,7 +30,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="连接管理"
+                    android:text="@string/browser_connection_section"
                     android:textColor="@color/ui_accent_blue_text"
                     android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
@@ -63,7 +63,7 @@
                     android:gravity="center"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:text="管理连接"
+                    android:text="@string/browser_manage_connection"
                     android:textAllCaps="false" />
             </LinearLayout>
 
@@ -79,7 +79,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="播放控制"
+                    android:text="@string/browser_playback_controls"
                     android:textColor="@color/ui_accent_blue_text"
                     android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
@@ -150,7 +150,7 @@
                         android:singleLine="true"
                         android:ellipsize="marquee"
                         android:marqueeRepeatLimit="marquee_forever"
-                        android:text="回到当前播放"
+                        android:text="@string/browser_now_playing"
                         android:textAllCaps="false"
                         android:visibility="gone" />
                 </LinearLayout>
@@ -168,7 +168,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="文件浏览"
+                    android:text="@string/browser_file_browser"
                     android:textColor="@color/ui_accent_blue_text"
                     android:textSize="@dimen/ui_text_section_title"
                     android:fontFamily="@font/misans_bold" />
@@ -256,7 +256,7 @@
         android:gravity="center"
         android:maxLines="1"
         android:ellipsize="end"
-        android:text="⬅ 返回上一级"
+        android:text="@string/browser_back_parent"
         android:textAllCaps="false" />
 
     <Button
@@ -270,7 +270,7 @@
         android:minWidth="100dp"
         android:gravity="center"
         android:maxLines="1"
-        android:text="设置"
+        android:text="@string/browser_settings"
         android:textAllCaps="false" />
 
     <LinearLayout
@@ -299,7 +299,7 @@
                 android:id="@+id/tv_fast_locate_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="快速定位模式 42%"
+                android:text="@string/browser_fast_locate_hint"
                 android:textColor="@color/ui_text_primary"
                 android:textSize="@dimen/ui_text_body_large"
                 android:fontFamily="@font/misans_bold" />

@@ -141,7 +141,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/ui_space_sm"
                 android:gravity="center"
-                android:text="小时"
+                android:text="@string/sleep_timer_hour_label"
                 android:textColor="@color/ui_text_secondary"
                 android:textSize="@dimen/ui_text_caption" />
         </LinearLayout>
@@ -196,7 +196,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/ui_space_sm"
                 android:gravity="center"
-                android:text="分钟"
+                android:text="@string/sleep_timer_minute_label"
                 android:textColor="@color/ui_text_secondary"
                 android:textSize="@dimen/ui_text_caption" />
         </LinearLayout>

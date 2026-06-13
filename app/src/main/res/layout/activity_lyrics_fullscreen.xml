@@ -10,7 +10,7 @@
         android:id="@+id/tv_fullscreen_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="歌词全屏"
+        android:text="@string/playback_lyrics_fullscreen"
         android:textColor="@color/ui_text_primary"
         android:textSize="@dimen/ui_text_hero"
         android:maxLines="2"
@@ -45,7 +45,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/ui_space_3xl"
-        android:text="返回播放页"
+        android:text="@string/playback_back_to_fullscreen"
         android:textAllCaps="false" />
 
 </LinearLayout>

@@ -22,7 +22,31 @@ data class WebDavConnectionTestResult(
     val message: String,
 )
 
+data class WebDavClientMessages(
+    val uploadFailedHttp: (Int) -> String = { "WebDAV upload failed: HTTP $it" },
+    val downloadFailedHttp: (Int) -> String = { "WebDAV download failed: HTTP $it" },
+    val missingUrl: String = "Connection failed: enter a WebDAV URL first",
+    val createdDirectory: (String) -> String = { "Connection succeeded: WebDAV folder created ($it)" },
+    val connectionSuccess: (String) -> String = { "Connection succeeded: $it" },
+    val connectionFailed: (String) -> String = { "Connection failed: $it" },
+    val createLoop: String = "Could not create WebDAV folder: URL hierarchy loop detected. Check the URL",
+    val invalidRoot: (String) -> String = { "Connection failed: $it. Check whether the WebDAV root URL is correct" },
+    val createParentFailed: (String) -> String = { "Could not create WebDAV folder: $it. Parent folder is missing or creation is not allowed" },
+    val authFailed: (String) -> String = { "Authentication failed: $it. Check username or password" },
+    val invalidDirectory: (String) -> String = { "Connection failed: $it. Check whether the URL is a valid WebDAV folder" },
+    val probeNotAllowed: (String) -> String = { "Connection failed: $it. The server rejected folder probing. Make sure this URL supports WebDAV" },
+    val parentInaccessible: (String) -> String = { "Connection failed: $it. The parent URL is missing or inaccessible" },
+    val serverError: (String) -> String = { "Connection failed: $it. The server returned an error" },
+    val createAuthFailed: (String) -> String = { "Could not create WebDAV folder: $it. Check credentials or folder creation permissions" },
+    val createServerError: (String) -> String = { "Could not create WebDAV folder: $it. The server returned an error" },
+    val createFailed: (String) -> String = { "Could not create WebDAV folder: $it" },
+    val unknownHost: String = "Could not resolve host. Check the URL domain",
+    val timeout: String = "Connection timed out. Check the network or server status",
+    val sslError: String = "TLS/SSL handshake failed. Check the HTTPS certificate or server setup",
+)
+
 class WebDavBackupClient(
+    private val messages: WebDavClientMessages = WebDavClientMessages(),
     private val connectionFactory: (URL) -> HttpURLConnection = { url ->
         (url.openConnection() as HttpURLConnection)
     },
@@ -38,7 +62,7 @@ class WebDavBackupClient(
                 source.use { input -> input.copyTo(output) }
             }
             val code = connection.responseCode
-            if (code !in 200..299) throw WebDavException("WebDAV 上传失败：HTTP $code")
+            if (code !in 200..299) throw WebDavException(messages.uploadFailedHttp(code))
         } finally {
             connection.disconnect()
         }
@@ -48,7 +72,7 @@ class WebDavBackupClient(
         val connection = open(config, fileName, "GET")
         try {
             val code = connection.responseCode
-            if (code !in 200..299) throw WebDavException("WebDAV 下载失败：HTTP $code")
+            if (code !in 200..299) throw WebDavException(messages.downloadFailedHttp(code))
             connection.inputStream.use { input ->
                 destination.use { output -> input.copyTo(output) }
             }
@@ -59,21 +83,21 @@ class WebDavBackupClient(
 
     fun testConnection(config: WebDavConfig): WebDavConnectionTestResult {
         if (!config.isReady()) {
-            return WebDavConnectionTestResult(false, "连接失败：请先填写 WebDAV URL")
+            return WebDavConnectionTestResult(false, messages.missingUrl)
         }
         return runCatching {
             val ensureResult = ensureConfiguredCollection(config)
             val message = if (ensureResult.created) {
-                "连接成功：已创建 WebDAV 目录（${ensureResult.detail}）"
+                messages.createdDirectory(ensureResult.detail)
             } else {
-                "连接成功：${ensureResult.detail}"
+                messages.connectionSuccess(ensureResult.detail)
             }
             WebDavConnectionTestResult(true, message)
         }.getOrElse { ex ->
             val message = if (ex is WebDavException) {
                 ex.message.orEmpty()
             } else {
-                "连接失败：${ex.readableMessage()}"
+                messages.connectionFailed(ex.readableMessage())
             }
             WebDavConnectionTestResult(false, message)
         }
@@ -113,7 +137,7 @@ class WebDavBackupClient(
     ): EnsureCollectionResult {
         val normalizedUrl = normalizeCollectionUrl(collectionUrl.toString())
         if (!visitedUrls.add(normalizedUrl)) {
-            throw WebDavException("无法创建 WebDAV 目录：URL 层级解析出现循环，请检查 URL")
+            throw WebDavException(messages.createLoop)
         }
 
         val status = requestCollection(config, URL(normalizedUrl), "HEAD")
@@ -125,7 +149,7 @@ class WebDavBackupClient(
         }
 
         val parentUrl = parentCollectionUrl(URL(normalizedUrl))
-            ?: throw WebDavException("连接失败：${status.detail}，请检查 WebDAV 根地址是否正确")
+            ?: throw WebDavException(messages.invalidRoot(status.detail))
         ensureCollection(config, parentUrl, visitedUrls)
 
         val createStatus = requestCollection(config, URL(normalizedUrl), "MKCOL")
@@ -133,7 +157,7 @@ class WebDavBackupClient(
             createStatus.isSuccess -> EnsureCollectionResult(created = true, detail = createStatus.detail)
             createStatus.code == 405 -> EnsureCollectionResult(created = false, detail = createStatus.detail)
             createStatus.code == 409 -> throw WebDavException(
-                "创建 WebDAV 目录失败：${createStatus.detail}，上级目录不存在或服务器不允许创建"
+                messages.createParentFailed(createStatus.detail)
             )
             else -> throw WebDavException(createCollectionFailureMessage(createStatus.code, createStatus.message))
         }
@@ -190,21 +214,21 @@ class WebDavBackupClient(
     private fun connectionFailureMessage(code: Int, message: String?): String {
         val detail = httpDetail(code, message)
         return when (code) {
-            401, 403 -> "认证失败：$detail，请检查用户名或密码"
-            404 -> "连接失败：$detail，请检查 URL 是否为有效 WebDAV 目录"
-            405 -> "连接失败：$detail，服务器不允许目录探测请求，请确认该地址支持 WebDAV"
-            409 -> "连接失败：$detail，URL 上级目录不存在或服务器不允许访问"
-            in 500..599 -> "连接失败：$detail，服务器返回错误"
-            else -> "连接失败：$detail"
+            401, 403 -> messages.authFailed(detail)
+            404 -> messages.invalidDirectory(detail)
+            405 -> messages.probeNotAllowed(detail)
+            409 -> messages.parentInaccessible(detail)
+            in 500..599 -> messages.serverError(detail)
+            else -> messages.connectionFailed(detail)
         }
     }
 
     private fun createCollectionFailureMessage(code: Int, message: String?): String {
         val detail = httpDetail(code, message)
         return when (code) {
-            401, 403 -> "创建 WebDAV 目录失败：$detail，请检查用户名、密码或目录创建权限"
-            in 500..599 -> "创建 WebDAV 目录失败：$detail，服务器返回错误"
-            else -> "创建 WebDAV 目录失败：$detail"
+            401, 403 -> messages.createAuthFailed(detail)
+            in 500..599 -> messages.createServerError(detail)
+            else -> messages.createFailed(detail)
         }
     }
 
@@ -237,9 +261,9 @@ class WebDavBackupClient(
 
     private fun Throwable.readableMessage(): String =
         when (this) {
-            is java.net.UnknownHostException -> "无法解析主机，请检查 URL 域名"
-            is java.net.SocketTimeoutException -> "连接超时，请检查网络或服务器状态"
-            is javax.net.ssl.SSLException -> "TLS/SSL 握手失败，请检查 HTTPS 证书或服务器配置"
+            is java.net.UnknownHostException -> messages.unknownHost
+            is java.net.SocketTimeoutException -> messages.timeout
+            is javax.net.ssl.SSLException -> messages.sslError
             is IOException -> message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName
             else -> message?.takeIf { it.isNotBlank() } ?: javaClass.simpleName
         }

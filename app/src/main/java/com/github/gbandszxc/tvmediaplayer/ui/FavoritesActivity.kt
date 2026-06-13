@@ -186,7 +186,7 @@ class FavoritesActivity : BaseActivity() {
         currentPlaylist = playlist
         currentTracks = repository.getTracks(playlist.id)
         activeFavoritePlaybackMediaIds = emptySet()
-        tvTitle.text = playlist.name
+        tvTitle.text = playlistDisplayName(playlist)
         updateDeletePlaylistButton(playlist)
         scrollPlaylists.visibility = View.GONE
         scrollTracks.visibility = View.VISIBLE
@@ -232,7 +232,7 @@ class FavoritesActivity : BaseActivity() {
 
     private fun createPlaylistTile(playlist: FavoritePlaylist): View {
         val tile = createTileShell()
-        tile.contentDescription = playlist.name
+        tile.contentDescription = playlistDisplayName(playlist)
         tile.setOnClickListener { showTracks(playlist) }
 
         val cover = ImageView(this).apply {
@@ -241,7 +241,7 @@ class FavoritesActivity : BaseActivity() {
             loadPlaylistArtworkOrDefault(playlist)
         }
         tile.addView(cover, LinearLayout.LayoutParams(matchParent(), 0, 1f))
-        tile.addView(createTileTitle(playlist.name))
+        tile.addView(createTileTitle(playlistDisplayName(playlist)))
         tile.addView(createTileSubtitle(getString(R.string.favorites_track_count, playlist.trackCount)))
         return tile
     }
@@ -275,6 +275,9 @@ class FavoritesActivity : BaseActivity() {
                 topMargin = dimenPx(R.dimen.ui_space_md)
             }
         }
+
+    private fun playlistDisplayName(playlist: FavoritePlaylist): String =
+        if (playlist.isDefault) getString(R.string.favorites_default_playlist) else playlist.name
 
     private fun createTileSubtitle(text: String): TextView =
         TextView(this).apply {
@@ -528,7 +531,7 @@ class FavoritesActivity : BaseActivity() {
                 fields = listOf(
                     FormFieldSpec(
                         key = "playlist_name",
-                        label = "名称",
+                        label = getString(R.string.favorites_name_label),
                         initialValue = "",
                         hint = getString(R.string.favorites_playlist_name_hint),
                         inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES,
@@ -540,7 +543,12 @@ class FavoritesActivity : BaseActivity() {
         )
         modalCoordinator.bindFormPrimaryAction(dialog, "playlist_name") { values ->
             val name = values.getValue("playlist_name")
-            val error = TsmModalFormValidators.validatePlaylistName(name, existing)
+            val error = TsmModalFormValidators.validatePlaylistName(
+                name,
+                existing,
+                emptyMessage = getString(R.string.favorites_playlist_name_empty),
+                duplicateMessage = getString(R.string.favorites_playlist_name_duplicate),
+            )
             if (error != null) {
                 modalCoordinator.updateFieldError(dialog, "playlist_name", error)
                 return@bindFormPrimaryAction false
@@ -732,7 +740,7 @@ class FavoritesActivity : BaseActivity() {
                 FavoritePlaylistChoice(
                     playlistId = playlist.id,
                     label = if (contains) {
-                        "${playlist.name}（已在播放列表中）"
+                        "${playlist.name} (already in playlist)"
                     } else {
                         playlist.name
                     },
@@ -740,7 +748,7 @@ class FavoritesActivity : BaseActivity() {
                 )
             } + FavoritePlaylistChoice(
                 playlistId = null,
-                label = "+ 新建播放列表",
+                label = "+ New Playlist",
                 disabled = false,
                 createNew = true,
             )

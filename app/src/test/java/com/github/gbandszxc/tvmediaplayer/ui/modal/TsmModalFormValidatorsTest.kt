@@ -13,11 +13,11 @@ class TsmModalFormValidatorsTest {
     @Test
     fun `validatePlaylistName rejects blank and duplicate names`() {
         assertEquals(
-            "请输入播放列表名称",
+            "Playlist name is required",
             TsmModalFormValidators.validatePlaylistName(" ", setOf("通勤")),
         )
         assertEquals(
-            "播放列表已存在",
+            "Playlist already exists",
             TsmModalFormValidators.validatePlaylistName("通勤", setOf("通勤")),
         )
         assertNull(
@@ -28,7 +28,7 @@ class TsmModalFormValidatorsTest {
     @Test
     fun `validateLyricsFont keeps configured bounds`() {
         assertEquals(
-            "字号范围需在 14-36sp",
+            "Font size must be 14-36sp",
             TsmModalFormValidators.validateLyricsFont(40, 14, 36),
         )
         assertNull(
@@ -39,7 +39,7 @@ class TsmModalFormValidatorsTest {
     @Test
     fun `validateLyricsSpacing keeps configured bounds`() {
         assertEquals(
-            "间距范围需在 0.8 - 2.0",
+            "Spacing must be 0.8 - 2.0",
             TsmModalFormValidators.validateLyricsSpacing(0.5f, 0.8f, 2.0f),
         )
         assertNull(
@@ -50,7 +50,7 @@ class TsmModalFormValidatorsTest {
     @Test
     fun `validateSmbHost rejects blank host`() {
         assertEquals(
-            "请输入 SMB 服务器地址",
+            "Enter an SMB server address",
             TsmModalFormValidators.validateSmbHost("  "),
         )
         assertNull(

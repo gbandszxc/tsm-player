@@ -16,7 +16,7 @@ class JcifsSmbRepository : SmbRepository {
 
     override suspend fun list(config: SmbConfig, path: String): List<SmbEntry> = withContext(Dispatchers.IO) {
         require(config.host.isNotBlank()) {
-            "SMB 主机地址不能为空"
+            "SMB host address cannot be empty"
         }
 
         val currentPath = path.trim('/').ifBlank { config.normalizedPath() }

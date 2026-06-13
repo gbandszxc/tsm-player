@@ -89,9 +89,9 @@ object TsmModalBuilders {
         sectionLabel: String,
         title: String,
         message: String,
-        confirmLabel: String = "确定",
+        confirmLabel: String = "OK",
         onConfirm: () -> Unit = {},
-        cancelLabel: String = "取消",
+        cancelLabel: String = "Cancel",
         onCancel: () -> Unit = {},
     ): ConfirmModalSpec = ConfirmModalSpec(
         sectionLabel = sectionLabel,
@@ -109,9 +109,9 @@ object TsmModalBuilders {
         sectionLabel: String,
         title: String,
         message: String,
-        confirmLabel: String = "删除",
+        confirmLabel: String = "Delete",
         onConfirm: () -> Unit = {},
-        cancelLabel: String = "取消",
+        cancelLabel: String = "Cancel",
     ): ConfirmModalSpec = ConfirmModalSpec(
         sectionLabel = sectionLabel,
         title = title,

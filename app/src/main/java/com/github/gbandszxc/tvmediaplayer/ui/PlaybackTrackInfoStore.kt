@@ -41,9 +41,10 @@ object PlaybackTrackInfoResolver {
         mediaItemAlbumTitle: String?,
         playerTitle: String?,
         playerArtist: String?,
-        playerAlbumTitle: String?
+        playerAlbumTitle: String?,
+        emptyTitleFallback: String = "Nothing playing",
     ): PlaybackTrackInfo {
-        val fallbackTitle = firstNotBlank(mediaItemTitle, playerTitle) ?: "暂无播放内容"
+        val fallbackTitle = firstNotBlank(mediaItemTitle, playerTitle) ?: emptyTitleFallback
         val fallbackArtist = firstNotBlank(mediaItemArtist, playerArtist) ?: "-"
         val fallbackAlbumTitle = firstNotBlank(mediaItemAlbumTitle, playerAlbumTitle) ?: "-"
         return store.displayFor(

@@ -403,7 +403,7 @@ class TsmModalCoordinator(
             progressBar.isIndeterminate = false
             progressBar.progress = DownloadProgressFormatter.progressPermille(state)
             speedText.text = DownloadProgressFormatter.formatSpeed(state)
-            sizeText.text = DownloadProgressFormatter.formatBytes(state)
+            sizeText.text = DownloadProgressFormatter.formatBytes(host, state)
         }
         renderProgress(spec.initialState)
 

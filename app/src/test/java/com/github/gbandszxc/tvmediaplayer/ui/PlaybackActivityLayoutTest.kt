@@ -84,7 +84,7 @@ class PlaybackActivityLayoutTest {
         )
 
         // "新建播放列表" 应该是最后一项
-        assertEquals("+ 新建播放列表", choices.last().label)
+        assertEquals("+ New Playlist", choices.last().label)
         assertTrue(choices.last().createNew)
         assertFalse(choices.last().disabled)
 

@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import androidx.media3.common.Player
+import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,10 +33,10 @@ class PlaybackModeTest {
     }
 
     @Test
-    fun labelsAreShortChineseModeNames() {
-        assertEquals("顺序播放", PlaybackMode.ORDER.label)
-        assertEquals("单曲循环", PlaybackMode.REPEAT_ONE.label)
-        assertEquals("列表循环", PlaybackMode.REPEAT_ALL.label)
-        assertEquals("随机播放", PlaybackMode.SHUFFLE.label)
+    fun labelsUseStringResources() {
+        assertEquals(R.string.playback_mode_order, PlaybackMode.ORDER.labelResId)
+        assertEquals(R.string.playback_mode_repeat_one, PlaybackMode.REPEAT_ONE.labelResId)
+        assertEquals(R.string.playback_mode_repeat_all, PlaybackMode.REPEAT_ALL.labelResId)
+        assertEquals(R.string.playback_mode_shuffle, PlaybackMode.SHUFFLE.labelResId)
     }
 }

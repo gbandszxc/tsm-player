@@ -14,6 +14,7 @@ object UiSettingsStore {
     private const val KEY_PLAYBACK_LYRICS_LINE_SPACING = "playback_lyrics_line_spacing"
     private const val KEY_FULLSCREEN_LYRICS_LINE_SPACING = "fullscreen_lyrics_line_spacing"
     private const val KEY_SLEEP_ADMIN_PROMPT_SHOWN = "sleep_admin_prompt_shown"
+    private const val KEY_APP_LANGUAGE = "app_language"
 
     val globalScalePresets: IntArray = intArrayOf(90, 95, 100, 105, 110)
     const val defaultGlobalScalePercent: Int = 100
@@ -135,6 +136,18 @@ object UiSettingsStore {
 
     fun setSleepAdminPromptShown(context: Context, shown: Boolean) {
         db(context).putBoolean(dbKey(KEY_SLEEP_ADMIN_PROMPT_SHOWN), shown)
+    }
+
+    fun appLanguage(context: Context): AppLanguage {
+        val value = db(context).getString(dbKey(KEY_APP_LANGUAGE))
+            ?: prefs(context).takeIf { it.contains(KEY_APP_LANGUAGE) }
+                ?.getString(KEY_APP_LANGUAGE, AppLanguage.SYSTEM.storageValue)
+                ?.also { db(context).putString(dbKey(KEY_APP_LANGUAGE), it) }
+        return AppLanguage.fromStorageValue(value)
+    }
+
+    fun setAppLanguage(context: Context, language: AppLanguage) {
+        db(context).putString(dbKey(KEY_APP_LANGUAGE), language.storageValue)
     }
 
     private fun prefs(context: Context) =

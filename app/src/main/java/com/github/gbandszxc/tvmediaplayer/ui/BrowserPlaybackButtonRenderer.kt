@@ -63,12 +63,6 @@ internal object BrowserPlaybackButtonRenderer {
 
     private fun expandedWidthResId(spec: PlaybackButtonSpec, hasFocus: Boolean): Int {
         if (!hasFocus) return R.dimen.ui_playback_mode_button_collapsed_width
-        return if (spec.contentDescription.length <= SHORT_LABEL_MAX_LENGTH) {
-            R.dimen.ui_playback_favorite_button_expanded_min_width
-        } else {
-            R.dimen.ui_playback_mode_button_expanded_min_width
-        }
+        return spec.browserExpandedWidthResId ?: R.dimen.ui_playback_mode_button_expanded_min_width
     }
-
-    private const val SHORT_LABEL_MAX_LENGTH = 2
 }

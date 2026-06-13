@@ -8,6 +8,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
+import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ListModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ModalAction
@@ -65,7 +66,7 @@ object AppUpdateManager {
                     onSuccess = { update ->
                         if (update == null) {
                             if (!silentWhenNoUpdate) {
-                                Toast.makeText(activity, "当前已是最新版本", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, R.string.update_latest_version, Toast.LENGTH_SHORT).show()
                             }
                         } else if (silentWhenNoUpdate &&
                             UpdatePromptSnoozeStore(activity).shouldSkipAutomaticPrompt(update.versionName)
@@ -79,7 +80,10 @@ object AppUpdateManager {
                         if (!silentWhenNoUpdate) {
                             Toast.makeText(
                                 activity,
-                                "检查更新失败：${error.message ?: "网络不可用"}",
+                                activity.getString(
+                                    R.string.update_check_failed,
+                                    error.message ?: activity.getString(R.string.update_network_unavailable),
+                                ),
                                 Toast.LENGTH_LONG
                             ).show()
                         }
@@ -148,13 +152,13 @@ object AppUpdateManager {
         TsmModalCoordinator(activity).showActionModal(
             ActionModalSpec(
                 sectionLabel = "",
-                title = "发现新版本 ${update.versionName}",
-                message = "检测到适用于 ${currentAbi()} 的安装包：${update.assetName}",
+                title = activity.getString(R.string.update_found_title, update.versionName),
+                message = activity.getString(R.string.update_found_message, currentAbi(), update.assetName),
                 actions = listOf(
-                    ModalAction("稍后") { showSnoozeOptions(activity, update, previewOnly) },
-                    ModalAction("下载并安装", isPrimary = true) {
+                    ModalAction(activity.getString(R.string.update_later)) { showSnoozeOptions(activity, update, previewOnly) },
+                    ModalAction(activity.getString(R.string.update_download_install), isPrimary = true) {
                         if (previewOnly) {
-                            Toast.makeText(activity, "预览模式不会下载或安装 APK", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, R.string.update_preview_no_download, Toast.LENGTH_SHORT).show()
                         } else {
                             downloadAndInstall(activity, update)
                         }
@@ -172,13 +176,20 @@ object AppUpdateManager {
             TsmModalCoordinator(activity).showListModal(
                 ListModalSpec(
                     sectionLabel = "",
-                    title = "稍后提醒",
+                    title = activity.getString(R.string.update_snooze_title),
                     message = if (previewOnly) {
-                        "预览模式：仅展示稍后选择效果，不保存设置。"
+                        activity.getString(R.string.update_snooze_preview_message)
                     } else {
-                        "选择本次跳过的时长。手动检查更新不受影响。"
+                        activity.getString(R.string.update_snooze_message)
                     },
-                    rows = createSnoozeRows(update, store, previewOnly),
+                    rows = createSnoozeRows(
+                        update,
+                        store,
+                        previewOnly,
+                        onceLabel = activity.getString(R.string.update_snooze_this_session),
+                        sevenDaysLabel = activity.getString(R.string.update_snooze_7_days),
+                        nextVersionLabel = activity.getString(R.string.update_snooze_next_version),
+                    ),
                     cancelable = false,
                 )
             )
@@ -189,25 +200,28 @@ object AppUpdateManager {
         update: UpdateInfo,
         store: UpdatePromptSnoozeStore,
         previewOnly: Boolean,
+        onceLabel: String = "This session",
+        sevenDaysLabel: String = "7 days",
+        nextVersionLabel: String = "Next version",
     ): List<ModalListRow> {
         return listOf(
             ModalListRow(
                 key = "once",
-                label = "本次",
+                label = onceLabel,
                 dismissOnClick = true,
             ) {
                 if (!previewOnly) store.snoozeOnce(update.versionName)
             },
             ModalListRow(
                 key = "seven_days",
-                label = "7天",
+                label = sevenDaysLabel,
                 dismissOnClick = true,
             ) {
                 if (!previewOnly) store.snoozeForSevenDays(update.versionName)
             },
             ModalListRow(
                 key = "until_next_version",
-                label = "下个版本",
+                label = nextVersionLabel,
                 dismissOnClick = true,
             ) {
                 if (!previewOnly) store.snoozeUntilNextVersion(update.versionName)
@@ -219,15 +233,15 @@ object AppUpdateManager {
         val coordinator = TsmModalCoordinator(activity)
         val progressHandle = coordinator.showProgressModal(
             ProgressModalSpec(
-                sectionLabel = "更新",
-                title = "正在下载更新",
+                sectionLabel = activity.getString(R.string.update_section),
+                title = activity.getString(R.string.update_downloading_title),
                 fileName = update.assetName,
                 initialState = DownloadProgressState(
                     downloadedBytes = 0L,
                     totalBytes = update.sizeBytes,
                     speedBytesPerSecond = 0L,
                 ),
-                message = "请稍候，下载完成后将进入安装流程。",
+                message = activity.getString(R.string.update_download_message),
             )
         )
 
@@ -249,7 +263,10 @@ object AppUpdateManager {
                     onFailure = {
                         Toast.makeText(
                             activity,
-                            "下载更新失败：${it.message ?: "网络不可用"}",
+                            activity.getString(
+                                R.string.update_download_failed,
+                                it.message ?: activity.getString(R.string.update_network_unavailable),
+                            ),
                             Toast.LENGTH_LONG
                         ).show()
                     }
@@ -316,15 +333,15 @@ object AppUpdateManager {
         val totalBytes = 42L * 1024L * 1024L
         val progressHandle = TsmModalCoordinator(activity).showProgressModal(
             ProgressModalSpec(
-                sectionLabel = "更新",
-                title = "正在下载更新",
+                sectionLabel = activity.getString(R.string.update_section),
+                title = activity.getString(R.string.update_downloading_title),
                 fileName = "tsm-player-release-${currentAbi()}-preview.apk",
                 initialState = DownloadProgressState(
                     downloadedBytes = 0L,
                     totalBytes = totalBytes,
                     speedBytesPerSecond = 0L,
                 ),
-                message = "预览模式：仅展示下载样式，不会安装 APK。",
+                message = activity.getString(R.string.update_preview_download_message),
             )
         )
         MainScope().launchSafely(activity) {

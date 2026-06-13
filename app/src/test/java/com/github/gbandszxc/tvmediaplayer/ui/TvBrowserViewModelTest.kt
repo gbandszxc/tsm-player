@@ -79,8 +79,8 @@ class TvBrowserViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("Music", "Music", "Music"), repository.requestedPaths)
-        assertEquals("服务器不可达，请检查网络或主机地址", viewModel.state.value.error)
-        assertEquals("SMB 连接失败：服务器不可达，请检查网络或主机地址", viewModel.state.value.toast)
+        assertEquals("Server unreachable. Check the network or host address", viewModel.state.value.error)
+        assertEquals("SMB connection failed: Server unreachable. Check the network or host address", viewModel.state.value.toast)
 
         viewModel.loadCurrentPath()
         advanceUntilIdle()
@@ -561,7 +561,7 @@ class TvBrowserViewModelTest {
         viewModel.selectSortOption(BrowserSortOption.MODIFIED_DESC)
 
         assertEquals(BrowserSortOption.MODIFIED_DESC, viewModel.state.value.sortOption)
-        assertEquals("修改时间 ↓", viewModel.state.value.sortOption.label)
+        assertEquals(BrowserSortOption.MODIFIED_DESC.labelResId, viewModel.state.value.sortOption.labelResId)
     }
 
     private fun buildViewModel(
