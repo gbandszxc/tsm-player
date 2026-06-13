@@ -57,23 +57,26 @@ object UiSettingsApplier {
     fun applyGlobalScale(activity: Activity) {
         val root = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
         val content = root.getChildAt(0) ?: return
-        val scale = UiSettingsStore.globalScalePercent(activity) / 100f
+        applyGlobalScaleToContent(
+            root = root,
+            content = content,
+            scalePercent = UiSettingsStore.globalScalePercent(activity),
+        )
+    }
+
+    fun applyGlobalScaleToContent(root: ViewGroup, content: View, scalePercent: Int) {
         content.post {
             val parentWidth = root.width
             val parentHeight = root.height
             val params = content.layoutParams
-            if (scale != 1f && parentWidth > 0 && parentHeight > 0) {
-                params.width = (parentWidth / scale).roundToInt()
-                params.height = (parentHeight / scale).roundToInt()
-            } else {
-                params.width = MATCH_PARENT
-                params.height = MATCH_PARENT
-            }
+            val layout = computeGlobalScaleLayout(parentWidth, parentHeight, scalePercent)
+            params.width = layout.width
+            params.height = layout.height
             content.layoutParams = params
             content.pivotX = 0f
             content.pivotY = 0f
-            content.scaleX = scale
-            content.scaleY = scale
+            content.scaleX = layout.scale
+            content.scaleY = layout.scale
         }
     }
 
@@ -84,4 +87,38 @@ object UiSettingsApplier {
             activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
+
+    private fun computeGlobalScaleLayout(
+        parentWidth: Int,
+        parentHeight: Int,
+        scalePercent: Int,
+    ): GlobalScaleLayout {
+        val scale = scalePercent / 100f
+        return if (scale != 1f && parentWidth > 0 && parentHeight > 0) {
+            GlobalScaleLayout(
+                width = (parentWidth / scale).roundToInt(),
+                height = (parentHeight / scale).roundToInt(),
+                scale = scale,
+            )
+        } else {
+            GlobalScaleLayout(
+                width = MATCH_PARENT,
+                height = MATCH_PARENT,
+                scale = scale,
+            )
+        }
+    }
+
+    data class GlobalScaleLayout(
+        val width: Int,
+        val height: Int,
+        val scale: Float,
+    )
+
+    @JvmStatic
+    internal fun computeGlobalScaleLayoutForTest(
+        parentWidth: Int,
+        parentHeight: Int,
+        scalePercent: Int,
+    ): GlobalScaleLayout = computeGlobalScaleLayout(parentWidth, parentHeight, scalePercent)
 }

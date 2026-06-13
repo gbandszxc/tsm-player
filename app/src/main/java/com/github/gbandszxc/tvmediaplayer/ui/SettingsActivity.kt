@@ -11,6 +11,7 @@ import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -521,6 +522,8 @@ class SettingsActivity : BaseActivity() {
 
     private fun showGlobalScaleDialog() {
         val lastFocusedView = currentFocus
+        val originalScale = UiSettingsStore.globalScalePercent(this)
+        var confirmed = false
         val content = LayoutInflater.from(this)
             .inflate(R.layout.dialog_tsm_modal_shell, null, false)
 
@@ -533,7 +536,10 @@ class SettingsActivity : BaseActivity() {
             text = getString(R.string.settings_global_scale_desc)
             visibility = View.VISIBLE
         }
-        content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
+        val actionsContainer = content.findViewById<LinearLayout>(R.id.container_modal_actions).apply {
+            visibility = View.VISIBLE
+            removeAllViews()
+        }
 
         val container = content.findViewById<LinearLayout>(R.id.container_modal_content)
         container.removeAllViews()
@@ -566,9 +572,19 @@ class SettingsActivity : BaseActivity() {
             plusButton.isEnabled = current < UiSettingsStore.globalScalePresets.last()
         }
 
+        fun applyDialogScale() {
+            val root = content.parent as? ViewGroup ?: return
+            UiSettingsApplier.applyGlobalScaleToContent(
+                root = root,
+                content = content,
+                scalePercent = UiSettingsStore.globalScalePercent(this),
+            )
+        }
+
         fun applyScale(value: Int) {
             UiSettingsStore.setGlobalScalePercent(this, value)
             UiSettingsApplier.applyGlobalScale(this)
+            applyDialogScale()
             rebuildCurrentCategory(moveFocusToDetail = false)
             refreshControls()
         }
@@ -598,12 +614,44 @@ class SettingsActivity : BaseActivity() {
             LinearLayout.LayoutParams.WRAP_CONTENT,
         ))
 
-        val dialog = Dialog(this, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        lateinit var dialog: Dialog
+        val confirmButton = createScaleActionButton(
+            label = getString(R.string.common_confirm),
+            isPrimary = true,
+        ).apply {
+            setOnClickListener {
+                confirmed = true
+                Toast.makeText(
+                    this@SettingsActivity,
+                    getString(R.string.settings_global_scale_changed, UiSettingsStore.globalScalePercent(this@SettingsActivity)),
+                    Toast.LENGTH_SHORT,
+                ).show()
+                dialog.dismiss()
+            }
+        }
+        val cancelButton = createScaleActionButton(
+            label = getString(R.string.common_cancel),
+            isPrimary = false,
+        ).apply {
+            setOnClickListener {
+                confirmed = false
+                dialog.dismiss()
+            }
+        }
+        actionsContainer.addView(confirmButton)
+        actionsContainer.addView(cancelButton)
+
+        dialog = Dialog(this, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
             window?.setBackgroundDrawable(null)
             setOnDismissListener {
+                if (!confirmed && UiSettingsStore.globalScalePercent(this@SettingsActivity) != originalScale) {
+                    UiSettingsStore.setGlobalScalePercent(this@SettingsActivity, originalScale)
+                    UiSettingsApplier.applyGlobalScale(this@SettingsActivity)
+                    rebuildCurrentCategory(moveFocusToDetail = false)
+                }
                 lastFocusedView?.requestFocus()
             }
             show()
@@ -611,7 +659,10 @@ class SettingsActivity : BaseActivity() {
 
         refreshControls()
         dialog.findViewById<FrameLayout>(android.R.id.content)
-            ?.post { minusButton.requestFocus() }
+            ?.post {
+                applyDialogScale()
+                minusButton.requestFocus()
+            }
     }
 
     private fun createScaleStepButton(label: String): Button =
@@ -624,6 +675,19 @@ class SettingsActivity : BaseActivity() {
                 dp(88),
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             )
+        }
+
+    private fun createScaleActionButton(label: String, isPrimary: Boolean): Button =
+        Button(this, null, 0, R.style.TsmModalActionButton).apply {
+            text = label
+            setBackgroundResource(if (isPrimary) R.drawable.bg_button_primary else R.drawable.bg_button_dark)
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_on_accent))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                marginEnd = resources.getDimensionPixelSize(R.dimen.ui_space_md)
+            }
         }
 
     private fun showLanguageDialog() {
