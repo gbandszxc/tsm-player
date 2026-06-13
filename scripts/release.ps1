@@ -130,9 +130,13 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($target)) {
 }
 
 $releaseExists = $false
-& gh release view $TagName *> $null
-if ($LASTEXITCODE -eq 0) {
-    $releaseExists = $true
+try {
+    & gh release view $TagName 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        $releaseExists = $true
+    }
+} catch {
+    $releaseExists = $false
 }
 
 if ($releaseExists) {
