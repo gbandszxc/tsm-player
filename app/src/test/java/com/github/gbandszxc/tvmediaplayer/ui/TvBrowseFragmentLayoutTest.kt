@@ -231,7 +231,7 @@ class TvBrowseFragmentLayoutTest {
         val row = LayoutInflater.from(context)
             .inflate(R.layout.item_file_entry, FrameLayout(context), false)
 
-        assertNotNull(row.findViewById<View>(R.id.tv_tag))
+        assertNotNull(row.findViewById<View>(R.id.iv_tag))
         assertNotNull(row.findViewById<View>(R.id.tv_name))
         assertNotNull(row.findViewById<View>(R.id.tv_size))
         assertNotNull(row.findViewById<View>(R.id.tv_modified))

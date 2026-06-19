@@ -390,7 +390,7 @@ class SettingsActivity : BaseActivity() {
 
         val headerView = TextView(this).apply {
             text = category.title
-            setTextColor(0xFF60A5FA.toInt())
+            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_accent_blue_text))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             typeface = AppFonts.bold(this@SettingsActivity)
             val lp = LinearLayout.LayoutParams(
@@ -407,7 +407,7 @@ class SettingsActivity : BaseActivity() {
             if (item.isGroupHeader) {
                 val groupHeaderView = TextView(this).apply {
                     text = item.title
-                    setTextColor(0xFF94A3B8.toInt())
+                    setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_muted))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
                     typeface = AppFonts.medium(this@SettingsActivity)
                     val lp = LinearLayout.LayoutParams(

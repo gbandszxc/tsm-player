@@ -11,17 +11,12 @@
     android:focusable="true"
     android:focusableInTouchMode="true">
 
-    <TextView
-        android:id="@+id/tv_tag"
+    <ImageView
+        android:id="@+id/iv_tag"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingLeft="@dimen/ui_space_md"
-        android:paddingTop="3dp"
-        android:paddingRight="@dimen/ui_space_md"
-        android:paddingBottom="3dp"
-        android:textColor="@color/ui_text_on_accent"
-        android:textSize="@dimen/ui_text_body"
-        android:fontFamily="@font/misans_bold" />
+        android:padding="@dimen/ui_space_sm"
+        android:scaleType="center" />
 
     <TextView
         android:id="@+id/tv_name"

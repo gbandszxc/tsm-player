@@ -46,6 +46,4 @@
     <color name="ui_accent_red_text">#FEE2E2</color>
 
     <color name="ui_divider">#1E3A5F</color>
-    <color name="ui_tag_dir">#1E3A5F</color>
-    <color name="ui_tag_audio">#064E3B</color>
 </resources>

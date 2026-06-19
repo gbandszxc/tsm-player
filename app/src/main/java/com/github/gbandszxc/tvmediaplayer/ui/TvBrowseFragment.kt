@@ -3,7 +3,6 @@
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Rect
 import android.os.Bundle
 import android.text.InputType
@@ -14,12 +13,14 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.VisibleForTesting
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -280,17 +281,17 @@ class TvBrowseFragment : Fragment() {
             state.error != null -> {
                 tvStatus.visibility = View.VISIBLE
                 tvStatus.text = state.error
-                tvStatus.setTextColor(Color.parseColor("#FCA5A5"))
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.ui_text_error))
             }
             state.loading -> {
                 tvStatus.visibility = View.VISIBLE
                 tvStatus.text = getString(R.string.common_loading)
-                tvStatus.setTextColor(Color.parseColor("#BFDBFE"))
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.ui_accent_blue_stroke_soft))
             }
             !state.inlineMessage.isNullOrBlank() -> {
                 tvStatus.visibility = View.VISIBLE
                 tvStatus.text = state.inlineMessage
-                tvStatus.setTextColor(Color.parseColor("#BFDBFE"))
+                tvStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.ui_accent_blue_stroke_soft))
             }
             else -> tvStatus.visibility = View.GONE
         }
@@ -316,13 +317,14 @@ class TvBrowseFragment : Fragment() {
         val hasParentEntry = state.currentPath.isNotBlank()
         entries.forEachIndexed { displayIndex, entry ->
             val itemView = layoutInflater.inflate(R.layout.item_file_entry, filesContainer, false)
-            val tvTag: TextView = itemView.findViewById(R.id.tv_tag)
+            val ivTag: ImageView = itemView.findViewById(R.id.iv_tag)
             val tvName: TextView = itemView.findViewById(R.id.tv_name)
             val tvSize: TextView = itemView.findViewById(R.id.tv_size)
             val tvModified: TextView = itemView.findViewById(R.id.tv_modified)
 
-            tvTag.text = if (entry.isDirectory) "📁" else "🎵"
-            tvTag.background = null
+            ivTag.setImageResource(
+                if (entry.isDirectory) R.drawable.ic_tag_folder else R.drawable.ic_tag_music
+            )
             tvName.text = entry.name
             val isParentEntry = hasParentEntry && displayIndex == 0
             if (isParentEntry) {
