@@ -1,7 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.text.TextUtils
 import android.view.ViewGroup
 import android.widget.Button
@@ -23,6 +22,7 @@ internal object BrowserPlaybackButtonRenderer {
         button.text = spec.text
         button.contentDescription = spec.contentDescription
         button.maxLines = 1
+        button.setSingleLine(true)
         button.ellipsize = TextUtils.TruncateAt.END
 
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
@@ -37,6 +37,11 @@ internal object BrowserPlaybackButtonRenderer {
             wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
         }
 
+        // 始终交给 Button 自身布局图标。这样宽度动画每一帧都会重新居中，
+        // 不会像 ViewOverlay 那样保留基于旧宽度计算的位置。
+        button.overlay.clear()
+        button.setCompoundDrawables(wrapped, null, null, null)
+
         val minWidth = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
         button.minWidth = minWidth
         // 同步落定目标宽度（保持单测同步契约：聚焦时为 WRAP_CONTENT），
@@ -45,31 +50,8 @@ internal object BrowserPlaybackButtonRenderer {
         if (button.layoutParams.width != targetSpec) {
             button.layoutParams = button.layoutParams.apply { width = targetSpec }
         }
+        // 图标与文字都就位后再测量 WRAP_CONTENT，避免展开目标漏算图标宽度。
         UiMotion.animateWidthTo(button, targetSpec, expand = hasFocus && spec.expandsOnFocus)
-
-
-        if (hasFocus) {
-            button.overlay.clear()
-            button.setCompoundDrawables(wrapped, null, null, null)
-        } else {
-            button.setCompoundDrawables(null, null, null, null)
-            button.post { drawCenteredIcon(button, wrapped, spec) }
-        }
-    }
-
-    private fun drawCenteredIcon(
-        button: Button,
-        icon: Drawable?,
-        spec: PlaybackButtonSpec,
-    ) {
-        if (icon == null || !PlaybackButtonPresentation.shouldDrawCenteredIcon(spec, button.hasFocus())) return
-        button.overlay.clear()
-        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
-        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
-        val left = (button.width - iconWidth) / 2
-        val top = (button.height - iconHeight) / 2
-        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
-        button.overlay.add(icon)
     }
 
     private fun expandedWidthResId(spec: PlaybackButtonSpec, hasFocus: Boolean): Int {

@@ -64,15 +64,6 @@ class PlaybackButtonPresentationTest {
     }
 
     @Test
-    fun iconOnlyTransportButtonsStillDrawCenteredIconWhenFocused() {
-        val pause = PlaybackButtonPresentation.playPause(context, isPlaying = true)
-        val lyrics = PlaybackButtonPresentation.lyricsFullscreen(context, focused = true)
-
-        assertTrue(PlaybackButtonPresentation.shouldDrawCenteredIcon(pause, hasFocus = true))
-        assertFalse(PlaybackButtonPresentation.shouldDrawCenteredIcon(lyrics, hasFocus = true))
-    }
-
-    @Test
     fun favoriteButtonReflectsDefaultPlaylistStateAndExpandsOnFocus() {
         val notSaved = PlaybackButtonPresentation.favorite(context, inDefaultFavorites = false, focused = false)
         val saved = PlaybackButtonPresentation.favorite(context, inDefaultFavorites = true, focused = true)

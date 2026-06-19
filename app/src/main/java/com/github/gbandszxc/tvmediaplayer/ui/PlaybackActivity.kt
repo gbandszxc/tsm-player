@@ -8,11 +8,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Typeface
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.SystemClock
 import android.text.SpannableStringBuilder
 import android.text.Spanned
+import android.text.TextUtils
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.TypedValue
@@ -669,6 +669,8 @@ class PlaybackActivity : BaseActivity() {
 
         btnSleepTimer.text = if (focused) label else ""
         btnSleepTimer.contentDescription = label
+        btnSleepTimer.setSingleLine(true)
+        btnSleepTimer.ellipsize = TextUtils.TruncateAt.END
         btnSleepTimer.setBackgroundResource(R.drawable.bg_button_dark)
         btnSleepTimer.minWidth = resources.getDimensionPixelSize(
             if (focused) R.dimen.ui_playback_sleep_button_expanded_min_width
@@ -684,25 +686,14 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             btnSleepTimer.layoutParams = layoutParams
         }
-        UiMotion.animateWidthTo(btnSleepTimer, targetWidth, expand = focused)
         btnSleepTimer.overlay.clear()
         val iconRes = if (remaining != null) R.drawable.ic_sleep_timer_active else R.drawable.ic_sleep_timer
         val icon = ContextCompat.getDrawable(this, iconRes)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)
         DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_primary))
         wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        if (focused) {
-            btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
-        } else {
-            btnSleepTimer.setCompoundDrawables(null, null, null, null)
-            val spec = PlaybackButtonSpec(
-                text = "",
-                contentDescription = label,
-                iconResId = iconRes,
-                expandsOnFocus = true,
-            )
-            btnSleepTimer.post { drawCenteredButtonIcon(btnSleepTimer, wrapped, spec) }
-        }
+        btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
+        UiMotion.animateWidthTo(btnSleepTimer, targetWidth, expand = focused)
     }
 
     private fun renderCompactIconButton(
@@ -741,6 +732,8 @@ class PlaybackActivity : BaseActivity() {
         val expanded = spec.expandsOnFocus && button.hasFocus()
         button.text = spec.text
         button.contentDescription = spec.contentDescription
+        button.setSingleLine(true)
+        button.ellipsize = TextUtils.TruncateAt.END
         button.setBackgroundResource(backgroundResId)
         button.minWidth = resources.getDimensionPixelSize(
             if (expanded) expandedMinWidthResId else collapsedWidthResId
@@ -755,7 +748,6 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             button.layoutParams = layoutParams
         }
-        UiMotion.animateWidthTo(button, targetWidth, expand = expanded)
         button.overlay.clear()
         val icon = ContextCompat.getDrawable(this, spec.iconResId)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)
@@ -764,23 +756,9 @@ class PlaybackActivity : BaseActivity() {
             ContextCompat.getColor(this, iconColorResId)
         )
         wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        if (expanded) {
-            button.setCompoundDrawables(wrapped, null, null, null)
-        } else {
-            button.setCompoundDrawables(null, null, null, null)
-            button.post { drawCenteredButtonIcon(button, wrapped, spec) }
-        }
-    }
-
-    private fun drawCenteredButtonIcon(button: Button, icon: Drawable, spec: PlaybackButtonSpec) {
-        if (!PlaybackButtonPresentation.shouldDrawCenteredIcon(spec, button.hasFocus())) return
-        button.overlay.clear()
-        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
-        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
-        val left = (button.width - iconWidth) / 2
-        val top = (button.height - iconHeight) / 2
-        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
-        button.overlay.add(icon)
+        button.setCompoundDrawables(wrapped, null, null, null)
+        // 图标与文字都就位后再测量展开宽度；单行约束保证中间帧不改变按钮高度。
+        UiMotion.animateWidthTo(button, targetWidth, expand = expanded)
     }
 
     private fun showPlaybackToast(message: String) {

@@ -98,10 +98,6 @@ object PlaybackButtonPresentation {
         )
     }
 
-    fun shouldDrawCenteredIcon(spec: PlaybackButtonSpec, hasFocus: Boolean): Boolean {
-        return !spec.expandsOnFocus || !hasFocus
-    }
-
     private fun iconOnly(
         label: String,
         iconResId: Int,

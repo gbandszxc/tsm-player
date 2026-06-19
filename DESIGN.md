@@ -579,6 +579,7 @@ Progress Modal 示例（下载更新）：
   - `UiMotion.applyPressFeedback(view, overlayColorRes)` 链式保留既有 `OnTouchListener`，对仅设 `OnClickListener` 的控件无影响；`!isEnabled`（如历史翻页禁用态）跳过反馈。
 - **遥控器聚焦展开**：仅“聚焦时展开文字”的按钮（浏览页紧凑按钮、播放页底部展开按钮）使用，由焦点变化驱动。
   - 展开约 200ms（Material decelerate，ease-out，`PathInterpolator(0,0,0.2,1)`）；收起约 150ms（Material accelerate，ease-in，`PathInterpolator(0.4,0,1,1)`，≈ 展开 75%）。
+  - 按钮图标始终由 Button 的 compound drawable 布局，随动画中间帧自动保持居中；文字强制单行并在“文字 + 图标”均就位后测量展开宽度，禁止因中间宽度换行造成高度跳变或图标错位。
   - 守卫：触屏模式 / 尚未布局 / 宽度为 0 时直接落定目标宽度、不播动画，保证单测同步契约与触屏互斥。
   - `UiMotion.animateWidthTo(view, targetSpec, expand)` 在切换前取消该 view 的旧动画，避免连按方向键叠加。
 - **减弱动效**：`ValueAnimator` 自动遵守系统“动画时长缩放”（开发者选项为 0 即瞬切），无需额外代码。

@@ -70,7 +70,7 @@ class TvBrowseFragmentLayoutTest {
             hasFocus = false,
         )
 
-        assertNull(button.compoundDrawables[0])
+        assertNotNull(button.compoundDrawables[0])
     }
 
     @Test
@@ -120,6 +120,7 @@ class TvBrowseFragmentLayoutTest {
             1,
             button.maxLines,
         )
+        assertTrue(button.isSingleLine)
         assertTrue(
             "Focused browser controls should keep a compact minimum while allowing longer English labels to expand",
             button.minWidth >=
