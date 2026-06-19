@@ -92,3 +92,4 @@ Thumbs.db
 .worktrees/
 /.superpowers/
 .codex-remote-attachments/
+.regression_shots/
