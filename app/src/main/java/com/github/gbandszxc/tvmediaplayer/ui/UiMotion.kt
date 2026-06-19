@@ -8,6 +8,7 @@ import android.os.Build
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.view.animation.Interpolator
 import android.view.animation.PathInterpolator
 import androidx.core.content.ContextCompat
@@ -58,6 +59,11 @@ internal object UiMotion {
         val overlayColor = ContextCompat.getColor(view.context, overlayColorResId)
         val ripple = RippleDrawable(ColorStateList.valueOf(overlayColor), null, null)
 
+        // foreground 默认按 View 的矩形边界绘制；使用背景生成的 outline 裁剪后，
+        // 涟漪会与按钮、列表项和 modal 行现有的圆角背景完全贴合。
+        view.outlineProvider = ViewOutlineProvider.BACKGROUND
+        view.clipToOutline = true
+
         view.setOnTouchListener { v, event ->
             if (v.isEnabled) {
                 when (event.actionMasked) {
@@ -95,6 +101,11 @@ internal object UiMotion {
      * 因此对 Robolectric 单测（视图未布局）与触屏场景都不产生动画，保持调用方同步契约。
      */
     fun animateWidthTo(view: View, targetSpec: Int, expand: Boolean) {
+        // 必须在所有提前返回分支之前取消旧动画。快速聚焦后立即失焦时，当前视觉宽度
+        // 可能尚未离开收起宽度；若因 fromPx == targetPx 直接返回，旧的展开动画仍会
+        // 继续运行，并最终把按钮错误地落成 WRAP_CONTENT。
+        widthAnimators.remove(view)?.cancel()
+
         // 触屏模式 / 尚未布局（width<=0 即代表未完成布局，兼容 API 21）时直接落定目标宽度。
         if (view.isInTouchMode || view.width <= 0) {
             applyWidthSpec(view, targetSpec)
@@ -115,7 +126,6 @@ internal object UiMotion {
         // 先把宽度钉在起始值，避免 requestLayout 在动画首帧前把按钮闪到目标宽度。
         applyWidth(view, fromPx)
 
-        widthAnimators.remove(view)?.cancel()
         val animator = ValueAnimator.ofInt(fromPx, targetPx).apply {
             interpolator = if (expand) EXPAND else COLLAPSE
             duration = if (expand) EXPAND_DURATION_MS else COLLAPSE_DURATION_MS
@@ -128,7 +138,10 @@ internal object UiMotion {
                 }
 
                 override fun onAnimationEnd(animation: android.animation.Animator) {
-                    widthAnimators.remove(view)
+                    // 仅清理由自己登记的实例，避免被取消的旧动画回调误删后继动画。
+                    if (widthAnimators[view] === animation) {
+                        widthAnimators.remove(view)
+                    }
                     // 被取消（通常是被同 view 的新动画取代）时不落定 spec，交由新动画处理，避免连按方向键时一帧闪到目标宽度。
                     if (canceled) return
                     applyWidthSpec(view, targetSpec)
