@@ -43,6 +43,9 @@ tokens:
     ui_accent_red_stroke: "#FCA5A5"
     ui_accent_red_text: "#FEE2E2"
     ui_divider: "#1E3A5F"
+    # 触屏点按反馈 overlay：仅用于触屏涟漪/加深，遥控器焦点态不触发
+    ui_press_overlay_dark: "#2E000000"
+    ui_press_overlay_light: "#38FFFFFF"
   spacing:
     ui_space_xs: "4dp"
     ui_space_sm: "6dp"
@@ -75,7 +78,7 @@ tokens:
 
 # Android TV UI/交互设计规范
 
-> 最后同步：2026-06-19，基于文件类型标签去 chip 化（矢量图标直接呈现，文件夹蓝 / 音符绿）后的状态。
+> 最后同步：2026-06-19，基于触屏点按反馈（涟漪 + 加深）与遥控器聚焦展开动画的动效补齐（见“动效与微交互”小节）。
 
 ## Overview
 
@@ -564,6 +567,30 @@ Progress Modal 示例（下载更新）：
 - 布局文件：`dialog_tsm_modal_shell.xml`（面板外壳）、`item_tsm_modal_list_row.xml`（列表行）、`item_tsm_modal_action_row.xml`（操作行）、`item_tsm_modal_form_field.xml`（表单字段）、`view_tsm_modal_progress.xml`（进度视图）。
 - 背景 drawable：`bg_modal_panel.xml`（面板背景）、`bg_modal_surface.xml`（列表项/字段背景）、`bg_modal_surface_focused.xml`（列表项/字段聚焦背景）、`bg_modal_list_row.xml`（列表行背景）、`bg_modal_input.xml`（输入框背景）。
 
+## 动效与微交互 (Motion)
+
+交互控件的可复用动效统一收敛到 `ui/UiMotion.kt`。动效服从 product 语义：仅用于传达状态、给反馈、澄清层级，不做无意义装饰；时长落在 150–250ms 区间，无回弹/弹性。
+
+**严格隔离原则（核心）**：触屏反馈与遥控器反馈互斥，不共用任何视觉路径，且按输入来源物理隔离。
+
+- **触屏点按（涟漪 + 加深）**：由真实触摸（`MotionEvent`）驱动，遥控器 OK 键不产生 `MotionEvent`，因此该反馈物理上不可能在遥控器触发。
+  - 实现要点：按下时挂一层 overlay 色 `RippleDrawable` 作为 `foreground` 并设置 hotspot，视图自身 pressed 态驱动涟漪扩散并维持 overlay；释放后延迟清除 `foreground`，使其默认为 `null`。
+  - `foreground` 为 `null` 时，遥控器 OK 的 pressed 态无可触发的 ripple drawable → 永不涟漪。
+  - `UiMotion.applyPressFeedback(view, overlayColorRes)` 链式保留既有 `OnTouchListener`，对仅设 `OnClickListener` 的控件无影响；`!isEnabled`（如历史翻页禁用态）跳过反馈。
+- **遥控器聚焦展开**：仅“聚焦时展开文字”的按钮（浏览页紧凑按钮、播放页底部展开按钮）使用，由焦点变化驱动。
+  - 展开约 200ms（Material decelerate，ease-out，`PathInterpolator(0,0,0.2,1)`）；收起约 150ms（Material accelerate，ease-in，`PathInterpolator(0.4,0,1,1)`，≈ 展开 75%）。
+  - 守卫：触屏模式 / 尚未布局 / 宽度为 0 时直接落定目标宽度、不播动画，保证单测同步契约与触屏互斥。
+  - `UiMotion.animateWidthTo(view, targetSpec, expand)` 在切换前取消该 view 的旧动画，避免连按方向键叠加。
+- **减弱动效**：`ValueAnimator` 自动遵守系统“动画时长缩放”（开发者选项为 0 即瞬切），无需额外代码。
+- **平台**：`foreground` 涟漪在 API 23+ 渲染；API 21–22 为 no-op（本应用目标为现代 TV，可接受边缘降级）。
+
+**按压 overlay 选色**（按控件底面色选）：
+
+- 彩色/高亮面（蓝 `TsmButtonPrimary` / 绿 `TsmButtonSuccess` / 红 `TsmButtonDanger` / 黄 `TsmButtonWarning` / 琥珀 `bg_button_amber`、modal 主/危险按钮）→ `@color/ui_press_overlay_dark`（加深）。
+- 深色中性面（暗按钮 `TsmButtonDark` / 文件行 `bg_file_item` / 歌单 tile `bg_playlist_tile` / modal surface/list row/input / 设置项 `bg_settings_*` / 睡眠预设）→ `@color/ui_press_overlay_light`（提亮；纯加深在近黑面上不可见，沿用 Material 暗色按压惯例）。
+
+新增交互控件时，按其底色调用 `UiMotion.applyPressFeedback(view, 对应 overlay)`；若是“聚焦展开”按钮，在设定同步目标宽度后调用 `UiMotion.animateWidthTo(...)`。不要给背景加 `state_pressed`（会破坏触屏/遥控器隔离）。
+
 ## Do's and Don'ts
 
 - Do: UI 修改前先读取 `DESIGN.md`。
@@ -574,3 +601,5 @@ Progress Modal 示例（下载更新）：
 - Don't: 调整 selector 时破坏 `state_focused + state_selected` 的优先级。
 - Don't: 为 TV 工作流添加会抢走遥控器焦点的装饰性元素。
 - Don't: 把图标、launcher 或一次性插画资产强行纳入通用 UI token。
+- Do: 触屏反馈走 `UiMotion.applyPressFeedback`、聚焦展开走 `UiMotion.animateWidthTo`，保持触屏与遥控器动效隔离。
+- Don't: 给背景 selector 加 `state_pressed`（会破坏触屏/遥控器隔离）；触屏涟漪由 `foreground` overlay 驱动。

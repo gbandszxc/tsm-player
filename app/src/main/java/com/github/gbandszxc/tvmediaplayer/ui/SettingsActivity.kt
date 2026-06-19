@@ -366,6 +366,7 @@ class SettingsActivity : BaseActivity() {
             )
             itemView.findViewById<TextView>(R.id.tv_category_title).text = category.title
             itemView.setOnClickListener { selectCategory(index, moveFocusToDetail = true) }
+            UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerCategories.addView(itemView)
             categoryViews.add(itemView)
         }
@@ -459,6 +460,7 @@ class SettingsActivity : BaseActivity() {
                     Toast.makeText(this, R.string.common_not_supported_display_only, Toast.LENGTH_SHORT).show()
                 }
             }
+            UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerDetail.addView(itemView)
             if (firstEntryView == null) firstEntryView = itemView
         }
@@ -671,6 +673,7 @@ class SettingsActivity : BaseActivity() {
             minWidth = dp(72)
             setBackgroundResource(R.drawable.bg_button_dark)
             setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_on_accent))
+            UiMotion.applyPressFeedback(this, R.color.ui_press_overlay_light)
             layoutParams = LinearLayout.LayoutParams(
                 dp(88),
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -682,6 +685,10 @@ class SettingsActivity : BaseActivity() {
             text = label
             setBackgroundResource(if (isPrimary) R.drawable.bg_button_primary else R.drawable.bg_button_dark)
             setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_on_accent))
+            UiMotion.applyPressFeedback(
+                this,
+                if (isPrimary) R.color.ui_press_overlay_dark else R.color.ui_press_overlay_light,
+            )
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,

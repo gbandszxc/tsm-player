@@ -145,6 +145,8 @@ class FavoritesActivity : BaseActivity() {
         btnDeletePlaylist.setOnClickListener {
             currentPlaylist?.let(::confirmDeletePlaylist)
         }
+        UiMotion.applyPressFeedback(btnBack, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnDeletePlaylist, R.color.ui_press_overlay_dark)
     }
 
     private fun bindBackHandling() {
@@ -219,6 +221,7 @@ class FavoritesActivity : BaseActivity() {
         val tile = createTileShell()
         tile.contentDescription = getString(R.string.favorites_add_playlist)
         tile.setOnClickListener { showCreatePlaylistDialog() }
+        UiMotion.applyPressFeedback(tile, R.color.ui_press_overlay_light)
 
         val icon = ImageView(this).apply {
             setImageResource(R.drawable.ic_add_playlist)
@@ -234,6 +237,7 @@ class FavoritesActivity : BaseActivity() {
         val tile = createTileShell()
         tile.contentDescription = playlistDisplayName(playlist)
         tile.setOnClickListener { showTracks(playlist) }
+        UiMotion.applyPressFeedback(tile, R.color.ui_press_overlay_light)
 
         val cover = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
@@ -320,6 +324,7 @@ class FavoritesActivity : BaseActivity() {
         row.addView(textColumn)
         row.addView(playButton)
         row.addView(createDeleteButton(playlist, track))
+        UiMotion.applyPressFeedback(row, R.color.ui_press_overlay_light)
         row.tag = playButton
         return row
     }
@@ -386,6 +391,7 @@ class FavoritesActivity : BaseActivity() {
             gravity = Gravity.CENTER
             setCompoundDrawables(null, null, null, null)
             setOnClickListener { onClick() }
+            UiMotion.applyPressFeedback(this, R.color.ui_press_overlay_dark)
             layoutParams = LinearLayout.LayoutParams(size, size).apply {
                 marginStart = marginStartPx
             }

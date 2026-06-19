@@ -39,13 +39,14 @@ internal object BrowserPlaybackButtonRenderer {
 
         val minWidth = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
         button.minWidth = minWidth
-        button.layoutParams = button.layoutParams.apply {
-            width = if (hasFocus) {
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            } else {
-                minWidth
-            }
+        // 同步落定目标宽度（保持单测同步契约：聚焦时为 WRAP_CONTENT），
+        // 再交由 UiMotion 在“已布局 + 非触屏”时接管为非线性展开动画。
+        val targetSpec = if (hasFocus) ViewGroup.LayoutParams.WRAP_CONTENT else minWidth
+        if (button.layoutParams.width != targetSpec) {
+            button.layoutParams = button.layoutParams.apply { width = targetSpec }
         }
+        UiMotion.animateWidthTo(button, targetSpec, expand = hasFocus && spec.expandsOnFocus)
+
 
         if (hasFocus) {
             button.overlay.clear()

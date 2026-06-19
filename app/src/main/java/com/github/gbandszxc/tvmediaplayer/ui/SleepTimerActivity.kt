@@ -108,11 +108,26 @@ class SleepTimerActivity : BaseActivity() {
     }
 
     private fun bindActions() {
-        findViewById<Button>(R.id.btn_sleep_15).setOnClickListener { setDurationAndStart(15) }
-        findViewById<Button>(R.id.btn_sleep_30).setOnClickListener { setDurationAndStart(30) }
-        findViewById<Button>(R.id.btn_sleep_60).setOnClickListener { setDurationAndStart(60) }
-        findViewById<Button>(R.id.btn_sleep_120).setOnClickListener { setDurationAndStart(120) }
-        findViewById<Button>(R.id.btn_sleep_custom).setOnClickListener { toggleCustomMode() }
+        findViewById<Button>(R.id.btn_sleep_15).also { b ->
+            b.setOnClickListener { setDurationAndStart(15) }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_light)
+        }
+        findViewById<Button>(R.id.btn_sleep_30).also { b ->
+            b.setOnClickListener { setDurationAndStart(30) }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_light)
+        }
+        findViewById<Button>(R.id.btn_sleep_60).also { b ->
+            b.setOnClickListener { setDurationAndStart(60) }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_light)
+        }
+        findViewById<Button>(R.id.btn_sleep_120).also { b ->
+            b.setOnClickListener { setDurationAndStart(120) }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_light)
+        }
+        findViewById<Button>(R.id.btn_sleep_custom).also { b ->
+            b.setOnClickListener { toggleCustomMode() }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_dark)
+        }
         btnStart.setOnClickListener {
             if (customMode) {
                 val duration = wheelController.durationMinutes()
@@ -134,7 +149,12 @@ class SleepTimerActivity : BaseActivity() {
             Toast.makeText(this, getString(R.string.sleep_timer_toast_cancelled), Toast.LENGTH_SHORT).show()
             render()
         }
-        findViewById<Button>(R.id.btn_sleep_back).setOnClickListener { finish() }
+        UiMotion.applyPressFeedback(btnStart, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnCancel, R.color.ui_press_overlay_dark)
+        findViewById<Button>(R.id.btn_sleep_back).also { b ->
+            b.setOnClickListener { finish() }
+            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_dark)
+        }
     }
 
     private fun toggleCustomMode() {

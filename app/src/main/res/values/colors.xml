@@ -24,6 +24,10 @@
     <color name="ui_text_warning_dark">#3A2A00</color>
     <color name="ui_text_error">#FCA5A5</color>
 
+    <!-- 触屏点按反馈 overlay：仅用于触屏涟漪/加深，遥控器焦点态不触发 -->
+    <color name="ui_press_overlay_dark">#2E000000</color>
+    <color name="ui_press_overlay_light">#38FFFFFF</color>
+
     <color name="ui_accent_blue">#2563EB</color>
     <color name="ui_accent_blue_focus">#1D4ED8</color>
     <color name="ui_accent_blue_text">#60A5FA</color>

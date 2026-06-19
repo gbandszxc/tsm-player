@@ -16,6 +16,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.ui.UiMotion
 import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressFormatter
 import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressState
 
@@ -86,6 +87,10 @@ class TsmModalCoordinator(
                 }
             )
             row.setTextColor(ContextCompat.getColor(host, R.color.ui_text_on_accent))
+            UiMotion.applyPressFeedback(
+                row,
+                if (action.isDanger || action.isPrimary) R.color.ui_press_overlay_dark else R.color.ui_press_overlay_light,
+            )
             container.addView(row)
         }
 
@@ -166,6 +171,7 @@ class TsmModalCoordinator(
                         textSize = 14f
                         setPadding(0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm), 0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm))
                     }
+                    UiMotion.applyPressFeedback(checkBox, R.color.ui_press_overlay_light)
                     fieldContainer.addView(checkBox)
                 }
             }
@@ -540,6 +546,10 @@ class TsmModalCoordinator(
                 }
             )
             setTextColor(ContextCompat.getColor(host, R.color.ui_text_on_accent))
+            UiMotion.applyPressFeedback(
+                this,
+                if (action.isDanger || action.isPrimary) R.color.ui_press_overlay_dark else R.color.ui_press_overlay_light,
+            )
             val params = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -573,6 +583,7 @@ class TsmModalCoordinator(
             rowView.setOnClickListener {
                 if (row.enabled) onRowClick(row)
             }
+            UiMotion.applyPressFeedback(rowView, R.color.ui_press_overlay_light)
 
             container.addView(rowView)
         }

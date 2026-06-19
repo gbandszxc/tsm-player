@@ -321,6 +321,7 @@ class PlaybackActivity : BaseActivity() {
             startActivity(Intent(this, SleepTimerActivity::class.java))
         }
         btnSleepTimer.setOnFocusChangeListener { _, _ -> renderSleepTimerButton(force = true) }
+        bindTouchFeedback()
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -383,6 +384,19 @@ class PlaybackActivity : BaseActivity() {
                 startProgressTicker()
             }
         })
+    }
+
+    private fun bindTouchFeedback() {
+        // 暗色按钮（上一首/下一首/睡眠）用提亮 overlay；彩色按钮（播放暂停/模式/收藏/歌词/返回/定位）用加深 overlay。
+        UiMotion.applyPressFeedback(btnPrevious, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnNext, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnSleepTimer, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnPlayPause, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnPlayMode, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnFavorite, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnLyricsFullscreen, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnBack, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnLocate, R.color.ui_press_overlay_dark)
     }
 
     private fun bindBackHandling() {
@@ -670,6 +684,7 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             btnSleepTimer.layoutParams = layoutParams
         }
+        UiMotion.animateWidthTo(btnSleepTimer, targetWidth, expand = focused)
         btnSleepTimer.overlay.clear()
         val iconRes = if (remaining != null) R.drawable.ic_sleep_timer_active else R.drawable.ic_sleep_timer
         val icon = ContextCompat.getDrawable(this, iconRes)?.mutate() ?: return
@@ -740,6 +755,7 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             button.layoutParams = layoutParams
         }
+        UiMotion.animateWidthTo(button, targetWidth, expand = expanded)
         button.overlay.clear()
         val icon = ContextCompat.getDrawable(this, spec.iconResId)?.mutate() ?: return
         val wrapped = DrawableCompat.wrap(icon)

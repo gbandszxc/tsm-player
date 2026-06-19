@@ -103,6 +103,10 @@ class HistoryActivity : BaseActivity() {
         }
         btnPrev.setOnClickListener { loadPage(currentPage - 1) }
         btnNext.setOnClickListener { loadPage(currentPage + 1) }
+        UiMotion.applyPressFeedback(btnBack, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnSearch, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnPrev, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnNext, R.color.ui_press_overlay_light)
     }
 
     private fun submitSearch() {
@@ -173,6 +177,7 @@ class HistoryActivity : BaseActivity() {
         textColumn.addView(createSubtitle(track))
         row.addView(textColumn)
         row.addView(createPlayedAt(track.playedAt))
+        UiMotion.applyPressFeedback(row, R.color.ui_press_overlay_light)
         return row
     }
 

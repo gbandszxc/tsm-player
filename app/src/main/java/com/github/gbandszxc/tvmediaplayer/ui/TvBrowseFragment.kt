@@ -190,6 +190,7 @@ class TvBrowseFragment : Fragment() {
                 resumeLastPlayback()
             }
         }
+        bindTouchFeedback()
         btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnHistory.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
@@ -203,6 +204,20 @@ class TvBrowseFragment : Fragment() {
         ViewCompat.addOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         updateBrowserPlaybackButtonPresentation()
         updateNowPlayingButton()
+    }
+
+    private fun bindTouchFeedback() {
+        // 深色按钮（返回/设置/刷新/排序）用提亮 overlay；彩色按钮（管理/收藏/历史/顺序/随机/当前播放）用加深 overlay。
+        UiMotion.applyPressFeedback(btnBackTop, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnSettings, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnRefresh, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnSort, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnManage, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnFavorites, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnHistory, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnPlayAll, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnPlayShuffle, R.color.ui_press_overlay_dark)
+        UiMotion.applyPressFeedback(btnNowPlaying, R.color.ui_press_overlay_dark)
     }
 
     private fun updateBrowserPlaybackButtonPresentation() {
@@ -360,6 +375,7 @@ class TvBrowseFragment : Fragment() {
             itemView.setOnKeyListener { _, keyCode, event ->
                 handleFastLocateKey(keyCode, event)
             }
+            UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             filesContainer.addView(itemView)
         }
     }
@@ -1037,6 +1053,7 @@ class TvBrowseFragment : Fragment() {
                 viewModel.selectSortOption(option)
                 dismissSortDropdown()
             }
+            UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             container.addView(itemView)
         }
     }
