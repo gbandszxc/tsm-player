@@ -4,8 +4,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewParent
-import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import com.github.gbandszxc.tvmediaplayer.R
@@ -71,6 +71,11 @@ class TvBrowseFragmentLayoutTest {
         )
 
         assertNotNull(button.compoundDrawables[0])
+        assertEquals(0, button.compoundDrawablePadding)
+        val basePadding = context.resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        val correction = context.resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
+        assertEquals(basePadding + correction, button.paddingStart)
+        assertEquals(basePadding - correction, button.paddingEnd)
     }
 
     @Test
@@ -121,6 +126,10 @@ class TvBrowseFragmentLayoutTest {
             button.maxLines,
         )
         assertTrue(button.isSingleLine)
+        assertEquals(
+            context.resources.getDimensionPixelSize(R.dimen.ui_space_sm),
+            button.compoundDrawablePadding,
+        )
         assertTrue(
             "Focused browser controls should keep a compact minimum while allowing longer English labels to expand",
             button.minWidth >=

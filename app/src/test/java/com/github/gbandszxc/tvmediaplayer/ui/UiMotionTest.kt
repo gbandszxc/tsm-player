@@ -10,6 +10,8 @@ import android.widget.Button
 import android.widget.FrameLayout
 import com.github.gbandszxc.tvmediaplayer.R
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -51,8 +53,9 @@ class UiMotionTest {
             recycle()
         }
 
-        assertTrue(button.clipToOutline)
-        assertTrue(button.foreground is RippleDrawable)
+        assertFalse(button.clipToOutline)
+        val ripple = button.foreground as RippleDrawable
+        assertNotNull(ripple.findDrawableByLayerId(android.R.id.mask))
     }
 
     private fun laidOutButton(activity: Activity, width: Int): Button {

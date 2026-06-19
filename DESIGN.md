@@ -574,12 +574,12 @@ Progress Modal 示例（下载更新）：
 **严格隔离原则（核心）**：触屏反馈与遥控器反馈互斥，不共用任何视觉路径，且按输入来源物理隔离。
 
 - **触屏点按（涟漪 + 加深）**：由真实触摸（`MotionEvent`）驱动，遥控器 OK 键不产生 `MotionEvent`，因此该反馈物理上不可能在遥控器触发。
-  - 实现要点：按下时挂一层 overlay 色 `RippleDrawable` 作为 `foreground` 并设置 hotspot，视图自身 pressed 态驱动涟漪扩散并维持 overlay；释放后延迟清除 `foreground`，使其默认为 `null`。
+  - 实现要点：按下时挂一层 overlay 色 `RippleDrawable` 作为 `foreground` 并设置 hotspot，使用控件现有背景 Drawable 的副本作为 ripple mask 复用圆角 alpha 轮廓（不使用可能误裁内容的 `clipToOutline`）；视图自身 pressed 态驱动涟漪扩散并维持 overlay，释放后延迟清除 `foreground`，使其默认为 `null`。
   - `foreground` 为 `null` 时，遥控器 OK 的 pressed 态无可触发的 ripple drawable → 永不涟漪。
   - `UiMotion.applyPressFeedback(view, overlayColorRes)` 链式保留既有 `OnTouchListener`，对仅设 `OnClickListener` 的控件无影响；`!isEnabled`（如历史翻页禁用态）跳过反馈。
 - **遥控器聚焦展开**：仅“聚焦时展开文字”的按钮（浏览页紧凑按钮、播放页底部展开按钮）使用，由焦点变化驱动。
   - 展开约 200ms（Material decelerate，ease-out，`PathInterpolator(0,0,0.2,1)`）；收起约 150ms（Material accelerate，ease-in，`PathInterpolator(0.4,0,1,1)`，≈ 展开 75%）。
-  - 按钮图标始终由 Button 的 compound drawable 布局，随动画中间帧自动保持居中；文字强制单行并在“文字 + 图标”均就位后测量展开宽度，禁止因中间宽度换行造成高度跳变或图标错位。
+  - 图标使用 Button compound drawable（MuMu/Android 硬件渲染下稳定支持 VectorDrawable）。收起态清空文字与 drawablePadding，并将 `@dimen/ui_space_sm / 2` 的内边距从右侧对称移到左侧，在总 padding 不变的前提下补偿 TextView 空文字内容盒的固定左偏；展开时恢复对称 `@dimen/ui_space_3xl` padding 和 `@dimen/ui_space_sm` 图文间距。文字强制单行并在“文字 + 图标”均就位后测量展开宽度，禁止因中间宽度换行造成高度跳变或图标错位。
   - 守卫：触屏模式 / 尚未布局 / 宽度为 0 时直接落定目标宽度、不播动画，保证单测同步契约与触屏互斥。
   - `UiMotion.animateWidthTo(view, targetSpec, expand)` 在切换前取消该 view 的旧动画，避免连按方向键叠加。
 - **减弱动效**：`ValueAnimator` 自动遵守系统“动画时长缩放”（开发者选项为 0 即瞬切），无需额外代码。

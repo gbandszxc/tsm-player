@@ -26,21 +26,38 @@ internal object BrowserPlaybackButtonRenderer {
         button.ellipsize = TextUtils.TruncateAt.END
 
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
-        val wrapped = icon?.let(DrawableCompat::wrap)
-        if (wrapped != null) {
+        if (icon != null) {
             val iconColor = ContextCompat.getColor(context, iconColorResId)
-            DrawableCompat.setTint(wrapped, iconColor)
-            wrapped.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
+            DrawableCompat.setTint(icon, iconColor)
+            icon.colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
                 iconColor,
                 BlendModeCompat.SRC_IN,
             )
-            wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
+            icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
         }
 
-        // 始终交给 Button 自身布局图标。这样宽度动画每一帧都会重新居中，
-        // 不会像 ViewOverlay 那样保留基于旧宽度计算的位置。
-        button.overlay.clear()
-        button.setCompoundDrawables(wrapped, null, null, null)
+        val showsLabel = hasFocus && spec.text.isNotEmpty()
+        val basePadding = context.resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        if (showsLabel) {
+            button.text = spec.text
+            button.setCompoundDrawables(icon, null, null, null)
+            button.setPaddingRelative(basePadding, button.paddingTop, basePadding, button.paddingBottom)
+        } else {
+            button.text = ""
+            button.setCompoundDrawables(icon, null, null, null)
+            val centerCorrection = context.resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
+            button.setPaddingRelative(
+                basePadding + centerCorrection,
+                button.paddingTop,
+                basePadding - centerCorrection,
+                button.paddingBottom,
+            )
+        }
+        button.compoundDrawablePadding = if (showsLabel) {
+            context.resources.getDimensionPixelSize(R.dimen.ui_space_sm)
+        } else {
+            0
+        }
 
         val minWidth = context.resources.getDimensionPixelSize(expandedWidthResId(spec, hasFocus))
         button.minWidth = minWidth

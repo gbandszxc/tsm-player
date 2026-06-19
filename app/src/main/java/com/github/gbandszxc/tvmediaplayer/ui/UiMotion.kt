@@ -8,7 +8,6 @@ import android.os.Build
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewOutlineProvider
 import android.view.animation.Interpolator
 import android.view.animation.PathInterpolator
 import androidx.core.content.ContextCompat
@@ -57,12 +56,10 @@ internal object UiMotion {
      */
     fun applyPressFeedback(view: View, overlayColorResId: Int) {
         val overlayColor = ContextCompat.getColor(view.context, overlayColorResId)
-        val ripple = RippleDrawable(ColorStateList.valueOf(overlayColor), null, null)
-
-        // foreground 默认按 View 的矩形边界绘制；使用背景生成的 outline 裁剪后，
-        // 涟漪会与按钮、列表项和 modal 行现有的圆角背景完全贴合。
-        view.outlineProvider = ViewOutlineProvider.BACKGROUND
-        view.clipToOutline = true
+        // 以现有背景副本作为 ripple mask，沿用按钮/列表项的圆角 alpha 轮廓；
+        // 不使用 clipToOutline，避免 selector 背景在部分控件上生成空 outline 并裁掉内容。
+        val mask = view.background?.constantState?.newDrawable(view.resources)?.mutate()
+        val ripple = RippleDrawable(ColorStateList.valueOf(overlayColor), null, mask)
 
         view.setOnTouchListener { v, event ->
             if (v.isEnabled) {

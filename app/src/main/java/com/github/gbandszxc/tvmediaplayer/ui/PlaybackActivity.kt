@@ -686,13 +686,31 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             btnSleepTimer.layoutParams = layoutParams
         }
-        btnSleepTimer.overlay.clear()
         val iconRes = if (remaining != null) R.drawable.ic_sleep_timer_active else R.drawable.ic_sleep_timer
         val icon = ContextCompat.getDrawable(this, iconRes)?.mutate() ?: return
-        val wrapped = DrawableCompat.wrap(icon)
-        DrawableCompat.setTint(wrapped, ContextCompat.getColor(this, R.color.ui_text_primary))
-        wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        btnSleepTimer.setCompoundDrawables(wrapped, null, null, null)
+        DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.ui_text_primary))
+        icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        val basePadding = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        if (focused) {
+            btnSleepTimer.text = label
+            btnSleepTimer.setCompoundDrawables(icon, null, null, null)
+            btnSleepTimer.setPaddingRelative(basePadding, btnSleepTimer.paddingTop, basePadding, btnSleepTimer.paddingBottom)
+        } else {
+            btnSleepTimer.text = ""
+            btnSleepTimer.setCompoundDrawables(icon, null, null, null)
+            val centerCorrection = resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
+            btnSleepTimer.setPaddingRelative(
+                basePadding + centerCorrection,
+                btnSleepTimer.paddingTop,
+                basePadding - centerCorrection,
+                btnSleepTimer.paddingBottom,
+            )
+        }
+        btnSleepTimer.compoundDrawablePadding = if (focused) {
+            resources.getDimensionPixelSize(R.dimen.ui_space_sm)
+        } else {
+            0
+        }
         UiMotion.animateWidthTo(btnSleepTimer, targetWidth, expand = focused)
     }
 
@@ -748,15 +766,34 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             button.layoutParams = layoutParams
         }
-        button.overlay.clear()
         val icon = ContextCompat.getDrawable(this, spec.iconResId)?.mutate() ?: return
-        val wrapped = DrawableCompat.wrap(icon)
         DrawableCompat.setTint(
-            wrapped,
+            icon,
             ContextCompat.getColor(this, iconColorResId)
         )
-        wrapped.setBounds(0, 0, wrapped.intrinsicWidth, wrapped.intrinsicHeight)
-        button.setCompoundDrawables(wrapped, null, null, null)
+        icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        val showsLabel = expanded && spec.text.isNotEmpty()
+        val basePadding = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        if (showsLabel) {
+            button.text = spec.text
+            button.setCompoundDrawables(icon, null, null, null)
+            button.setPaddingRelative(basePadding, button.paddingTop, basePadding, button.paddingBottom)
+        } else {
+            button.text = ""
+            button.setCompoundDrawables(icon, null, null, null)
+            val centerCorrection = resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
+            button.setPaddingRelative(
+                basePadding + centerCorrection,
+                button.paddingTop,
+                basePadding - centerCorrection,
+                button.paddingBottom,
+            )
+        }
+        button.compoundDrawablePadding = if (showsLabel) {
+            resources.getDimensionPixelSize(R.dimen.ui_space_sm)
+        } else {
+            0
+        }
         // 图标与文字都就位后再测量展开宽度；单行约束保证中间帧不改变按钮高度。
         UiMotion.animateWidthTo(button, targetWidth, expand = expanded)
     }
