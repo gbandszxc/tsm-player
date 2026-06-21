@@ -120,7 +120,7 @@ object SmbAudioMetadataProbe {
         }
     }
 
-    private fun copyFastMetadataProbe(
+    internal fun copyFastMetadataProbe(
         input: InputStream,
         output: OutputStream,
         suffix: String,

@@ -22,13 +22,35 @@ class WavMetadataProbeCopierTest {
 
     @Test
     fun `SMB fast metadata probe routes wav and wave through WAV copier`() {
-        val source = File(
-            "src/main/java/com/github/gbandszxc/tvmediaplayer/playback/SmbAudioMetadataProbe.kt"
-        ).readText()
+        val source = wav(id3BeforeData = false)
+        listOf("wav", "wave").forEach { suffix ->
+            val expected = ByteArrayOutputStream()
+            assertTrue(WavMetadataProbeCopier.copy(ByteArrayInputStream(source), expected))
+            val actual = ByteArrayOutputStream()
 
-        assertTrue(
-            source.contains("\"wav\", \"wave\" -> WavMetadataProbeCopier.copy(input, output)")
-        )
+            assertTrue(
+                "$suffix must use the fast WAV copier",
+                SmbAudioMetadataProbe.copyFastMetadataProbe(
+                    ByteArrayInputStream(source),
+                    actual,
+                    suffix,
+                ),
+            )
+            assertArrayEquals("$suffix dispatch output", expected.toByteArray(), actual.toByteArray())
+            assertTrue("$suffix probe must be bounded", actual.size() < source.size / 2)
+
+            val temp = File.createTempFile("wav-routing-probe", ".wav")
+            try {
+                temp.writeBytes(actual.toByteArray())
+                assertArrayEquals(
+                    "$suffix dispatch must retain APIC",
+                    png,
+                    AudioFileIO.read(temp).tag.firstArtwork.binaryData,
+                )
+            } finally {
+                temp.delete()
+            }
+        }
     }
 
     @Test
