@@ -8,12 +8,13 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.util.Base64
+import java.util.zip.CRC32
 
 class WavMetadataProbeCopierTest {
 
-    private val png = byteArrayOf(
-        0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-        0x00, 0x00, 0x00, 0x00
+    private val png = Base64.getDecoder().decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
     )
 
     @Test
@@ -38,6 +39,43 @@ class WavMetadataProbeCopierTest {
 
         assertFalse(WavMetadataProbeCopier.copy(ByteArrayInputStream(source), output))
         assertArrayEquals(source, output.toByteArray())
+    }
+
+    @Test
+    fun `RIFF size smaller than WAVE identifier is copied unchanged`() {
+        val source = ByteArrayOutputStream().apply {
+            write("RIFF".toByteArray(Charsets.US_ASCII))
+            writeLe32(3)
+            write("WAVEtrailing bytes".toByteArray(Charsets.US_ASCII))
+        }.toByteArray()
+        val output = ByteArrayOutputStream()
+
+        assertFalse(WavMetadataProbeCopier.copy(ByteArrayInputStream(source), output))
+        assertArrayEquals(source, output.toByteArray())
+    }
+
+    @Test
+    fun `artwork fixture is a structurally valid PNG`() {
+        assertArrayEquals(
+            byteArrayOf(0x89.toByte(), 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a),
+            png.copyOfRange(0, 8)
+        )
+        var offset = 8
+        val chunkTypes = mutableListOf<String>()
+        while (offset < png.size) {
+            val length = readBe32(png, offset)
+            val typeOffset = offset + 4
+            val dataEnd = typeOffset + 4 + length
+            val expectedCrc = readBe32(png, dataEnd).toLong() and 0xffffffffL
+            val crc = CRC32().apply { update(png, typeOffset, 4 + length) }
+            assertTrue("PNG chunk CRC must match", crc.value == expectedCrc)
+            chunkTypes += String(png, typeOffset, 4, Charsets.US_ASCII)
+            offset = dataEnd + 4
+        }
+        assertTrue("PNG chunks must consume the fixture", offset == png.size)
+        assertTrue(chunkTypes.first() == "IHDR")
+        assertTrue("IDAT" in chunkTypes)
+        assertTrue(chunkTypes.last() == "IEND")
     }
 
     private fun assertValidProbe(source: ByteArray) {
@@ -130,4 +168,10 @@ class WavMetadataProbeCopierTest {
     private fun ByteArrayOutputStream.writeSynchsafe(value: Int) {
         repeat(4) { write(value ushr ((3 - it) * 7) and 0x7f) }
     }
+
+    private fun readBe32(bytes: ByteArray, offset: Int): Int =
+        ((bytes[offset].toInt() and 0xff) shl 24) or
+            ((bytes[offset + 1].toInt() and 0xff) shl 16) or
+            ((bytes[offset + 2].toInt() and 0xff) shl 8) or
+            (bytes[offset + 3].toInt() and 0xff)
 }

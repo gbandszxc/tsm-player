@@ -14,14 +14,15 @@ internal object WavMetadataProbeCopier {
         val headerBytes = readFully(input, header, 0, header.size)
         if (headerBytes < header.size ||
             !header.matchesAscii(0, "RIFF") ||
-            !header.matchesAscii(8, "WAVE")
+            !header.matchesAscii(8, "WAVE") ||
+            readUInt32Le(header, 4) < WAVE_ID_BYTES
         ) {
             output.write(header, 0, headerBytes)
             input.copyTo(output)
             return false
         }
 
-        var remaining = (readUInt32Le(header, 4) - WAVE_ID_BYTES).coerceAtLeast(0)
+        var remaining = readUInt32Le(header, 4) - WAVE_ID_BYTES
         val retained = ByteArrayOutputStream()
         val chunkHeader = ByteArray(CHUNK_HEADER_BYTES)
 
