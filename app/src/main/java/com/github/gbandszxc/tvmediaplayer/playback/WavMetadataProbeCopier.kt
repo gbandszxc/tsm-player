@@ -8,6 +8,7 @@ internal object WavMetadataProbeCopier {
 
     const val DATA_PROBE_BYTES = 64 * 1024
     const val MAX_METADATA_CHUNK_BYTES = 32 * 1024 * 1024
+    const val MAX_RETAINED_BYTES = 36 * 1024 * 1024
 
     fun copy(input: InputStream, output: OutputStream): Boolean {
         val header = ByteArray(RIFF_HEADER_BYTES)
@@ -23,7 +24,7 @@ internal object WavMetadataProbeCopier {
         }
 
         var remaining = readUInt32Le(header, 4) - WAVE_ID_BYTES
-        val retained = ByteArrayOutputStream()
+        val retained = RetainedOutputStream()
         val chunkHeader = ByteArray(CHUNK_HEADER_BYTES)
 
         while (remaining >= CHUNK_HEADER_BYTES.toLong()) {
@@ -35,8 +36,11 @@ internal object WavMetadataProbeCopier {
             val declaredSize = readUInt32Le(chunkHeader, 4)
             val availableSize = minOf(declaredSize, remaining)
             val consumed = when {
-                chunkId == "data" -> retainDataChunk(input, retained, availableSize)
-                isChunkRetained(chunkId) && declaredSize <= MAX_METADATA_CHUNK_BYTES ->
+                chunkId == "data" && canRetain(retained, minOf(availableSize, DATA_PROBE_BYTES.toLong())) ->
+                    retainDataChunk(input, retained, availableSize)
+                isChunkRetained(chunkId) &&
+                    declaredSize <= MAX_METADATA_CHUNK_BYTES &&
+                    canRetain(retained, availableSize) ->
                     retainMetadataChunk(input, retained, chunkId, availableSize)
                 else -> skipFully(input, availableSize)
             }
@@ -59,33 +63,33 @@ internal object WavMetadataProbeCopier {
 
     private fun retainDataChunk(
         input: InputStream,
-        output: OutputStream,
+        output: RetainedOutputStream,
         availableSize: Long
     ): Long {
-        val data = ByteArray(minOf(availableSize, DATA_PROBE_BYTES.toLong()).toInt())
-        val copied = readFully(input, data, 0, data.size)
-        writeChunk(output, "data", data, copied)
-        if (copied < data.size) return copied.toLong()
+        val retainedSize = minOf(availableSize, DATA_PROBE_BYTES.toLong())
+        val sizeOffset = output.writeChunkHeader("data")
+        val copied = copyExactly(input, output, retainedSize)
+        output.finishChunk(sizeOffset, copied)
+        if (copied < retainedSize) return copied
         return copied + skipFully(input, availableSize - copied)
     }
 
     private fun retainMetadataChunk(
         input: InputStream,
-        output: OutputStream,
+        output: RetainedOutputStream,
         chunkId: String,
         availableSize: Long
     ): Long {
-        val data = ByteArray(availableSize.toInt())
-        val copied = copyExactly(input, data, availableSize)
-        writeChunk(output, chunkId, data, copied.toInt())
+        val sizeOffset = output.writeChunkHeader(chunkId)
+        val copied = copyExactly(input, output, availableSize)
+        output.finishChunk(sizeOffset, copied)
         return copied
     }
 
-    private fun writeChunk(output: OutputStream, chunkId: String, data: ByteArray, size: Int) {
-        output.write(chunkId.toByteArray(Charsets.US_ASCII))
-        writeUInt32Le(output, size.toLong())
-        output.write(data, 0, size)
-        if (size and 1 != 0) output.write(0)
+    private fun canRetain(output: RetainedOutputStream, payloadSize: Long): Boolean {
+        val paddedSize = payloadSize + (payloadSize and 1L)
+        return RIFF_HEADER_BYTES + output.size().toLong() + CHUNK_HEADER_BYTES + paddedSize <=
+            MAX_RETAINED_BYTES
     }
 
     private fun readFully(input: InputStream, buffer: ByteArray, offset: Int, length: Int): Int {
@@ -93,8 +97,14 @@ internal object WavMetadataProbeCopier {
         while (total < length) {
             val read = input.read(buffer, offset + total, length - total)
             if (read < 0) break
-            if (read == 0) continue
-            total += read
+            if (read == 0) {
+                val value = input.read()
+                if (value < 0) break
+                buffer[offset + total] = value.toByte()
+                total++
+            } else {
+                total += read
+            }
         }
         return total
     }
@@ -109,8 +119,19 @@ internal object WavMetadataProbeCopier {
         repeat(4) { output.write((value ushr (it * 8) and 0xff).toInt()) }
     }
 
-    private fun copyExactly(input: InputStream, output: ByteArray, byteCount: Long): Long =
-        readFully(input, output, 0, byteCount.toInt()).toLong()
+    private fun copyExactly(input: InputStream, output: OutputStream, byteCount: Long): Long {
+        val buffer = ByteArray(COPY_BUFFER_BYTES)
+        var copied = 0L
+        while (copied < byteCount) {
+            val requested = minOf(buffer.size.toLong(), byteCount - copied).toInt()
+            val read = readFully(input, buffer, 0, requested)
+            if (read == 0) break
+            output.write(buffer, 0, read)
+            copied += read
+            if (read < requested) break
+        }
+        return copied
+    }
 
     private fun skipFully(input: InputStream, byteCount: Long): Long {
         var skipped = 0L
@@ -133,7 +154,22 @@ internal object WavMetadataProbeCopier {
     private fun ByteArray.matchesAscii(offset: Int, value: String): Boolean =
         value.indices.all { this[offset + it] == value[it].code.toByte() }
 
+    private class RetainedOutputStream : ByteArrayOutputStream() {
+        fun writeChunkHeader(chunkId: String): Int {
+            write(chunkId.toByteArray(Charsets.US_ASCII))
+            val sizeOffset = count
+            repeat(4) { write(0) }
+            return sizeOffset
+        }
+
+        fun finishChunk(sizeOffset: Int, payloadSize: Long) {
+            repeat(4) { buf[sizeOffset + it] = (payloadSize ushr (it * 8) and 0xff).toByte() }
+            if (payloadSize and 1L != 0L) write(0)
+        }
+    }
+
     private const val RIFF_HEADER_BYTES = 12
     private const val CHUNK_HEADER_BYTES = 8
     private const val WAVE_ID_BYTES = 4L
+    private const val COPY_BUFFER_BYTES = 8 * 1024
 }

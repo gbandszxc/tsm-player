@@ -8,7 +8,10 @@ import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
+import java.io.SequenceInputStream
 import java.util.Base64
+import java.util.Collections
 import java.util.zip.CRC32
 
 class WavMetadataProbeCopierTest {
@@ -76,6 +79,60 @@ class WavMetadataProbeCopierTest {
         assertTrue(chunkTypes.first() == "IHDR")
         assertTrue("IDAT" in chunkTypes)
         assertTrue(chunkTypes.last() == "IEND")
+    }
+
+    @Test
+    fun `bulk read zero progress falls back to single byte read`() {
+        val source = wav(id3BeforeData = true)
+        val input = object : InputStream() {
+            private val delegate = ByteArrayInputStream(source)
+            private var singleByteReadSinceZero = true
+
+            override fun read(): Int {
+                singleByteReadSinceZero = true
+                return delegate.read()
+            }
+
+            override fun read(bytes: ByteArray, offset: Int, length: Int): Int {
+                check(singleByteReadSinceZero) { "bulk read retried without making progress" }
+                singleByteReadSinceZero = false
+                return 0
+            }
+
+            override fun skip(byteCount: Long): Long = delegate.skip(byteCount)
+        }
+
+        assertTrue(WavMetadataProbeCopier.copy(input, ByteArrayOutputStream()))
+    }
+
+    @Test
+    fun `repeated retained chunks stay within cumulative output budget`() {
+        val payload = ByteArray(4 * 1024 * 1024)
+        val chunkCount = 10
+        val chunkHeader = ByteArrayOutputStream().apply {
+            write("LIST".toByteArray(Charsets.US_ASCII))
+            writeLe32(payload.size)
+        }.toByteArray()
+        val riffBodySize = 4 + chunkCount * (chunkHeader.size + payload.size)
+        val streams = mutableListOf<InputStream>()
+        streams += ByteArrayInputStream(ByteArrayOutputStream().apply {
+            write("RIFF".toByteArray(Charsets.US_ASCII))
+            writeLe32(riffBodySize)
+            write("WAVE".toByteArray(Charsets.US_ASCII))
+        }.toByteArray())
+        repeat(chunkCount) {
+            streams += ByteArrayInputStream(chunkHeader)
+            streams += ByteArrayInputStream(payload)
+        }
+        val input = SequenceInputStream(Collections.enumeration(streams))
+        val output = ByteArrayOutputStream()
+
+        assertTrue(WavMetadataProbeCopier.copy(input, output))
+        assertTrue(
+            "output must honor cumulative retained budget",
+            output.size() <= WavMetadataProbeCopier.MAX_RETAINED_BYTES
+        )
+        assertTrue("not every recognized payload may be retained", output.size() < riffBodySize + 8)
     }
 
     private fun assertValidProbe(source: ByteArray) {
