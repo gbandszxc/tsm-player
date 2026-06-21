@@ -1,8 +1,89 @@
 package com.github.gbandszxc.tvmediaplayer.playback
 
-import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+
+internal class SegmentedOutputStream : OutputStream() {
+    private val segments = mutableListOf<ByteArray>()
+    private var totalSize = 0
+
+    val maxAllocatedSegmentSize: Int
+        get() = segments.maxOfOrNull { it.size } ?: 0
+
+    override fun write(value: Int) {
+        ensureCapacity()
+        segments[totalSize / MAX_SEGMENT_BYTES][totalSize % MAX_SEGMENT_BYTES] = value.toByte()
+        totalSize++
+    }
+
+    override fun write(bytes: ByteArray, offset: Int, length: Int) {
+        require(offset >= 0 && length >= 0 && offset + length <= bytes.size)
+        var sourceOffset = offset
+        var remaining = length
+        while (remaining > 0) {
+            ensureCapacity()
+            val segmentOffset = totalSize % MAX_SEGMENT_BYTES
+            val copied = minOf(remaining, MAX_SEGMENT_BYTES - segmentOffset)
+            bytes.copyInto(
+                destination = segments[totalSize / MAX_SEGMENT_BYTES],
+                destinationOffset = segmentOffset,
+                startIndex = sourceOffset,
+                endIndex = sourceOffset + copied
+            )
+            sourceOffset += copied
+            totalSize += copied
+            remaining -= copied
+        }
+    }
+
+    fun size(): Int = totalSize
+
+    fun byteAt(offset: Int): Int {
+        require(offset in 0 until totalSize)
+        return segments[offset / MAX_SEGMENT_BYTES][offset % MAX_SEGMENT_BYTES].toInt() and 0xff
+    }
+
+    fun patchUInt32Le(offset: Int, value: Long) {
+        require(offset >= 0 && offset + 4 <= totalSize)
+        repeat(4) { index ->
+            val absoluteOffset = offset + index
+            segments[absoluteOffset / MAX_SEGMENT_BYTES][absoluteOffset % MAX_SEGMENT_BYTES] =
+                (value ushr (index * 8) and 0xff).toByte()
+        }
+    }
+
+    fun writeChunkHeader(chunkId: String): Int {
+        write(chunkId.toByteArray(Charsets.US_ASCII))
+        val sizeOffset = totalSize
+        repeat(4) { write(0) }
+        return sizeOffset
+    }
+
+    fun finishChunk(sizeOffset: Int, payloadSize: Long) {
+        patchUInt32Le(sizeOffset, payloadSize)
+        if (payloadSize and 1L != 0L) write(0)
+    }
+
+    fun writeTo(output: OutputStream) {
+        var remaining = totalSize
+        for (segment in segments) {
+            val length = minOf(remaining, segment.size)
+            output.write(segment, 0, length)
+            remaining -= length
+            if (remaining == 0) break
+        }
+    }
+
+    private fun ensureCapacity() {
+        if (totalSize == segments.size * MAX_SEGMENT_BYTES) {
+            segments += ByteArray(MAX_SEGMENT_BYTES)
+        }
+    }
+
+    companion object {
+        const val MAX_SEGMENT_BYTES = 64 * 1024
+    }
+}
 
 internal object WavMetadataProbeCopier {
 
@@ -24,7 +105,7 @@ internal object WavMetadataProbeCopier {
         }
 
         var remaining = readUInt32Le(header, 4) - WAVE_ID_BYTES
-        val retained = RetainedOutputStream()
+        val retained = SegmentedOutputStream()
         val chunkHeader = ByteArray(CHUNK_HEADER_BYTES)
 
         while (remaining >= CHUNK_HEADER_BYTES.toLong()) {
@@ -63,7 +144,7 @@ internal object WavMetadataProbeCopier {
 
     private fun retainDataChunk(
         input: InputStream,
-        output: RetainedOutputStream,
+        output: SegmentedOutputStream,
         availableSize: Long
     ): Long {
         val retainedSize = minOf(availableSize, DATA_PROBE_BYTES.toLong())
@@ -76,7 +157,7 @@ internal object WavMetadataProbeCopier {
 
     private fun retainMetadataChunk(
         input: InputStream,
-        output: RetainedOutputStream,
+        output: SegmentedOutputStream,
         chunkId: String,
         availableSize: Long
     ): Long {
@@ -86,7 +167,7 @@ internal object WavMetadataProbeCopier {
         return copied
     }
 
-    private fun canRetain(output: RetainedOutputStream, payloadSize: Long): Boolean {
+    private fun canRetain(output: SegmentedOutputStream, payloadSize: Long): Boolean {
         val paddedSize = payloadSize + (payloadSize and 1L)
         return RIFF_HEADER_BYTES + output.size().toLong() + CHUNK_HEADER_BYTES + paddedSize <=
             MAX_RETAINED_BYTES
@@ -153,20 +234,6 @@ internal object WavMetadataProbeCopier {
 
     private fun ByteArray.matchesAscii(offset: Int, value: String): Boolean =
         value.indices.all { this[offset + it] == value[it].code.toByte() }
-
-    private class RetainedOutputStream : ByteArrayOutputStream() {
-        fun writeChunkHeader(chunkId: String): Int {
-            write(chunkId.toByteArray(Charsets.US_ASCII))
-            val sizeOffset = count
-            repeat(4) { write(0) }
-            return sizeOffset
-        }
-
-        fun finishChunk(sizeOffset: Int, payloadSize: Long) {
-            repeat(4) { buf[sizeOffset + it] = (payloadSize ushr (it * 8) and 0xff).toByte() }
-            if (payloadSize and 1L != 0L) write(0)
-        }
-    }
 
     private const val RIFF_HEADER_BYTES = 12
     private const val CHUNK_HEADER_BYTES = 8

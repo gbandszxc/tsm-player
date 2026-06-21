@@ -185,6 +185,58 @@ class WavMetadataProbeCopierTest {
         assertTrue("not every recognized payload may be retained", output.size() < riffBodySize + 8)
     }
 
+    @Test
+    fun `large retained storage uses bounded segments`() {
+        val storage = SegmentedOutputStream()
+        val block = ByteArray(SegmentedOutputStream.MAX_SEGMENT_BYTES)
+        repeat((32 * 1024 * 1024) / block.size) { storage.write(block) }
+
+        assertTrue(storage.maxAllocatedSegmentSize <= SegmentedOutputStream.MAX_SEGMENT_BYTES)
+        assertTrue(storage.size() == 32 * 1024 * 1024)
+    }
+
+    @Test
+    fun `segmented storage backpatches length across segment boundary`() {
+        val storage = SegmentedOutputStream()
+        storage.write(ByteArray(SegmentedOutputStream.MAX_SEGMENT_BYTES - 2))
+        val offset = storage.size()
+        storage.write(ByteArray(4))
+
+        storage.patchUInt32Le(offset, 0x78563412)
+
+        assertTrue(storage.byteAt(offset) == 0x12)
+        assertTrue(storage.byteAt(offset + 1) == 0x34)
+        assertTrue(storage.byteAt(offset + 2) == 0x56)
+        assertTrue(storage.byteAt(offset + 3) == 0x78)
+    }
+
+    @Test
+    fun `zero progress skip falls back to single byte reads`() {
+        val source = wav(id3BeforeData = true)
+        var singleByteReads = 0
+        val input = object : InputStream() {
+            private val delegate = ByteArrayInputStream(source)
+            override fun read(): Int = delegate.read().also { if (it >= 0) singleByteReads++ }
+            override fun read(bytes: ByteArray, offset: Int, length: Int): Int =
+                delegate.read(bytes, offset, length)
+            override fun skip(byteCount: Long): Long = 0
+        }
+
+        assertTrue(WavMetadataProbeCopier.copy(input, ByteArrayOutputStream()))
+        assertTrue("skip fallback must consume bytes", singleByteReads > 0)
+    }
+
+    @Test
+    fun `truncated valid RIFF returns true with self consistent output size`() {
+        val full = wav(id3BeforeData = true)
+        val truncated = full.copyOf(full.size - 100)
+        val output = ByteArrayOutputStream()
+
+        assertTrue(WavMetadataProbeCopier.copy(ByteArrayInputStream(truncated), output))
+        val probe = output.toByteArray()
+        assertTrue(readLe32(probe, 4) == probe.size - 8)
+    }
+
     private fun assertValidProbe(source: ByteArray) {
         val output = ByteArrayOutputStream()
         assertTrue(WavMetadataProbeCopier.copy(ByteArrayInputStream(source), output))
@@ -281,4 +333,10 @@ class WavMetadataProbeCopierTest {
             ((bytes[offset + 1].toInt() and 0xff) shl 16) or
             ((bytes[offset + 2].toInt() and 0xff) shl 8) or
             (bytes[offset + 3].toInt() and 0xff)
+
+    private fun readLe32(bytes: ByteArray, offset: Int): Int =
+        (bytes[offset].toInt() and 0xff) or
+            ((bytes[offset + 1].toInt() and 0xff) shl 8) or
+            ((bytes[offset + 2].toInt() and 0xff) shl 16) or
+            ((bytes[offset + 3].toInt() and 0xff) shl 24)
 }
