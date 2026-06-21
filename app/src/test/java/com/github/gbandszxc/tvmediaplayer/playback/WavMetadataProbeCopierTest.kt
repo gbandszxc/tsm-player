@@ -2,6 +2,7 @@ package com.github.gbandszxc.tvmediaplayer.playback
 
 import org.jaudiotagger.audio.AudioFileIO
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -19,6 +20,21 @@ class WavMetadataProbeCopierTest {
     private val png = Base64.getDecoder().decode(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
     )
+
+    @Test
+    fun `normalizes wave parser suffix while leaving other suffixes unchanged`() {
+        mapOf(
+            "wave" to "wav",
+            "wav" to "wav",
+            "flac" to "flac",
+        ).forEach { (sourceSuffix, expectedParserSuffix) ->
+            assertEquals(
+                sourceSuffix,
+                expectedParserSuffix,
+                SmbAudioMetadataProbe.metadataParserSuffix(sourceSuffix),
+            )
+        }
+    }
 
     @Test
     fun `SMB fast metadata probe routes wav and wave through WAV copier`() {
@@ -39,7 +55,8 @@ class WavMetadataProbeCopierTest {
             assertArrayEquals("$suffix dispatch output", expected.toByteArray(), actual.toByteArray())
             assertTrue("$suffix probe must be bounded", actual.size() < source.size / 2)
 
-            val temp = File.createTempFile("wav-routing-probe", ".wav")
+            val parserSuffix = SmbAudioMetadataProbe.metadataParserSuffix(suffix)
+            val temp = File.createTempFile("wav-routing-probe", ".$parserSuffix")
             try {
                 temp.writeBytes(actual.toByteArray())
                 assertArrayEquals(

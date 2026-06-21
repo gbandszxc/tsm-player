@@ -70,7 +70,7 @@ object SmbAudioMetadataProbe {
         val smbFile = SmbFile(mediaUri, SmbContextFactory.build(config))
         val ext = mediaUri.substringAfterLast('.', "").lowercase()
         val suffix = if (ext.isBlank() || ext.length > 8) "tmp" else ext
-        val temp = File.createTempFile("probe-", ".$suffix")
+        val temp = File.createTempFile("probe-", ".${metadataParserSuffix(suffix)}")
         return try {
             val fastUsed = copySmbForMetadataProbe(smbFile, temp, suffix, fastPath = true)
             var metadata = extractMetadata(temp)
@@ -82,6 +82,10 @@ object SmbAudioMetadataProbe {
         } finally {
             temp.delete()
         }
+    }
+
+    internal fun metadataParserSuffix(sourceSuffix: String): String {
+        return if (sourceSuffix == "wave") "wav" else sourceSuffix
     }
 
     private fun extractMetadata(temp: File): SmbAudioMetadata? {
