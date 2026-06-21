@@ -21,6 +21,17 @@ class WavMetadataProbeCopierTest {
     )
 
     @Test
+    fun `SMB fast metadata probe routes wav and wave through WAV copier`() {
+        val source = File(
+            "src/main/java/com/github/gbandszxc/tvmediaplayer/playback/SmbAudioMetadataProbe.kt"
+        ).readText()
+
+        assertTrue(
+            source.contains("\"wav\", \"wave\" -> WavMetadataProbeCopier.copy(input, output)")
+        )
+    }
+
+    @Test
     fun `retains artwork when ID3 precedes data`() {
         assertValidProbe(wav(id3BeforeData = true))
     }

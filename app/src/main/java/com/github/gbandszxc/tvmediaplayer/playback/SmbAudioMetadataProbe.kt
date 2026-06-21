@@ -133,6 +133,8 @@ object SmbAudioMetadataProbe {
 
             "flac" -> copyFlacMetadataRegion(input, output)
 
+            "wav", "wave" -> WavMetadataProbeCopier.copy(input, output)
+
             "m4a", "mp4", "m4b", "aac", "alac" -> {
                 copyLimited(input, output, MP4_TAG_PROBE_BYTES)
                 true

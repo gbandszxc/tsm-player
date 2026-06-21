@@ -151,6 +151,7 @@ Release:
 6. 播放页已支持睡眠定时器、播放模式切换、定位按钮，但相比设计图仍缺少更多遥控器快捷交互。
 7. 已可产出已签名 release，但仍建议补充签名校验与安装回归测试流程。
 8. 浏览页会为当前激活的 SMB 连接持久化最近浏览目录；应用退到后台或页面重建后，会优先恢复到离开前层级，而不是仅回到连接初始路径。
+9. SMB WAV/WAVE 元数据探测已采用 RIFF chunk-aware 快速复制：跳过大体积 PCM，支持位于 `data` 前后的 ID3/APIC；若快速探测未解析到元数据，则回退到完整复制解析。
 
 ## 9. 最近 UI/交互更新
 0. 项目已增加基础 i18n 资源结构：中文默认资源位于 `app/src/main/res/values/strings.xml`，英文资源位于 `app/src/main/res/values-en/strings.xml`。新增用户可见文案时必须同步维护两个文件，避免在 Kotlin 或 XML 中继续写死可见中文；`LocalizationResourcesTest` 会校验英文资源 key 与默认资源一致，并禁止布局 `android:text` 继续硬编码中文。设置页“显示设置 > 语言”支持“跟随系统 / 中文 / English”手动切换，偏好持久化到主库 `tsm-player.db` 的 `ui.app_language`，`BaseActivity` 会在 Activity 创建和恢复时应用或刷新语言上下文。
