@@ -150,6 +150,9 @@ internal object UiMotion {
     }
 
     private fun applyWidth(view: View, widthPx: Int) {
+        // 高刷新率下 ease-in/ease-out 的相邻帧可能舍入为同一整数宽度；
+        // 跳过重复 requestLayout，避免无意义地重测整条按钮栏。
+        if (view.layoutParams.width == widthPx) return
         view.layoutParams.width = widthPx
         view.requestLayout()
     }

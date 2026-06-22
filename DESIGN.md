@@ -579,6 +579,8 @@ Progress Modal 示例（下载更新）：
   - `UiMotion.applyPressFeedback(view, overlayColorRes)` 链式保留既有 `OnTouchListener`，对仅设 `OnClickListener` 的控件无影响；`!isEnabled`（如历史翻页禁用态）跳过反馈。
 - **遥控器聚焦展开**：仅“聚焦时展开文字”的按钮（浏览页紧凑按钮、播放页底部展开按钮）使用，由焦点变化驱动。
   - 展开约 200ms（Material decelerate，ease-out，`PathInterpolator(0,0,0.2,1)`）；收起约 150ms（Material accelerate，ease-in，`PathInterpolator(0.4,0,1,1)`，≈ 展开 75%）。
+  - 动画由 `ValueAnimator` 经 Choreographer 跟随设备 VSYNC 驱动，不固定 60 FPS；在 90/120/144 Hz 设备上按实际刷新率取样。相邻帧舍入为相同整数宽度时跳过 `requestLayout()`，避免高刷起止缓动区间重复 measure/layout。
+  - 所有页面通过 `BaseActivity` 请求当前物理分辨率下的最高显示模式刷新率；不跨分辨率选 mode。Android 系统仍可因省电、温控或外接显示器策略拒绝请求。
   - 图标使用 Button compound drawable（MuMu/Android 硬件渲染下稳定支持 VectorDrawable）。收起态清空文字与 drawablePadding，并将 `@dimen/ui_space_sm / 2` 的内边距从右侧对称移到左侧，在总 padding 不变的前提下补偿 TextView 空文字内容盒的固定左偏；展开时恢复对称 `@dimen/ui_space_3xl` padding 和 `@dimen/ui_space_sm` 图文间距。文字强制单行并在“文字 + 图标”均就位后测量展开宽度，禁止因中间宽度换行造成高度跳变或图标错位。
   - 守卫：触屏模式 / 尚未布局 / 宽度为 0 时直接落定目标宽度、不播动画，保证单测同步契约与触屏互斥。
   - `UiMotion.animateWidthTo(view, targetSpec, expand)` 在切换前取消该 view 的旧动画，避免连按方向键叠加。

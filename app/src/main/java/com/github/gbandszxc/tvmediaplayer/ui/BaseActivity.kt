@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepAppExitController
@@ -20,6 +21,7 @@ abstract class BaseActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         UiSettingsApplier.applyFullscreenWindowLayout(this)
+        requestHighestRefreshRate()
         SleepAppExitController.register(this)
     }
 
@@ -35,10 +37,31 @@ abstract class BaseActivity : FragmentActivity() {
             return
         }
         UiSettingsApplier.applyImmersiveFullscreen(this)
+        requestHighestRefreshRate()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) UiSettingsApplier.applyImmersiveFullscreen(this)
+    }
+
+    /** 请求当前分辨率下的最高刷新率；系统仍可因省电、温控或外接显示器策略拒绝。 */
+    private fun requestHighestRefreshRate() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        @Suppress("DEPRECATION")
+        val display = windowManager.defaultDisplay
+        val currentMode = display.mode
+        val preferredMode = display.supportedModes
+            .asSequence()
+            .filter {
+                it.physicalWidth == currentMode.physicalWidth &&
+                    it.physicalHeight == currentMode.physicalHeight
+            }
+            .maxByOrNull { it.refreshRate }
+            ?: return
+        val attributes = window.attributes
+        if (attributes.preferredDisplayModeId == preferredMode.modeId) return
+        attributes.preferredDisplayModeId = preferredMode.modeId
+        window.attributes = attributes
     }
 }
