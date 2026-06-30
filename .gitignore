@@ -93,3 +93,5 @@ Thumbs.db
 /.superpowers/
 .codex-remote-attachments/
 .regression_shots/
+
+.codegraph/
