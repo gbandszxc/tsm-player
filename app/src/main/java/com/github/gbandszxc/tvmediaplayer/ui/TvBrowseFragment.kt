@@ -237,6 +237,7 @@ class TvBrowseFragment : Fragment() {
         }
         bindTouchFeedback()
         btnBrowseMode.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
+        btnViewMode.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnHistory.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
@@ -297,6 +298,14 @@ class TvBrowseFragment : Fragment() {
                 requireContext(),
                 local = viewModel.state.value.mode == BrowseMode.LOCAL,
                 focused = btnBrowseMode.hasFocus(),
+            ),
+        )
+        applyBrowserButtonSpec(
+            btnViewMode,
+            PlaybackButtonPresentation.browserViewMode(
+                requireContext(),
+                grid = viewModel.state.value.viewMode == BrowserViewMode.GRID,
+                focused = btnViewMode.hasFocus(),
             ),
         )
         applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(requireContext(), btnFavorites.hasFocus()))
@@ -400,14 +409,6 @@ class TvBrowseFragment : Fragment() {
         renderFastLocatePanel(state)
 
         btnSort.text = getString(state.sortOption.labelResId)
-        btnViewMode.text = getString(
-            if (state.viewMode == BrowserViewMode.LIST) {
-                R.string.browser_switch_to_grid
-            } else {
-                R.string.browser_switch_to_list
-            }
-        )
-
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
                 add(SmbEntry(name = "..", fullPath = state.currentPath, isDirectory = true))

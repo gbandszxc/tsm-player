@@ -117,4 +117,18 @@ class PlaybackButtonPresentationTest {
         assertEquals(R.dimen.ui_playback_favorite_button_expanded_min_width, localFocused.browserExpandedWidthResId)
         assertTrue(localFocused.expandsOnFocus)
     }
+
+    @Test
+    fun browserViewModeUsesCurrentModeIconAndOnlyExpandsTextOnFocus() {
+        val listCollapsed = PlaybackButtonPresentation.browserViewMode(context, grid = false, focused = false)
+        val gridFocused = PlaybackButtonPresentation.browserViewMode(context, grid = true, focused = true)
+
+        assertEquals("", listCollapsed.text)
+        assertEquals(context.getString(R.string.browser_view_list), listCollapsed.contentDescription)
+        assertEquals(R.drawable.ic_view_list, listCollapsed.iconResId)
+        assertEquals(context.getString(R.string.browser_view_grid), gridFocused.text)
+        assertEquals(context.getString(R.string.browser_view_grid), gridFocused.contentDescription)
+        assertEquals(R.drawable.ic_view_grid, gridFocused.iconResId)
+        assertTrue(gridFocused.expandsOnFocus)
+    }
 }

@@ -132,8 +132,8 @@
     <string name="browser_sort_modified_asc">修改时间 ↑</string>
     <string name="browser_sort_modified_desc">修改时间 ↓</string>
     <string name="browser_refresh_current_dir">刷新当前目录</string>
-    <string name="browser_switch_to_grid">宫格视图</string>
-    <string name="browser_switch_to_list">列表视图</string>
+    <string name="browser_view_grid">宫格视图</string>
+    <string name="browser_view_list">列表视图</string>
 
     <string name="favorites_empty_current_track">暂无可收藏歌曲</string>
     <string name="favorites_added_default">已加入收藏夹</string>

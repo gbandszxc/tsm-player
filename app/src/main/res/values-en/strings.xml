@@ -132,8 +132,8 @@
     <string name="browser_sort_modified_asc">Modified ↑</string>
     <string name="browser_sort_modified_desc">Modified ↓</string>
     <string name="browser_refresh_current_dir">Refresh Folder</string>
-    <string name="browser_switch_to_grid">Grid View</string>
-    <string name="browser_switch_to_list">List View</string>
+    <string name="browser_view_grid">Grid View</string>
+    <string name="browser_view_list">List View</string>
 
     <string name="favorites_empty_current_track">No song available to favorite</string>
     <string name="favorites_added_default">Added to Favorites</string>

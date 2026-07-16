@@ -229,8 +229,8 @@
                             android:layout_marginStart="@dimen/ui_space_lg"
                             android:gravity="center"
                             android:maxLines="1"
-                            android:minWidth="130dp"
-                            android:text="@string/browser_switch_to_grid"
+                            android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                            android:text=""
                             android:textAllCaps="false" />
                     </LinearLayout>
                 </HorizontalScrollView>
