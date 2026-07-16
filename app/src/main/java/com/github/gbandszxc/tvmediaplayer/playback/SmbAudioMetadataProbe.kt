@@ -27,15 +27,19 @@ object SmbAudioMetadataProbe {
     private const val FLAC_MAX_METADATA_BYTES = 32L * 1024 * 1024
     private const val FLAC_POST_METADATA_AUDIO_BYTES = 16L * 1024
 
-    private val memoryCache = ConcurrentHashMap<String, SmbAudioMetadata?>()
+    private val memoryCache = ConcurrentHashMap<String, SmbAudioMetadata>()
+    private val missingKeys = ConcurrentHashMap.newKeySet<String>()
     private val inFlight = ConcurrentHashMap<String, CompletableDeferred<SmbAudioMetadata?>>()
+    private val missingArtworkKeys = ConcurrentHashMap.newKeySet<String>()
+    private val artworkInFlight = ConcurrentHashMap<String, CompletableDeferred<ByteArray?>>()
 
     suspend fun probe(config: SmbConfig, mediaUri: String): SmbAudioMetadata? {
         val isSmb = mediaUri.startsWith("smb://", ignoreCase = true)
         val isLocal = Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)
         if (!isSmb && !isLocal) return null
         val key = if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()
-        if (memoryCache.containsKey(key)) return memoryCache[key]
+        memoryCache[key]?.let { return it }
+        if (key in missingKeys) return null
 
         val waiter = CompletableDeferred<SmbAudioMetadata?>()
         val existing = inFlight.putIfAbsent(key, waiter)
@@ -43,7 +47,7 @@ object SmbAudioMetadataProbe {
 
         return try {
             val loaded = if (isSmb) load(config, mediaUri) else loadLocal(mediaUri)
-            memoryCache[key] = loaded
+            if (loaded != null) memoryCache[key] = loaded else missingKeys += key
             waiter.complete(loaded)
             loaded
         } catch (t: Throwable) {
@@ -54,8 +58,39 @@ object SmbAudioMetadataProbe {
         }
     }
 
+    /** 供宫格批量加载使用：只读取格式标签区域，绝不回退为整首 SMB 音频复制。 */
+    suspend fun probeArtwork(config: SmbConfig, mediaUri: String): ByteArray? {
+        val isSmb = mediaUri.startsWith("smb://", ignoreCase = true)
+        val isLocal = Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)
+        if (!isSmb && !isLocal) return null
+        val key = (if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()) + "|artwork"
+        if (key in missingArtworkKeys) return null
+
+        val waiter = CompletableDeferred<ByteArray?>()
+        val existing = artworkInFlight.putIfAbsent(key, waiter)
+        if (existing != null) return existing.await()
+
+        return try {
+            val artwork = if (isSmb) {
+                load(config, mediaUri, allowFullFallback = false)?.artworkData
+            } else {
+                loadLocal(mediaUri)?.artworkData
+            }
+            if (artwork == null) missingArtworkKeys += key
+            waiter.complete(artwork)
+            artwork
+        } catch (t: Throwable) {
+            waiter.completeExceptionally(t)
+            throw t
+        } finally {
+            artworkInFlight.remove(key, waiter)
+        }
+    }
+
     fun clearMemory() {
         memoryCache.clear()
+        missingKeys.clear()
+        missingArtworkKeys.clear()
     }
 
     private fun buildKey(config: SmbConfig, mediaUri: String): String {
@@ -69,15 +104,25 @@ object SmbAudioMetadataProbe {
         ).joinToString("|")
     }
 
-    private fun load(config: SmbConfig, mediaUri: String): SmbAudioMetadata? {
+    private fun load(
+        config: SmbConfig,
+        mediaUri: String,
+        allowFullFallback: Boolean = true,
+    ): SmbAudioMetadata? {
         val smbFile = SmbFile(mediaUri, SmbContextFactory.build(config))
         val ext = mediaUri.substringAfterLast('.', "").lowercase()
         val suffix = if (ext.isBlank() || ext.length > 8) "tmp" else ext
         val temp = File.createTempFile("probe-", ".${metadataParserSuffix(suffix)}")
         return try {
-            val fastUsed = copySmbForMetadataProbe(smbFile, temp, suffix, fastPath = true)
+            val fastUsed = copySmbForMetadataProbe(
+                smbFile,
+                temp,
+                suffix,
+                fastPath = true,
+                strictPartial = !allowFullFallback,
+            )
             var metadata = extractMetadata(temp)
-            if (metadata == null && fastUsed) {
+            if (metadata == null && fastUsed && allowFullFallback) {
                 copySmbForMetadataProbe(smbFile, temp, suffix, fastPath = false)
                 metadata = extractMetadata(temp)
             }
@@ -120,6 +165,7 @@ object SmbAudioMetadataProbe {
         temp: File,
         suffix: String,
         fastPath: Boolean,
+        strictPartial: Boolean = false,
     ): Boolean {
         SmbFileInputStream(smbFile).use { input ->
             FileOutputStream(temp, false).use { output ->
@@ -127,7 +173,7 @@ object SmbAudioMetadataProbe {
                     input.copyTo(output)
                     return false
                 }
-                return copyFastMetadataProbe(input, output, suffix)
+                return copyFastMetadataProbe(input, output, suffix, strictPartial)
             }
         }
     }
@@ -136,16 +182,17 @@ object SmbAudioMetadataProbe {
         input: InputStream,
         output: OutputStream,
         suffix: String,
+        strictPartial: Boolean = false,
     ): Boolean {
         return when (suffix) {
             "mp3" -> {
-                copyId3TagRegion(input, output)
+                copyId3TagRegion(input, output, strictPartial)
                 true
             }
 
-            "flac" -> copyFlacMetadataRegion(input, output)
+            "flac" -> copyFlacMetadataRegion(input, output, strictPartial)
 
-            "wav", "wave" -> WavMetadataProbeCopier.copy(input, output)
+            "wav", "wave" -> WavMetadataProbeCopier.copy(input, output, strictPartial)
 
             "m4a", "mp4", "m4b", "aac", "alac" -> {
                 copyLimited(input, output, MP4_TAG_PROBE_BYTES)
@@ -158,19 +205,25 @@ object SmbAudioMetadataProbe {
             }
 
             else -> {
-                input.copyTo(output)
-                false
+                if (strictPartial) true else {
+                    input.copyTo(output)
+                    false
+                }
             }
         }
     }
 
-    private fun copyFlacMetadataRegion(input: InputStream, output: OutputStream): Boolean {
+    private fun copyFlacMetadataRegion(
+        input: InputStream,
+        output: OutputStream,
+        strictPartial: Boolean,
+    ): Boolean {
         val signature = ByteArray(4)
         val signatureRead = input.readFully(signature)
         output.write(signature, 0, signatureRead)
         if (signatureRead < 4) {
-            input.copyTo(output)
-            return false
+            if (!strictPartial) input.copyTo(output)
+            return strictPartial
         }
         if (
             signature[0] != 'f'.code.toByte() ||
@@ -178,8 +231,8 @@ object SmbAudioMetadataProbe {
             signature[2] != 'a'.code.toByte() ||
             signature[3] != 'C'.code.toByte()
         ) {
-            input.copyTo(output)
-            return false
+            if (!strictPartial) input.copyTo(output)
+            return strictPartial
         }
 
         var copiedMetadataBytes = 0L
@@ -232,7 +285,7 @@ object SmbAudioMetadataProbe {
         return total
     }
 
-    private fun copyId3TagRegion(input: InputStream, output: OutputStream) {
+    private fun copyId3TagRegion(input: InputStream, output: OutputStream, strictPartial: Boolean) {
         val header = ByteArray(10)
         var totalRead = 0
         while (totalRead < 10) {
@@ -242,11 +295,11 @@ object SmbAudioMetadataProbe {
         }
         output.write(header, 0, totalRead)
         if (totalRead < 10) {
-            input.copyTo(output)
+            if (!strictPartial) input.copyTo(output)
             return
         }
         if (header[0] != 0x49.toByte() || header[1] != 0x44.toByte() || header[2] != 0x33.toByte()) {
-            input.copyTo(output)
+            if (!strictPartial) input.copyTo(output)
             return
         }
         val tagContentSize =

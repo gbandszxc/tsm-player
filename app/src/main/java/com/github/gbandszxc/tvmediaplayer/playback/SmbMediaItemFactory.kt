@@ -45,7 +45,11 @@ class SmbMediaItemFactory {
 
     private fun resolveArtworkUri(config: SmbConfig, directoryPath: String, context: CIFSContext): String? {
         val directoryBase = buildDirectoryBase(config, directoryPath)
-        val candidates = listOf("folder.jpg", "cover.jpg", "front.jpg")
+        val candidates = listOf(
+            "folder.jpg", "folder.png",
+            "cover.jpg", "cover.png",
+            "front.jpg", "front.png",
+        )
         for (candidate in candidates) {
             val artworkUrl = "$directoryBase/$candidate"
             runCatching {

@@ -3,6 +3,8 @@
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
@@ -16,6 +18,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -34,6 +37,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowseMode
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserViewMode
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
@@ -42,7 +46,10 @@ import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackResumeBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackQueueBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
+import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
+import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import com.github.gbandszxc.tvmediaplayer.playback.SmbMediaItemFactory
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ActionModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ConfirmModalSpec
@@ -56,7 +63,10 @@ import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalCoordinator
 import com.github.gbandszxc.tvmediaplayer.ui.modal.TsmModalFormValidators
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import jcifs.smb.SmbFile
+import jcifs.smb.SmbFileInputStream
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
@@ -88,6 +98,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var tvPath: TextView
     private lateinit var btnRefresh: Button
     private lateinit var btnSort: Button
+    private lateinit var btnViewMode: Button
     private lateinit var tvStatus: TextView
     private lateinit var panelFastLocate: View
     private lateinit var tvFastLocateHint: TextView
@@ -99,7 +110,9 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnPlayAll: Button
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
-    private lateinit var filesContainer: LinearLayout
+    private lateinit var filesContainer: GridLayout
+    private var renderedGridLayout: BrowserGridLayout? = null
+    private var gridArtworkJob: Job? = null
     private var sortDropdownView: View? = null
     private var sortOutsideDismissView: View? = null
     private val sortDropdownSafetyMarginPx: Int
@@ -150,6 +163,7 @@ class TvBrowseFragment : Fragment() {
         }
         fastLocateConfirmGuard.reset()
         browseListRenderGate.reset()
+        gridArtworkJob?.cancel()
         super.onDestroyView()
     }
 
@@ -165,6 +179,7 @@ class TvBrowseFragment : Fragment() {
         tvPath = root.findViewById(R.id.tv_path)
         btnRefresh = root.findViewById(R.id.btn_refresh)
         btnSort = root.findViewById(R.id.btn_sort)
+        btnViewMode = root.findViewById(R.id.btn_view_mode)
         tvStatus = root.findViewById(R.id.tv_status)
         panelFastLocate = root.findViewById(R.id.panel_fast_locate)
         tvFastLocateHint = root.findViewById(R.id.tv_fast_locate_hint)
@@ -177,6 +192,16 @@ class TvBrowseFragment : Fragment() {
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
         filesContainer = root.findViewById(R.id.container_files)
+        filesContainer.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
+            val state = viewModel.state.value
+            if (state.viewMode != BrowserViewMode.GRID) return@addOnLayoutChangeListener
+            val layout = calculateGridLayout(right - left)
+            if (layout != renderedGridLayout) {
+                browseListRenderGate.reset()
+                render(state)
+            }
+        }
         panelFastLocate.bringToFront()
     }
 
@@ -195,6 +220,7 @@ class TvBrowseFragment : Fragment() {
             if (viewModel.state.value.localPermissionRequired) requestLocalStorageAccess() else viewModel.refreshCurrentPath()
         }
         btnSort.setOnClickListener { showSortDropdown() }
+        btnViewMode.setOnClickListener { viewModel.toggleViewMode() }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
         }
@@ -234,6 +260,7 @@ class TvBrowseFragment : Fragment() {
         UiMotion.applyPressFeedback(btnSettings, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnRefresh, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnSort, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnViewMode, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnManage, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnFavorites, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnHistory, R.color.ui_press_overlay_dark)
@@ -374,6 +401,13 @@ class TvBrowseFragment : Fragment() {
         renderFastLocatePanel(state)
 
         btnSort.text = getString(state.sortOption.labelResId)
+        btnViewMode.text = getString(
+            if (state.viewMode == BrowserViewMode.LIST) {
+                R.string.browser_switch_to_grid
+            } else {
+                R.string.browser_switch_to_list
+            }
+        )
 
         val displayEntries = buildList {
             if (state.currentPath.isNotBlank()) {
@@ -381,37 +415,62 @@ class TvBrowseFragment : Fragment() {
             }
             addAll(state.entries)
         }
-        if (browseListRenderGate.shouldRebuild("${state.currentPath}|${state.sortOption.name}", displayEntries)) {
+        val gridLayout = state.viewMode.takeIf { it == BrowserViewMode.GRID }?.let {
+            calculateGridLayout(filesContainer.width)
+        }
+        val renderKey = "${state.currentPath}|${state.sortOption.name}|${state.viewMode}|$gridLayout"
+        if (browseListRenderGate.shouldRebuild(renderKey, displayEntries)) {
             renderFileItems(state, displayEntries)
         }
         ensureBrowseFocus(state, displayEntries)
     }
 
     private fun renderFileItems(state: TvBrowserState, entries: List<SmbEntry>) {
+        gridArtworkJob?.cancel()
         filesContainer.removeAllViews()
+        val gridMode = state.viewMode == BrowserViewMode.GRID
+        val gridLayout = if (gridMode) calculateGridLayout(filesContainer.width) else null
+        renderedGridLayout = gridLayout
+        filesContainer.columnCount = gridLayout?.columns ?: 1
         val hasParentEntry = state.currentPath.isNotBlank()
+        val artworkTargets = mutableListOf<Pair<SmbEntry, ImageView>>()
         entries.forEachIndexed { displayIndex, entry ->
-            val itemView = layoutInflater.inflate(R.layout.item_file_entry, filesContainer, false)
-            val ivTag: ImageView = itemView.findViewById(R.id.iv_tag)
-            val tvName: TextView = itemView.findViewById(R.id.tv_name)
-            val tvSize: TextView = itemView.findViewById(R.id.tv_size)
-            val tvModified: TextView = itemView.findViewById(R.id.tv_modified)
-
-            ivTag.setImageResource(
-                if (entry.isDirectory) R.drawable.ic_tag_folder else R.drawable.ic_tag_music
+            val itemView = layoutInflater.inflate(
+                if (gridMode) R.layout.item_file_entry_grid else R.layout.item_file_entry,
+                filesContainer,
+                false,
             )
+            val tvName: TextView = itemView.findViewById(R.id.tv_name)
             tvName.text = entry.name
             val isParentEntry = hasParentEntry && displayIndex == 0
-            if (isParentEntry) {
-                tvSize.visibility = View.GONE
-                tvModified.visibility = View.GONE
+            if (gridMode) {
+                val artwork: ImageView = itemView.findViewById(R.id.iv_artwork)
+                showGridFallbackIcon(artwork, entry.isDirectory)
+                if (!entry.isDirectory) {
+                    val key = entry.streamUri.orEmpty().ifBlank { entry.fullPath }
+                    artwork.tag = key
+                    val cached = PlaybackArtworkCache.get(key)
+                    if (cached != null) showGridArtwork(artwork, cached) else artworkTargets.add(entry to artwork)
+                }
+                applyGridItemLayout(itemView, artwork, displayIndex, requireNotNull(gridLayout))
             } else {
-                tvSize.visibility = View.VISIBLE
-                tvModified.visibility = View.VISIBLE
-                tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
-                tvModified.text = formatModifiedTime(entry.lastModifiedAt)
-                tvSize.gravity = metadataColumnGravity(tvSize.text)
-                tvModified.gravity = metadataColumnGravity(tvModified.text)
+                val ivTag: ImageView = itemView.findViewById(R.id.iv_tag)
+                val tvSize: TextView = itemView.findViewById(R.id.tv_size)
+                val tvModified: TextView = itemView.findViewById(R.id.tv_modified)
+                ivTag.setImageResource(
+                    if (entry.isDirectory) R.drawable.ic_tag_folder else R.drawable.ic_tag_music
+                )
+                if (isParentEntry) {
+                    tvSize.visibility = View.GONE
+                    tvModified.visibility = View.GONE
+                } else {
+                    tvSize.visibility = View.VISIBLE
+                    tvModified.visibility = View.VISIBLE
+                    tvSize.text = formatFileSize(entry.sizeBytes, entry.isDirectory)
+                    tvModified.text = formatModifiedTime(entry.lastModifiedAt)
+                    tvSize.gravity = metadataColumnGravity(tvSize.text)
+                    tvModified.gravity = metadataColumnGravity(tvModified.text)
+                }
             }
 
             itemView.setOnClickListener {
@@ -438,7 +497,131 @@ class TvBrowseFragment : Fragment() {
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             filesContainer.addView(itemView)
         }
+        if (gridMode && artworkTargets.isNotEmpty()) loadGridArtwork(state, artworkTargets)
     }
+
+    private fun calculateGridLayout(width: Int): BrowserGridLayout = BrowserGridSizer.calculate(
+        availableWidth = width,
+        minItemWidth = resources.getDimensionPixelSize(R.dimen.ui_browser_grid_min_item_width),
+        gap = resources.getDimensionPixelSize(R.dimen.ui_space_md),
+    )
+
+    private fun applyGridItemLayout(
+        itemView: View,
+        artwork: ImageView,
+        displayIndex: Int,
+        layout: BrowserGridLayout,
+    ) {
+        val gap = resources.getDimensionPixelSize(R.dimen.ui_space_md)
+        val params = itemView.layoutParams as GridLayout.LayoutParams
+        params.width = layout.itemWidth
+        params.setMargins(0, 0, if ((displayIndex + 1) % layout.columns == 0) 0 else gap, gap)
+        itemView.layoutParams = params
+        artwork.layoutParams = artwork.layoutParams.apply {
+            height = layout.itemWidth - itemView.paddingStart - itemView.paddingEnd
+        }
+    }
+
+    private fun showGridFallbackIcon(view: ImageView, directory: Boolean) {
+        view.setImageResource(if (directory) R.drawable.ic_tag_folder else R.drawable.ic_tag_music)
+        view.scaleType = ImageView.ScaleType.FIT_CENTER
+        val padding = resources.getDimensionPixelSize(R.dimen.ui_space_5xl)
+        view.setPadding(padding, padding, padding, padding)
+    }
+
+    private fun showGridArtwork(view: ImageView, bitmap: Bitmap) {
+        view.setPadding(0, 0, 0, 0)
+        view.scaleType = ImageView.ScaleType.CENTER_CROP
+        view.setImageBitmap(bitmap)
+    }
+
+    private fun loadGridArtwork(state: TvBrowserState, targets: List<Pair<SmbEntry, ImageView>>) {
+        val appContext = requireContext().applicationContext
+        gridArtworkJob = viewLifecycleOwner.lifecycleScope.launch {
+            val entries = targets.map { it.first }
+            val mediaItems = withContext(Dispatchers.IO) {
+                runCatching {
+                    if (state.mode == BrowseMode.LOCAL) {
+                        localMediaItemFactory.create(entries)
+                    } else {
+                        mediaItemFactory.create(state.config, entries)
+                    }
+                }.getOrDefault(emptyList())
+            }.associateBy(MediaItem::mediaId)
+            val sourceBitmaps = mutableMapOf<String, Bitmap?>()
+            val sourceCacheKeys = mutableMapOf<String, MutableList<String>>()
+
+            // ponytail: 顺序读取避免 NAS 被宫格瞬时打满；实测大目录过慢时再改为有界并发。
+            for ((entry, imageView) in targets) {
+                val cacheKey = entry.streamUri.orEmpty().ifBlank { entry.fullPath }
+                if (imageView.tag != cacheKey) continue
+
+                val diskBitmap = withContext(Dispatchers.IO) {
+                    PlaybackArtworkCache.loadFromDisk(appContext, cacheKey)
+                }
+                if (diskBitmap != null) {
+                    PlaybackArtworkCache.put(cacheKey, diskBitmap)
+                    if (imageView.tag == cacheKey) showGridArtwork(imageView, diskBitmap)
+                    continue
+                }
+
+                val mediaItem = mediaItems[entry.fullPath] ?: MediaItem.Builder()
+                    .setMediaId(entry.fullPath)
+                    .setUri(entry.streamUri)
+                    .build()
+                val sourceKey = mediaItem.mediaMetadata.artworkUri?.toString()
+                    ?.takeIf(String::isNotBlank)
+                    ?: cacheKey
+                val bitmap = if (sourceBitmaps.containsKey(sourceKey)) {
+                    sourceBitmaps[sourceKey]
+                } else {
+                    withContext(Dispatchers.IO) {
+                        loadGridArtworkBitmap(appContext, state.config, mediaItem)
+                    }.also { sourceBitmaps[sourceKey] = it }
+                }
+                if (bitmap != null) {
+                    PlaybackArtworkCache.put(cacheKey, bitmap)
+                    sourceCacheKeys.getOrPut(sourceKey, ::mutableListOf) += cacheKey
+                    if (imageView.tag == cacheKey) showGridArtwork(imageView, bitmap)
+                }
+            }
+
+            sourceCacheKeys.forEach { (sourceKey, cacheKeys) ->
+                sourceBitmaps[sourceKey]?.let { bitmap ->
+                    PlaybackArtworkCache.saveAsync(appContext, cacheKeys, bitmap)
+                }
+            }
+        }
+    }
+
+    private suspend fun loadGridArtworkBitmap(
+        context: Context,
+        config: SmbConfig,
+        mediaItem: MediaItem,
+    ): Bitmap? {
+        val artworkUri = mediaItem.mediaMetadata.artworkUri?.toString().orEmpty()
+        if (artworkUri.isNotBlank()) {
+            loadGridArtworkUri(context, artworkUri, config)?.let { return it }
+        }
+        val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
+        val artwork = SmbAudioMetadataProbe.probeArtwork(config, mediaUri) ?: return null
+        return BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+    }
+
+    private fun loadGridArtworkUri(
+        context: Context,
+        artworkUri: String,
+        config: SmbConfig,
+    ): Bitmap? = runCatching {
+        if (artworkUri.startsWith("smb://", ignoreCase = true)) {
+            val file = SmbFile(artworkUri, SmbContextFactory.build(config))
+            if (!file.exists() || file.isDirectory) return@runCatching null
+            SmbFileInputStream(file).use(BitmapFactory::decodeStream)
+        } else {
+            context.contentResolver.openInputStream(Uri.parse(artworkUri))
+                ?.use(BitmapFactory::decodeStream)
+        }
+    }.getOrNull()
 
     private fun ensureBrowseFocus(state: TvBrowserState, entries: List<SmbEntry>) {
         filesContainer.post {
@@ -525,7 +708,8 @@ class TvBrowseFragment : Fragment() {
             0
         }
         val effectiveHeight = if (overlapHeight > 0) overlapHeight else rootScroll.height
-        return max(1, (effectiveHeight + rowHeightUnit - 1) / rowHeightUnit)
+        val visibleRows = max(1, (effectiveHeight + rowHeightUnit - 1) / rowHeightUnit)
+        return visibleRows * filesContainer.columnCount.coerceAtLeast(1)
     }
 
     private fun handleFastLocateKey(keyCode: Int, event: KeyEvent): Boolean {

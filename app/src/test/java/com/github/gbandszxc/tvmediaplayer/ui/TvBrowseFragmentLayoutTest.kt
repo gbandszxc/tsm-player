@@ -229,10 +229,13 @@ class TvBrowseFragmentLayoutTest {
 
         val refresh = root.findViewById<View>(R.id.btn_refresh)
         val sort = root.findViewById<View>(R.id.btn_sort)
+        val viewMode = root.findViewById<View>(R.id.btn_view_mode)
 
         assertNotNull("btn_refresh should exist", refresh)
         assertNotNull("btn_sort should exist", sort)
+        assertNotNull("btn_view_mode should exist", viewMode)
         assertTrue("refresh should be left of sort", leftOf(refresh, sort))
+        assertTrue("sort should be left of view mode", leftOf(sort, viewMode))
     }
 
     @Test
@@ -245,6 +248,18 @@ class TvBrowseFragmentLayoutTest {
         assertNotNull(row.findViewById<View>(R.id.tv_name))
         assertNotNull(row.findViewById<View>(R.id.tv_size))
         assertNotNull(row.findViewById<View>(R.id.tv_modified))
+    }
+
+    @Test
+    fun `grid file item exposes artwork and name without list metadata columns`() {
+        val context = RuntimeEnvironment.getApplication()
+        val item = LayoutInflater.from(context)
+            .inflate(R.layout.item_file_entry_grid, FrameLayout(context), false)
+
+        assertNotNull(item.findViewById<View>(R.id.iv_artwork))
+        assertNotNull(item.findViewById<View>(R.id.tv_name))
+        assertNull(item.findViewById<View?>(R.id.tv_size))
+        assertNull(item.findViewById<View?>(R.id.tv_modified))
     }
 
     @Test

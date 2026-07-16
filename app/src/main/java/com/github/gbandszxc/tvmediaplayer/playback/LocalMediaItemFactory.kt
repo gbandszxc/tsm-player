@@ -9,7 +9,11 @@ import java.io.File
 class LocalMediaItemFactory {
     fun create(queue: List<SmbEntry>): List<MediaItem> = queue.map { entry ->
         val file = File(requireNotNull(Uri.parse(entry.streamUri).path))
-        val artwork = listOf("folder.jpg", "cover.jpg", "front.jpg")
+        val artwork = listOf(
+            "folder.jpg", "folder.png",
+            "cover.jpg", "cover.png",
+            "front.jpg", "front.png",
+        )
             .map { File(file.parentFile, it) }
             .firstOrNull { it.isFile }
             ?.toURI()

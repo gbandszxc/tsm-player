@@ -22,6 +22,22 @@ class WavMetadataProbeCopierTest {
     )
 
     @Test
+    fun `strict artwork probe never copies an invalid full audio payload`() {
+        val input = ByteArray(1024 * 1024) { 1 }
+        val output = ByteArrayOutputStream()
+
+        assertTrue(
+            SmbAudioMetadataProbe.copyFastMetadataProbe(
+                ByteArrayInputStream(input),
+                output,
+                suffix = "mp3",
+                strictPartial = true,
+            )
+        )
+        assertEquals(10, output.size())
+    }
+
+    @Test
     fun `normalizes wave parser suffix while leaving other suffixes unchanged`() {
         mapOf(
             "wave" to "wav",

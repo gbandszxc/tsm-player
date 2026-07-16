@@ -91,7 +91,7 @@ internal object WavMetadataProbeCopier {
     const val MAX_METADATA_CHUNK_BYTES = 32 * 1024 * 1024
     const val MAX_RETAINED_BYTES = 36 * 1024 * 1024
 
-    fun copy(input: InputStream, output: OutputStream): Boolean {
+    fun copy(input: InputStream, output: OutputStream, strictPartial: Boolean = false): Boolean {
         val header = ByteArray(RIFF_HEADER_BYTES)
         val headerBytes = readFully(input, header, 0, header.size)
         if (headerBytes < header.size ||
@@ -100,8 +100,8 @@ internal object WavMetadataProbeCopier {
             readUInt32Le(header, 4) < WAVE_ID_BYTES
         ) {
             output.write(header, 0, headerBytes)
-            input.copyTo(output)
-            return false
+            if (!strictPartial) input.copyTo(output)
+            return strictPartial
         }
 
         var remaining = readUInt32Le(header, 4) - WAVE_ID_BYTES

@@ -66,3 +66,14 @@ class BrowseListRenderGate {
         lastFingerprint = null
     }
 }
+
+data class BrowserGridLayout(val columns: Int, val itemWidth: Int)
+
+object BrowserGridSizer {
+    fun calculate(availableWidth: Int, minItemWidth: Int, gap: Int): BrowserGridLayout {
+        if (availableWidth <= 0) return BrowserGridLayout(columns = 1, itemWidth = minItemWidth)
+        val columns = ((availableWidth + gap) / (minItemWidth + gap)).coerceAtLeast(1)
+        val itemWidth = (availableWidth - gap * (columns - 1)) / columns
+        return BrowserGridLayout(columns, itemWidth)
+    }
+}

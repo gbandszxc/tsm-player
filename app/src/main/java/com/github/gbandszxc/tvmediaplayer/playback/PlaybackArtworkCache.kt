@@ -28,6 +28,7 @@ object PlaybackArtworkCache {
 
     private val memory = object : LruCache<String, Bitmap>(24) {}
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val diskLock = Any()
 
     // key哈希 → 内容 MD5，多线程安全
     private val keyToMd5 = ConcurrentHashMap<String, String>()
@@ -50,6 +51,12 @@ object PlaybackArtworkCache {
      * 相同内容只写一份文件，通过索引共享（省空间、省 IO）。
      */
     fun saveAsync(context: Context, key: String, bitmap: Bitmap) {
+        saveAsync(context, listOf(key), bitmap)
+    }
+
+    /** 同一封面对应多首歌时只压缩和写入一次，再为所有歌曲建立索引。 */
+    fun saveAsync(context: Context, keys: Collection<String>, bitmap: Bitmap) {
+        if (keys.isEmpty()) return
         ioScope.launch {
             runCatching {
                 val bytes = ByteArrayOutputStream().use { out ->
@@ -57,12 +64,13 @@ object PlaybackArtworkCache {
                     out.toByteArray()
                 }
                 val md5 = md5Hex(bytes)
-                val content = contentFile(context, md5)
-                if (!content.exists()) {
-                    content.writeBytes(bytes)
+                synchronized(diskLock) {
+                    ensureIndexLoaded(context)
+                    val content = contentFile(context, md5)
+                    if (!content.exists()) content.writeBytes(bytes)
+                    keys.forEach { key -> keyToMd5[keyHash(key)] = md5 }
+                    saveIndex(context)
                 }
-                keyToMd5[keyHash(key)] = md5
-                saveIndex(context)
             }
         }
     }
@@ -71,20 +79,24 @@ object PlaybackArtworkCache {
      * 从磁盘读取缓存（同步，调用方负责在 IO 线程调用）。
      * 命中时不会自动放入内存，调用方应自行调用 put()。
      */
-    fun loadFromDisk(context: Context, key: String): Bitmap? = runCatching {
-        ensureIndexLoaded(context)
-        val md5 = keyToMd5[keyHash(key)] ?: return null
-        val file = contentFile(context, md5)
-        if (!file.exists()) return null
-        BitmapFactory.decodeFile(file.absolutePath)
-    }.getOrNull()
+    fun loadFromDisk(context: Context, key: String): Bitmap? = synchronized(diskLock) {
+        runCatching {
+            ensureIndexLoaded(context)
+            val md5 = keyToMd5[keyHash(key)] ?: return@runCatching null
+            val file = contentFile(context, md5)
+            if (!file.exists()) return@runCatching null
+            BitmapFactory.decodeFile(file.absolutePath)
+        }.getOrNull()
+    }
 
     /** 清空内存和磁盘缓存 */
     fun clearDisk(context: Context) {
         memory.evictAll()
-        keyToMd5.clear()
-        indexLoaded = false
-        artworkCacheDir(context).deleteRecursively()
+        synchronized(diskLock) {
+            keyToMd5.clear()
+            indexLoaded = false
+            artworkCacheDir(context).deleteRecursively()
+        }
     }
 
     /** 返回磁盘缓存占用字节数 */

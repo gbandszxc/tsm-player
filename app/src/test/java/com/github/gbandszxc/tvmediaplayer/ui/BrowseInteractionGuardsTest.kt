@@ -3,6 +3,7 @@ package com.github.gbandszxc.tvmediaplayer.ui
 import android.view.KeyEvent
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -75,5 +76,11 @@ class BrowseInteractionGuardsTest {
 
         assertTrue(gate.shouldRebuild(directoryPath = "Album A", entries = entries))
         assertTrue(gate.shouldRebuild(directoryPath = "Album B", entries = entries))
+    }
+
+    @Test
+    fun `grid sizing adds columns as scaled layout width grows`() {
+        assertEquals(BrowserGridLayout(columns = 4, itemWidth = 194), BrowserGridSizer.calculate(800, 160, 8))
+        assertEquals(BrowserGridLayout(columns = 7, itemWidth = 164), BrowserGridSizer.calculate(1200, 160, 8))
     }
 }
