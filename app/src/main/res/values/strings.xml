@@ -84,8 +84,8 @@
     <string name="browser_file_browser">文件浏览</string>
     <string name="browser_back_parent">⬅ 返回上一级</string>
     <string name="browser_settings">设置</string>
-    <string name="browser_mode_nas">NAS 模式</string>
-    <string name="browser_mode_local">本地模式</string>
+    <string name="browser_mode_nas">网络</string>
+    <string name="browser_mode_local">本地</string>
     <string name="browser_local_root">本地存储</string>
     <string name="browser_local_authorize">前往授权</string>
     <string name="browser_local_permission_required">需要“所有文件访问权限”才能浏览本地存储</string>
@@ -132,6 +132,8 @@
     <string name="browser_sort_modified_asc">修改时间 ↑</string>
     <string name="browser_sort_modified_desc">修改时间 ↓</string>
     <string name="browser_refresh_current_dir">刷新当前目录</string>
+    <string name="browser_switch_to_grid">宫格视图</string>
+    <string name="browser_switch_to_list">列表视图</string>
 
     <string name="favorites_empty_current_track">暂无可收藏歌曲</string>
     <string name="favorites_added_default">已加入收藏夹</string>

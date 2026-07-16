@@ -84,8 +84,8 @@
     <string name="browser_file_browser">File Browser</string>
     <string name="browser_back_parent">⬅ Up One Level</string>
     <string name="browser_settings">Settings</string>
-    <string name="browser_mode_nas">NAS Mode</string>
-    <string name="browser_mode_local">Local Mode</string>
+    <string name="browser_mode_nas">Network</string>
+    <string name="browser_mode_local">Local</string>
     <string name="browser_local_root">Local storage</string>
     <string name="browser_local_authorize">Grant access</string>
     <string name="browser_local_permission_required">All files access is required to browse local storage</string>
@@ -132,6 +132,8 @@
     <string name="browser_sort_modified_asc">Modified ↑</string>
     <string name="browser_sort_modified_desc">Modified ↓</string>
     <string name="browser_refresh_current_dir">Refresh Folder</string>
+    <string name="browser_switch_to_grid">Grid View</string>
+    <string name="browser_switch_to_list">List View</string>
 
     <string name="favorites_empty_current_track">No song available to favorite</string>
     <string name="favorites_added_default">Added to Favorites</string>

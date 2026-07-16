@@ -211,6 +211,7 @@ class TvBrowseFragment : Fragment() {
             }
         }
         bindTouchFeedback()
+        btnBrowseMode.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnHistory.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
@@ -264,6 +265,14 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun updateBrowserPlaybackButtonPresentation() {
+        applyBrowserButtonSpec(
+            btnBrowseMode,
+            PlaybackButtonPresentation.browserBrowseMode(
+                requireContext(),
+                local = viewModel.state.value.mode == BrowseMode.LOCAL,
+                focused = btnBrowseMode.hasFocus(),
+            ),
+        )
         applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(requireContext(), btnFavorites.hasFocus()))
         applyBrowserButtonSpec(
             button = btnHistory,
@@ -325,9 +334,7 @@ class TvBrowseFragment : Fragment() {
     private fun render(state: TvBrowserState) {
         val showConnectionSection = state.mode == BrowseMode.NAS && state.currentPath.isBlank()
         panelConnection.visibility = if (showConnectionSection) View.VISIBLE else View.GONE
-        btnBrowseMode.text = getString(
-            if (state.mode == BrowseMode.NAS) R.string.browser_mode_nas else R.string.browser_mode_local
-        )
+        updateBrowserPlaybackButtonPresentation()
 
         btnBackTop.isEnabled = state.currentPath.isNotBlank()
         btnBackTop.alpha = if (btnBackTop.isEnabled) 1f else 0.55f

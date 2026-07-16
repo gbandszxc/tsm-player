@@ -220,6 +220,18 @@
                             android:ellipsize="end"
                             android:text="@string/browser_sort_name_asc"
                             android:textAllCaps="false" />
+
+                        <Button
+                            android:id="@+id/btn_view_mode"
+                            style="@style/TsmButtonDark"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/ui_space_lg"
+                            android:gravity="center"
+                            android:maxLines="1"
+                            android:minWidth="130dp"
+                            android:text="@string/browser_switch_to_grid"
+                            android:textAllCaps="false" />
                     </LinearLayout>
                 </HorizontalScrollView>
 
@@ -233,12 +245,13 @@
                     android:fontFamily="@font/misans_regular"
                     android:visibility="gone" />
 
-                <LinearLayout
+                <GridLayout
                     android:id="@+id/container_files"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_lg"
-                    android:orientation="vertical" />
+                    android:columnCount="1"
+                    android:orientation="horizontal" />
             </LinearLayout>
 
         </LinearLayout>
@@ -267,10 +280,10 @@
         android:layout_gravity="top|end"
         android:layout_marginEnd="@dimen/ui_browser_mode_button_end_margin"
         android:layout_marginTop="@dimen/ui_space_xl"
-        android:minWidth="100dp"
+        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
         android:gravity="center"
         android:maxLines="1"
-        android:text="@string/browser_mode_nas"
+        android:text=""
         android:textAllCaps="false" />
 
     <Button

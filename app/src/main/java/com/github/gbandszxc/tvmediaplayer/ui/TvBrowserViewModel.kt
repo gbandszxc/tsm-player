@@ -12,6 +12,7 @@ import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowseMode
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserModeStore
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserViewMode
 import com.github.gbandszxc.tvmediaplayer.data.repo.JcifsSmbRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.LocalFileRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
@@ -58,6 +59,7 @@ data class TvBrowserState(
     val fastLocate: BrowseFastLocateState? = null,
     val isFastLocateMode: Boolean = false,
     val sortOption: BrowserSortOption = BrowserSortOption.NAME_ASC,
+    val viewMode: BrowserViewMode = BrowserViewMode.LIST,
     val localPermissionRequired: Boolean = false,
 )
 
@@ -81,11 +83,13 @@ class TvBrowserViewModel(
         viewModelScope.launch {
             val loaded = configStore.loadState()
             val mode = modeStore?.loadMode() ?: BrowseMode.NAS
+            val viewMode = modeStore?.loadViewMode() ?: BrowserViewMode.LIST
             val localPath = modeStore?.loadLocalPath().orEmpty()
             nasBrowsePath = loaded.activeBrowsePath
             _state.update {
                 it.copy(
                     mode = mode,
+                    viewMode = viewMode,
                     config = loaded.activeConfig,
                     currentPath = if (mode == BrowseMode.LOCAL) localPath else loaded.activeBrowsePath,
                     savedConnections = loaded.savedConnections,
@@ -121,6 +125,16 @@ class TvBrowserViewModel(
         lastPersistedAnchor = null
         modeStore?.saveMode(next)
         loadCurrentPath()
+    }
+
+    fun toggleViewMode() {
+        val next = if (_state.value.viewMode == BrowserViewMode.LIST) {
+            BrowserViewMode.GRID
+        } else {
+            BrowserViewMode.LIST
+        }
+        _state.update { it.copy(viewMode = next) }
+        modeStore?.saveViewMode(next)
     }
 
     fun onLocalStoragePermissionChanged() {

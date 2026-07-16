@@ -98,6 +98,15 @@ object PlaybackButtonPresentation {
         )
     }
 
+    fun browserBrowseMode(context: Context, local: Boolean, focused: Boolean): PlaybackButtonSpec {
+        return expandable(
+            label = context.getString(if (local) R.string.browser_mode_nas else R.string.browser_mode_local),
+            iconResId = R.drawable.ic_switch_source,
+            focused = focused,
+            browserExpandedWidthResId = R.dimen.ui_playback_favorite_button_expanded_min_width,
+        )
+    }
+
     private fun iconOnly(
         label: String,
         iconResId: Int,

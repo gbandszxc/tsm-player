@@ -104,4 +104,17 @@ class PlaybackButtonPresentationTest {
         assertEquals(R.drawable.ic_play_order, order.iconResId)
         assertEquals(R.drawable.ic_shuffle, shuffle.iconResId)
     }
+
+    @Test
+    fun browseModeUsesSwitchIconAndShowsCurrentSourceWhenFocused() {
+        val networkCollapsed = PlaybackButtonPresentation.browserBrowseMode(context, local = false, focused = false)
+        val localFocused = PlaybackButtonPresentation.browserBrowseMode(context, local = true, focused = true)
+
+        assertEquals("", networkCollapsed.text)
+        assertEquals(context.getString(R.string.browser_mode_local), networkCollapsed.contentDescription)
+        assertEquals(context.getString(R.string.browser_mode_nas), localFocused.text)
+        assertEquals(R.drawable.ic_switch_source, networkCollapsed.iconResId)
+        assertEquals(R.dimen.ui_playback_favorite_button_expanded_min_width, localFocused.browserExpandedWidthResId)
+        assertTrue(localFocused.expandsOnFocus)
+    }
 }
