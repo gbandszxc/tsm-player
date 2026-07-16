@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Typeface
 import android.os.Bundle
@@ -1407,7 +1406,7 @@ class PlaybackActivity : BaseActivity() {
             if (artworkUri.startsWith("smb://", ignoreCase = true)) {
                 loadSmbBitmap(artworkUri, config)?.let { return@runCatching it }
             } else {
-                contentResolver.openInputStream(Uri.parse(artworkUri))?.use(BitmapFactory::decodeStream)
+                contentResolver.openInputStream(Uri.parse(artworkUri))?.use(PlaybackArtworkCache::decodeSampled)
                     ?.let { return@runCatching it }
             }
         }
@@ -1423,7 +1422,7 @@ class PlaybackActivity : BaseActivity() {
                 .asSequence()
                 .mapNotNull { name -> file?.parentFile?.let { File(it, name) } }
                 .firstOrNull(File::isFile)
-                ?.let { BitmapFactory.decodeFile(it.path) }
+                ?.let(PlaybackArtworkCache::decodeSampled)
                 ?.let { return@runCatching it }
         }
         null
@@ -1442,7 +1441,7 @@ class PlaybackActivity : BaseActivity() {
             val candidate = SmbFile(parentDir, name)
             if (!candidate.exists() || candidate.isDirectory) continue
             SmbFileInputStream(candidate).use { stream ->
-                BitmapFactory.decodeStream(stream)?.let { return@runCatching it }
+                PlaybackArtworkCache.decodeSampled(stream)?.let { return@runCatching it }
             }
         }
         null
@@ -1451,12 +1450,12 @@ class PlaybackActivity : BaseActivity() {
     private fun loadSmbBitmap(smbUrl: String, config: SmbConfig) = runCatching {
         val smbFile = SmbFile(smbUrl, SmbContextFactory.build(config))
         if (!smbFile.exists() || smbFile.isDirectory) return@runCatching null
-        SmbFileInputStream(smbFile).use { stream -> BitmapFactory.decodeStream(stream) }
+        SmbFileInputStream(smbFile).use(PlaybackArtworkCache::decodeSampled)
     }.getOrNull()
 
     private suspend fun loadEmbeddedArtwork(mediaSmbUrl: String, config: SmbConfig) = runCatching {
         val artwork = SmbAudioMetadataProbe.probe(config, mediaSmbUrl)?.artworkData ?: return@runCatching null
-        BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+        PlaybackArtworkCache.decodeSampled(artwork)
     }.getOrNull()
 
     private fun savePlaybackSnapshot() {

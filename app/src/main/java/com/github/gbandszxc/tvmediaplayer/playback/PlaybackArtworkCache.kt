@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.InputStream
 import java.security.MessageDigest
 import java.util.concurrent.ConcurrentHashMap
 
@@ -43,8 +44,22 @@ object PlaybackArtworkCache {
 
     /** 仅写内存缓存 */
     fun put(key: String, bitmap: Bitmap) {
-        memory.put(key, bitmap)
+        memory.put(key, fitToCache(bitmap))
     }
+
+    /** 从封面原始字节采样解码，避免高分辨率图片触发 Canvas 超大 Bitmap 崩溃。 */
+    fun decodeSampled(bytes: ByteArray): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, MAX_BITMAP_EDGE)
+        }
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)?.let(::fitToCache)
+    }
+
+    fun decodeSampled(stream: InputStream): Bitmap? = decodeSampled(stream.readBytes())
+
+    fun decodeSampled(file: File): Bitmap? = decodeSampledFile(file)
 
     /**
      * 异步将 bitmap 以 JPEG 写入磁盘。
@@ -59,8 +74,9 @@ object PlaybackArtworkCache {
         if (keys.isEmpty()) return
         ioScope.launch {
             runCatching {
+                val cachedBitmap = fitToCache(bitmap)
                 val bytes = ByteArrayOutputStream().use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                    cachedBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
                     out.toByteArray()
                 }
                 val md5 = md5Hex(bytes)
@@ -85,7 +101,7 @@ object PlaybackArtworkCache {
             val md5 = keyToMd5[keyHash(key)] ?: return@runCatching null
             val file = contentFile(context, md5)
             if (!file.exists()) return@runCatching null
-            BitmapFactory.decodeFile(file.absolutePath)
+            decodeSampledFile(file)
         }.getOrNull()
     }
 
@@ -128,6 +144,34 @@ object PlaybackArtworkCache {
         return digest.joinToString("") { "%02x".format(it) }
     }
 
+    private fun decodeSampledFile(file: File): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.absolutePath, bounds)
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = calculateInSampleSize(bounds.outWidth, bounds.outHeight, MAX_BITMAP_EDGE)
+        }
+        return BitmapFactory.decodeFile(file.absolutePath, options)?.let(::fitToCache)
+    }
+
+    private fun fitToCache(bitmap: Bitmap): Bitmap {
+        val largestEdge = maxOf(bitmap.width, bitmap.height)
+        if (largestEdge <= MAX_BITMAP_EDGE) return bitmap
+        val scale = MAX_BITMAP_EDGE.toFloat() / largestEdge
+        return Bitmap.createScaledBitmap(
+            bitmap,
+            (bitmap.width * scale).toInt().coerceAtLeast(1),
+            (bitmap.height * scale).toInt().coerceAtLeast(1),
+            true,
+        )
+    }
+
+    internal fun calculateInSampleSize(width: Int, height: Int, maxEdge: Int): Int {
+        if (width <= 0 || height <= 0 || maxEdge <= 0) return 1
+        var sampleSize = 1
+        while (maxOf(width, height) / (sampleSize * 2) >= maxEdge) sampleSize *= 2
+        return sampleSize
+    }
+
     /** 懒加载索引（首次访问磁盘时读入内存） */
     private fun ensureIndexLoaded(context: Context) {
         if (indexLoaded) return
@@ -148,4 +192,6 @@ object PlaybackArtworkCache {
             indexFile(context).writeText(json.toString())
         }
     }
+
+    private const val MAX_BITMAP_EDGE = 1024
 }

@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
@@ -605,7 +604,7 @@ class TvBrowseFragment : Fragment() {
         }
         val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
         val artwork = SmbAudioMetadataProbe.probeArtwork(config, mediaUri) ?: return null
-        return BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+        return PlaybackArtworkCache.decodeSampled(artwork)
     }
 
     private fun loadGridArtworkUri(
@@ -616,10 +615,10 @@ class TvBrowseFragment : Fragment() {
         if (artworkUri.startsWith("smb://", ignoreCase = true)) {
             val file = SmbFile(artworkUri, SmbContextFactory.build(config))
             if (!file.exists() || file.isDirectory) return@runCatching null
-            SmbFileInputStream(file).use(BitmapFactory::decodeStream)
+            SmbFileInputStream(file).use { PlaybackArtworkCache.decodeSampled(it.readBytes()) }
         } else {
             context.contentResolver.openInputStream(Uri.parse(artworkUri))
-                ?.use(BitmapFactory::decodeStream)
+                ?.use { PlaybackArtworkCache.decodeSampled(it.readBytes()) }
         }
     }.getOrNull()
 

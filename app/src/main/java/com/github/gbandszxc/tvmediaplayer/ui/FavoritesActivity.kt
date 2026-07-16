@@ -3,7 +3,6 @@ package com.github.gbandszxc.tvmediaplayer.ui
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
@@ -671,7 +670,7 @@ class FavoritesActivity : BaseActivity() {
         }
         return runCatching {
             contentResolver.openInputStream(Uri.parse(artworkUri))?.use { stream ->
-                BitmapFactory.decodeStream(stream)
+                PlaybackArtworkCache.decodeSampled(stream)
             }
         }.getOrNull()
     }
@@ -689,7 +688,7 @@ class FavoritesActivity : BaseActivity() {
             val candidate = SmbFile(parentDir, name)
             if (!candidate.exists() || candidate.isDirectory) continue
             SmbFileInputStream(candidate).use { stream ->
-                BitmapFactory.decodeStream(stream)?.let { return@runCatching it }
+                PlaybackArtworkCache.decodeSampled(stream)?.let { return@runCatching it }
             }
         }
         null
@@ -698,12 +697,12 @@ class FavoritesActivity : BaseActivity() {
     private fun loadSmbBitmap(smbUrl: String, config: SmbConfig): Bitmap? = runCatching {
         val smbFile = SmbFile(smbUrl, SmbContextFactory.build(config))
         if (!smbFile.exists() || smbFile.isDirectory) return@runCatching null
-        SmbFileInputStream(smbFile).use { stream -> BitmapFactory.decodeStream(stream) }
+        SmbFileInputStream(smbFile).use(PlaybackArtworkCache::decodeSampled)
     }.getOrNull()
 
     private suspend fun loadEmbeddedArtwork(mediaSmbUrl: String, config: SmbConfig): Bitmap? = runCatching {
         val artwork = SmbAudioMetadataProbe.probe(config, mediaSmbUrl)?.artworkData ?: return@runCatching null
-        BitmapFactory.decodeByteArray(artwork, 0, artwork.size)
+        PlaybackArtworkCache.decodeSampled(artwork)
     }.getOrNull()
 
     private fun favoriteArtworkCacheKey(track: FavoriteTrack): String {
