@@ -164,7 +164,7 @@ object AppUpdateManager {
                         }
                     },
                 ),
-                cancelable = false,
+                cancelable = true,
             )
         )
     }
@@ -190,7 +190,7 @@ object AppUpdateManager {
                         sevenDaysLabel = activity.getString(R.string.update_snooze_7_days),
                         nextVersionLabel = activity.getString(R.string.update_snooze_next_version),
                     ),
-                    cancelable = false,
+                    cancelable = true,
                 )
             )
         }
