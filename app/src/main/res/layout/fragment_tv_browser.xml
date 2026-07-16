@@ -260,6 +260,20 @@
         android:textAllCaps="false" />
 
     <Button
+        android:id="@+id/btn_browse_mode"
+        style="@style/TsmButtonDark"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginEnd="@dimen/ui_browser_mode_button_end_margin"
+        android:layout_marginTop="@dimen/ui_space_xl"
+        android:minWidth="100dp"
+        android:gravity="center"
+        android:maxLines="1"
+        android:text="@string/browser_mode_nas"
+        android:textAllCaps="false" />
+
+    <Button
         android:id="@+id/btn_settings"
         style="@style/TsmButtonDark"
         android:layout_width="wrap_content"

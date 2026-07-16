@@ -4,7 +4,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.Gravity
 import android.view.KeyEvent
@@ -30,9 +33,11 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowseMode
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
+import com.github.gbandszxc.tvmediaplayer.playback.LocalMediaItemFactory
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackResumeBuilder
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackQueueBuilder
@@ -65,6 +70,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     private val mediaItemFactory by lazy { SmbMediaItemFactory() }
+    private val localMediaItemFactory by lazy { LocalMediaItemFactory() }
     private val modalCoordinator by lazy { TsmModalCoordinator(requireActivity()) }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
@@ -74,6 +80,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var panelConnection: View
     private lateinit var rootScroll: ScrollView
     private lateinit var btnBackTop: Button
+    private lateinit var btnBrowseMode: Button
     private lateinit var btnSettings: Button
     private lateinit var tvConnection: TextView
     private lateinit var tvSavedCount: TextView
@@ -126,6 +133,11 @@ class TvBrowseFragment : Fragment() {
         ensureController()
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewModel.onLocalStoragePermissionChanged()
+    }
+
     override fun onStop() {
         releaseController()
         super.onStop()
@@ -145,6 +157,7 @@ class TvBrowseFragment : Fragment() {
         panelConnection = root.findViewById(R.id.panel_connection)
         rootScroll = root.findViewById(R.id.root_scroll)
         btnBackTop = root.findViewById(R.id.btn_back_top)
+        btnBrowseMode = root.findViewById(R.id.btn_browse_mode)
         btnSettings = root.findViewById(R.id.btn_settings)
         tvConnection = root.findViewById(R.id.tv_connection)
         tvSavedCount = root.findViewById(R.id.tv_saved_count)
@@ -169,11 +182,18 @@ class TvBrowseFragment : Fragment() {
 
     private fun bindActions(root: View) {
         btnBackTop.setOnClickListener { navigateUpDirectory() }
+        btnBrowseMode.setOnClickListener {
+            val isEnteringLocal = viewModel.state.value.mode == BrowseMode.NAS
+            viewModel.toggleMode()
+            if (isEnteringLocal) requestLocalStorageAccess()
+        }
         btnSettings.setOnClickListener {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
-        btnRefresh.setOnClickListener { viewModel.refreshCurrentPath() }
+        btnRefresh.setOnClickListener {
+            if (viewModel.state.value.localPermissionRequired) requestLocalStorageAccess() else viewModel.refreshCurrentPath()
+        }
         btnSort.setOnClickListener { showSortDropdown() }
         btnFavorites.setOnClickListener {
             startActivity(Intent(requireContext(), FavoritesActivity::class.java))
@@ -209,6 +229,7 @@ class TvBrowseFragment : Fragment() {
     private fun bindTouchFeedback() {
         // 深色按钮（返回/设置/刷新/排序）用提亮 overlay；彩色按钮（管理/收藏/历史/顺序/随机/当前播放）用加深 overlay。
         UiMotion.applyPressFeedback(btnBackTop, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnBrowseMode, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnSettings, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnRefresh, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnSort, R.color.ui_press_overlay_light)
@@ -218,6 +239,28 @@ class TvBrowseFragment : Fragment() {
         UiMotion.applyPressFeedback(btnPlayAll, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnPlayShuffle, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnNowPlaying, R.color.ui_press_overlay_dark)
+    }
+
+    private fun requestLocalStorageAccess() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val packageUri = Uri.parse("package:${requireContext().packageName}")
+            runCatching {
+                startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, packageUri))
+            }.getOrElse {
+                startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), REQUEST_LOCAL_STORAGE)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_LOCAL_STORAGE) viewModel.onLocalStoragePermissionChanged()
     }
 
     private fun updateBrowserPlaybackButtonPresentation() {
@@ -280,8 +323,11 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun render(state: TvBrowserState) {
-        val showConnectionSection = state.currentPath.isBlank()
+        val showConnectionSection = state.mode == BrowseMode.NAS && state.currentPath.isBlank()
         panelConnection.visibility = if (showConnectionSection) View.VISIBLE else View.GONE
+        btnBrowseMode.text = getString(
+            if (state.mode == BrowseMode.NAS) R.string.browser_mode_nas else R.string.browser_mode_local
+        )
 
         btnBackTop.isEnabled = state.currentPath.isNotBlank()
         btnBackTop.alpha = if (btnBackTop.isEnabled) 1f else 0.55f
@@ -289,8 +335,15 @@ class TvBrowseFragment : Fragment() {
         tvConnection.text = getString(R.string.browser_connection_current, configText(state.config))
         tvSavedCount.text = getString(R.string.browser_saved_count, state.savedConnections.size)
 
-        val pathLabel = if (state.currentPath.isBlank()) "/" else "/${state.currentPath}"
+        val pathLabel = when {
+            state.mode == BrowseMode.LOCAL && state.currentPath.isBlank() -> getString(R.string.browser_local_root)
+            state.currentPath.isBlank() -> "/"
+            else -> "/${state.currentPath}"
+        }
         tvPath.text = getString(R.string.browser_current_path, pathLabel)
+        btnRefresh.text = getString(
+            if (state.localPermissionRequired) R.string.browser_local_authorize else R.string.browser_refresh_current_dir
+        )
 
         when {
             state.error != null -> {
@@ -445,7 +498,7 @@ class TvBrowseFragment : Fragment() {
         if (event.keyCode != KeyEvent.KEYCODE_MENU || event.action != KeyEvent.ACTION_UP) {
             return@OnUnhandledKeyEventListenerCompat false
         }
-        showConnectionManagerDialog()
+        if (viewModel.state.value.mode == BrowseMode.NAS) showConnectionManagerDialog()
         true
     }
 
@@ -558,7 +611,8 @@ class TvBrowseFragment : Fragment() {
             return
         }
 
-        val config = viewModel.state.value.config
+        val state = viewModel.state.value
+        val config = if (state.mode == BrowseMode.LOCAL) SmbConfig.Empty else state.config
         PlaybackConfigStore.update(config)
         lifecycleScope.launch {
             runCatching {
@@ -585,7 +639,7 @@ class TvBrowseFragment : Fragment() {
                 }
 
                 val mediaItems = withContext(Dispatchers.IO) {
-                    mediaItemFactory.create(config, queue)
+                    if (state.mode == BrowseMode.LOCAL) localMediaItemFactory.create(queue) else mediaItemFactory.create(config, queue)
                 }
                 controller.repeatMode = Player.REPEAT_MODE_OFF
                 controller.setShuffleModeEnabled(shuffle)
@@ -894,6 +948,7 @@ class TvBrowseFragment : Fragment() {
     }
 
     companion object {
+        private const val REQUEST_LOCAL_STORAGE = 4003
         /**
          * 构建连接管理弹窗的操作标签列表，用于测试验证顺序和条件。
          */

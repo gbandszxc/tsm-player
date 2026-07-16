@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.app.Dialog
 import android.content.ComponentName
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -27,6 +28,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import java.io.File
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
@@ -1402,13 +1404,27 @@ class PlaybackActivity : BaseActivity() {
     private suspend fun loadArtworkBitmap(config: SmbConfig, mediaItem: MediaItem) = runCatching {
         val artworkUri = mediaItem.mediaMetadata.artworkUri?.toString().orEmpty()
         if (artworkUri.isNotBlank()) {
-            loadSmbBitmap(artworkUri, config)?.let { return@runCatching it }
+            if (artworkUri.startsWith("smb://", ignoreCase = true)) {
+                loadSmbBitmap(artworkUri, config)?.let { return@runCatching it }
+            } else {
+                contentResolver.openInputStream(Uri.parse(artworkUri))?.use(BitmapFactory::decodeStream)
+                    ?.let { return@runCatching it }
+            }
         }
 
         val mediaUri = mediaItem.localConfiguration?.uri?.toString().orEmpty()
         if (mediaUri.startsWith("smb://", ignoreCase = true)) {
             loadEmbeddedArtwork(mediaUri, config)?.let { return@runCatching it }
             loadSiblingArtwork(mediaUri, config)?.let { return@runCatching it }
+        } else if (Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)) {
+            loadEmbeddedArtwork(mediaUri, config)?.let { return@runCatching it }
+            val file = Uri.parse(mediaUri).path?.let(::File)
+            listOf("folder.jpg", "folder.png", "cover.jpg", "cover.png", "front.jpg", "front.png")
+                .asSequence()
+                .mapNotNull { name -> file?.parentFile?.let { File(it, name) } }
+                .firstOrNull(File::isFile)
+                ?.let { BitmapFactory.decodeFile(it.path) }
+                ?.let { return@runCatching it }
         }
         null
     }.getOrNull()

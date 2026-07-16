@@ -1,12 +1,19 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowseMode
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserModeStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.JcifsSmbRepository
+import com.github.gbandszxc.tvmediaplayer.data.repo.LocalFileRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbFailureMapper
 import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
@@ -37,6 +44,7 @@ enum class BrowserSortOption(
 }
 
 data class TvBrowserState(
+    val mode: BrowseMode = BrowseMode.NAS,
     val config: SmbConfig = SmbConfig.Empty,
     val savedConnections: List<SavedSmbConnection> = emptyList(),
     val activeConnectionId: String? = null,
@@ -49,12 +57,15 @@ data class TvBrowserState(
     val inlineMessage: String? = null,
     val fastLocate: BrowseFastLocateState? = null,
     val isFastLocateMode: Boolean = false,
-    val sortOption: BrowserSortOption = BrowserSortOption.NAME_ASC
+    val sortOption: BrowserSortOption = BrowserSortOption.NAME_ASC,
+    val localPermissionRequired: Boolean = false,
 )
 
 class TvBrowserViewModel(
     private val repository: SmbRepository,
     private val configStore: BrowserConfigStore,
+    private val localRepository: LocalFileRepository? = null,
+    private val modeStore: BrowserModeStore? = null,
     private val appContext: Context? = null,
 ) : ViewModel() {
 
@@ -64,22 +75,56 @@ class TvBrowserViewModel(
     private var lockedConnectionKey: String? = null
     private var loadGeneration: Long = 0L
     private var pendingLocateMediaId: String? = null
+    private var nasBrowsePath: String = ""
 
     init {
         viewModelScope.launch {
             val loaded = configStore.loadState()
+            val mode = modeStore?.loadMode() ?: BrowseMode.NAS
+            val localPath = modeStore?.loadLocalPath().orEmpty()
+            nasBrowsePath = loaded.activeBrowsePath
             _state.update {
                 it.copy(
+                    mode = mode,
                     config = loaded.activeConfig,
-                    currentPath = loaded.activeBrowsePath,
+                    currentPath = if (mode == BrowseMode.LOCAL) localPath else loaded.activeBrowsePath,
                     savedConnections = loaded.savedConnections,
                     activeConnectionId = loaded.activeConnectionId
                 )
             }
-            if (loaded.activeConfig.host.isNotBlank()) {
+            if (mode == BrowseMode.LOCAL || loaded.activeConfig.host.isNotBlank()) {
                 loadCurrentPath()
             }
         }
+    }
+
+    fun toggleMode() {
+        val next = if (_state.value.mode == BrowseMode.NAS) BrowseMode.LOCAL else BrowseMode.NAS
+        val nextPath = if (next == BrowseMode.LOCAL) {
+            modeStore?.loadLocalPath().orEmpty()
+        } else {
+            nasBrowsePath
+        }
+        _state.update {
+            it.copy(
+                mode = next,
+                currentPath = nextPath,
+                entries = emptyList(),
+                error = null,
+                localPermissionRequired = false,
+                restoredFocusIndex = null,
+                inlineMessage = null,
+                fastLocate = null,
+                isFastLocateMode = false,
+            )
+        }
+        lastPersistedAnchor = null
+        modeStore?.saveMode(next)
+        loadCurrentPath()
+    }
+
+    fun onLocalStoragePermissionChanged() {
+        if (_state.value.mode == BrowseMode.LOCAL) loadCurrentPath()
     }
 
     fun saveConfig(config: SmbConfig, name: String, saveAsNew: Boolean = false) {
@@ -87,6 +132,7 @@ class TvBrowserViewModel(
         val actualName = name.ifBlank { defaultConnectionName(config) }
         val saved = SavedSmbConnection(id = id, name = actualName, config = config)
         val rootPath = config.normalizedPath()
+        nasBrowsePath = rootPath
 
         _state.update {
             val mutable = it.savedConnections.toMutableList()
@@ -111,6 +157,7 @@ class TvBrowserViewModel(
     fun switchConnection(connectionId: String) {
         val target = _state.value.savedConnections.firstOrNull { it.id == connectionId } ?: return
         val rootPath = target.config.normalizedPath()
+        nasBrowsePath = rootPath
         _state.update {
             it.copy(
                 config = target.config,
@@ -146,6 +193,7 @@ class TvBrowserViewModel(
                 )
             }
             lastPersistedAnchor = null
+            nasBrowsePath = updated.activeBrowsePath
             if (updated.activeConfig.host.isNotBlank()) {
                 loadCurrentPath()
             }
@@ -162,6 +210,10 @@ class TvBrowserViewModel(
 
     private fun loadCurrentPath(manualRetry: Boolean) {
         val snapshot = _state.value
+        if (snapshot.mode == BrowseMode.LOCAL) {
+            loadLocalPath(snapshot)
+            return
+        }
         if (snapshot.config.host.isBlank()) {
             _state.update { it.copy(error = string(R.string.smb_host_required)) }
             return
@@ -246,6 +298,48 @@ class TvBrowserViewModel(
         }
     }
 
+    private fun loadLocalPath(snapshot: TvBrowserState) {
+        if (!hasLocalStorageAccess()) {
+            _state.update {
+                it.copy(
+                    loading = false,
+                    entries = emptyList(),
+                    error = string(R.string.browser_local_permission_required),
+                    localPermissionRequired = true,
+                )
+            }
+            return
+        }
+        val repository = localRepository ?: return
+        val generation = ++loadGeneration
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, error = null, toast = null, localPermissionRequired = false) }
+            runCatching { repository.list(snapshot.currentPath) }
+                .onSuccess { list ->
+                    if (generation != loadGeneration) return@onSuccess
+                    val sorted = sortEntries(list, _state.value.sortOption)
+                    val anchor = configStore.loadBrowseAnchor(LOCAL_ANCHOR_NAMESPACE, snapshot.currentPath)
+                    val restore = resolveAnchorRestore(anchor, sorted)
+                    _state.update {
+                        it.copy(
+                            entries = sorted,
+                            loading = false,
+                            restoredFocusIndex = restore.index,
+                            inlineMessage = restore.message,
+                            fastLocate = null,
+                            isFastLocateMode = false,
+                        )
+                    }
+                }
+                .onFailure { ex ->
+                    if (generation != loadGeneration) return@onFailure
+                    _state.update {
+                        it.copy(loading = false, error = ex.message ?: string(R.string.browser_local_directory_unavailable))
+                    }
+                }
+        }
+    }
+
     private suspend fun listCurrentPathWithRetry(config: SmbConfig, path: String): List<SmbEntry> {
         var lastError: Throwable? = null
         repeat(SMB_CONNECT_ATTEMPTS) { attempt ->
@@ -299,6 +393,10 @@ class TvBrowserViewModel(
         pendingLocateMediaId = target.mediaId?.let(PlaybackLocationResolver::normalizePath)
 
         val stateSnapshot = _state.value
+        if (stateSnapshot.mode == BrowseMode.LOCAL && target.sourceConfig.host.isBlank()) {
+            updateCurrentPath(targetPath)
+            return
+        }
         if (isCurrentConnectionTarget(stateSnapshot, target)) {
             applyLocatedPath(stateSnapshot.config, stateSnapshot.activeConnectionId, targetPath) {
                 configStore.saveActiveBrowsePath(targetPath)
@@ -503,8 +601,13 @@ class TvBrowserViewModel(
             )
         }
         lastPersistedAnchor = null
+        if (_state.value.mode == BrowseMode.NAS) nasBrowsePath = normalizedPath
         viewModelScope.launch {
-            configStore.saveActiveBrowsePath(normalizedPath)
+            if (_state.value.mode == BrowseMode.LOCAL) {
+                modeStore?.saveLocalPath(normalizedPath)
+            } else {
+                configStore.saveActiveBrowsePath(normalizedPath)
+            }
         }
         loadCurrentPath()
     }
@@ -525,7 +628,11 @@ class TvBrowserViewModel(
         if (snapshot.restoredFocusIndex != realIndex) {
             _state.update { it.copy(restoredFocusIndex = realIndex) }
         }
-        val anchorConnectionId = resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
+        val anchorConnectionId = if (snapshot.mode == BrowseMode.LOCAL) {
+            LOCAL_ANCHOR_NAMESPACE
+        } else {
+            resolveAnchorConnectionId(snapshot.activeConnectionId, snapshot.config)
+        }
         val fingerprint = AnchorFingerprint(
             connectionId = anchorConnectionId,
             directoryPath = snapshot.currentPath,
@@ -601,6 +708,7 @@ class TvBrowserViewModel(
     )
 
     companion object {
+        private const val LOCAL_ANCHOR_NAMESPACE = "local"
         private const val SMB_CONNECT_ATTEMPTS = 3
         private val SMB_CONNECT_BACKOFF_MS = longArrayOf(500L, 1_500L)
 
@@ -611,9 +719,20 @@ class TvBrowserViewModel(
                 return TvBrowserViewModel(
                     repository = JcifsSmbRepository(),
                     configStore = SmbConfigStore(appContext),
+                    localRepository = LocalFileRepository(),
+                    modeStore = BrowserModeStore(appContext),
                     appContext = appContext,
                 ) as T
             }
+        }
+    }
+
+    private fun hasLocalStorageAccess(): Boolean {
+        val context = appContext ?: return false
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
         }
     }
 

@@ -1,5 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.playback
 
+import android.net.Uri
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import java.io.File
 import java.io.FileOutputStream
@@ -30,8 +31,10 @@ object SmbAudioMetadataProbe {
     private val inFlight = ConcurrentHashMap<String, CompletableDeferred<SmbAudioMetadata?>>()
 
     suspend fun probe(config: SmbConfig, mediaUri: String): SmbAudioMetadata? {
-        if (!mediaUri.startsWith("smb://", ignoreCase = true)) return null
-        val key = buildKey(config, mediaUri)
+        val isSmb = mediaUri.startsWith("smb://", ignoreCase = true)
+        val isLocal = Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)
+        if (!isSmb && !isLocal) return null
+        val key = if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()
         if (memoryCache.containsKey(key)) return memoryCache[key]
 
         val waiter = CompletableDeferred<SmbAudioMetadata?>()
@@ -39,7 +42,7 @@ object SmbAudioMetadataProbe {
         if (existing != null) return existing.await()
 
         return try {
-            val loaded = load(config, mediaUri)
+            val loaded = if (isSmb) load(config, mediaUri) else loadLocal(mediaUri)
             memoryCache[key] = loaded
             waiter.complete(loaded)
             loaded
@@ -82,6 +85,11 @@ object SmbAudioMetadataProbe {
         } finally {
             temp.delete()
         }
+    }
+
+    private fun loadLocal(mediaUri: String): SmbAudioMetadata? {
+        val file = Uri.parse(mediaUri).path?.let(::File) ?: return null
+        return file.takeIf(File::isFile)?.let(::extractMetadata)
     }
 
     internal fun metadataParserSuffix(sourceSuffix: String): String {

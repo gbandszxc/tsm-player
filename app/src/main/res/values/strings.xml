@@ -84,6 +84,12 @@
     <string name="browser_file_browser">文件浏览</string>
     <string name="browser_back_parent">⬅ 返回上一级</string>
     <string name="browser_settings">设置</string>
+    <string name="browser_mode_nas">NAS 模式</string>
+    <string name="browser_mode_local">本地模式</string>
+    <string name="browser_local_root">本地存储</string>
+    <string name="browser_local_authorize">前往授权</string>
+    <string name="browser_local_permission_required">需要“所有文件访问权限”才能浏览本地存储</string>
+    <string name="browser_local_directory_unavailable">本地目录不可访问</string>
     <string name="browser_connection_current">当前连接：%1$s</string>
     <string name="browser_saved_count">已保存连接：%1$d 个</string>
     <string name="browser_current_path">当前路径：%1$s</string>

@@ -7,6 +7,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -55,7 +56,7 @@ class PlaybackService : MediaSessionService() {
         startSleepTimerChecker()
 
         val mediaSourceFactory = DefaultMediaSourceFactory(
-            SmbDataSource.Factory { PlaybackConfigStore.current() }
+            DefaultDataSource.Factory(this, SmbDataSource.Factory { PlaybackConfigStore.current() })
         )
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)

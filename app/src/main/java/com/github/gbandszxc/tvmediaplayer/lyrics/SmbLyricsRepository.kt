@@ -1,9 +1,11 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.lyrics
 
+import android.net.Uri
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
 import com.github.gbandszxc.tvmediaplayer.playback.SmbPathResolver
+import java.io.File
 import java.nio.charset.Charset
 import java.util.Properties
 import jcifs.CIFSContext
@@ -85,6 +87,17 @@ class SmbLyricsRepository {
     private fun loadExternalLrc(config: SmbConfig, entry: SmbEntry, context: CIFSContext): LrcTimeline? {
         val candidates = linkedSetOf<String>()
         val stream = entry.streamUri.orEmpty()
+
+        if (Uri.parse(stream).scheme.equals("file", ignoreCase = true)) {
+            val audioFile = Uri.parse(stream).path?.let(::File) ?: return null
+            val baseName = audioFile.name.substringBeforeLast('.', audioFile.name)
+            val lrcFile = File(audioFile.parentFile, "$baseName.lrc").takeIf(File::isFile)
+                ?: audioFile.parentFile?.listFiles()?.firstOrNull {
+                    it.isFile && it.name.endsWith(".lrc", ignoreCase = true) &&
+                        normalizeWidth(it.name.substringBeforeLast('.')).equals(normalizeWidth(baseName), ignoreCase = true)
+                }
+            return lrcFile?.readBytes()?.let(::decodeText)?.let(LrcParser::parseTimeline)?.takeIf { it.lines.isNotEmpty() }
+        }
 
         // 策略1：直接把 streamUri 扩展名替换为 .lrc（最快路径）
         if (stream.startsWith("smb://", ignoreCase = true)) {

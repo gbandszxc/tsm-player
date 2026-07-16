@@ -50,4 +50,5 @@
     <dimen name="ui_text_page_title">22sp</dimen>
     <dimen name="ui_text_screen_title">26sp</dimen>
     <dimen name="ui_text_hero">28sp</dimen>
+    <dimen name="ui_browser_mode_button_end_margin">124dp</dimen>
 </resources>
