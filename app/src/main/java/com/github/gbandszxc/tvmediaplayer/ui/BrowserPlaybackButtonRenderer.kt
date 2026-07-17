@@ -1,7 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
-import android.text.TextUtils
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.core.content.ContextCompat
@@ -19,11 +18,10 @@ internal object BrowserPlaybackButtonRenderer {
         hasFocus: Boolean,
         iconColorResId: Int = R.color.ui_text_on_accent,
     ) {
-        button.text = spec.text
         button.contentDescription = spec.contentDescription
         button.maxLines = 1
         button.setSingleLine(true)
-        button.ellipsize = TextUtils.TruncateAt.END
+        button.ellipsize = null
 
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
         if (icon != null) {
