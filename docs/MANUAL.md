@@ -271,7 +271,11 @@ app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
 
 首次启动应用时会弹窗提示授权设备管理权限，用户可选择"去授权"或"暂不授权"。未授权时仍可正常使用播放器和睡眠定时功能（仅不能息屏）。设置页"应用设置"分类下提供"睡眠权限"条目，可查看当前授权状态并重新打开授权页面。
 
-## 16. Launcher 图标资源
+## 16. 版本 1.1.0
+
+新增本地音乐播放支持，文件页可切换宫格或列表展示；优化 WAV 格式音频封面加载，以及遥控器聚焦按钮的展开动画。
+
+## 17. Launcher 图标资源
 
 当前优化版图标源图为 `docs/icon/icon_raw_v2.png`，保留了“TV 音乐播放器 + 可爱看板娘 + 二次元手游图标”的主旨，并将看板娘、耳机、遥控器和云朵主体收进 Android adaptive icon 安全区，减少电视 Launcher 圆形或圆角遮罩裁切。原始 Gemini 版本仍保留在 `docs/icon/icon_raw.png`，便于回退或对比。
 
