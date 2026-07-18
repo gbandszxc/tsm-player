@@ -5,6 +5,7 @@ import android.os.Build
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup
+import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
@@ -19,8 +20,12 @@ object UiSettingsApplier {
     }
 
     fun applyFullscreenWindowLayout(activity: Activity) {
+        applyFullscreenWindowLayout(activity.window)
+    }
+
+    fun applyFullscreenWindowLayout(window: Window) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            activity.window.attributes = activity.window.attributes.apply {
+            window.attributes = window.attributes.apply {
                 layoutInDisplayCutoutMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
                 } else {
@@ -29,7 +34,7 @@ object UiSettingsApplier {
             }
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            activity.window.setDecorFitsSystemWindows(false)
+            window.setDecorFitsSystemWindows(false)
         }
     }
 

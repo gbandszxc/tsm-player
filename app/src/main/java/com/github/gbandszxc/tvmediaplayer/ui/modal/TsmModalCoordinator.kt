@@ -17,6 +17,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.ui.UiMotion
+import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
 import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressFormatter
 import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressState
 
@@ -99,6 +100,7 @@ class TsmModalCoordinator(
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
                 spec.onDismiss?.invoke()
@@ -205,6 +207,7 @@ class TsmModalCoordinator(
             setCancelable(true)
             setCanceledOnTouchOutside(true)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -280,6 +283,7 @@ class TsmModalCoordinator(
             setCancelable(true)
             setCanceledOnTouchOutside(true)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -344,6 +348,7 @@ class TsmModalCoordinator(
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -421,6 +426,7 @@ class TsmModalCoordinator(
             setCancelable(false)
             setCanceledOnTouchOutside(false)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }

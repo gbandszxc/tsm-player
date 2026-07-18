@@ -6,6 +6,7 @@ import android.text.InputType
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -72,6 +73,28 @@ class TsmModalCoordinatorTest {
         val container = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
         assertNotNull("Content container should exist", container)
         assertEquals("Should have 2 action buttons", 2, container?.childCount)
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun `showActionModal allows content in display cutout area`() {
+        val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
+            .setup()
+            .get()
+        val coordinator = TsmModalCoordinator(activity)
+
+        val dialog = coordinator.showActionModal(
+            ActionModalSpec(
+                sectionLabel = "",
+                title = "发现新版本",
+                actions = listOf(ModalAction("稍后")),
+            )
+        )
+
+        assertEquals(
+            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS,
+            dialog.window?.attributes?.layoutInDisplayCutoutMode,
+        )
     }
 
     @Test

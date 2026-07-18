@@ -648,6 +648,7 @@ class SettingsActivity : BaseActivity() {
             setCancelable(true)
             setCanceledOnTouchOutside(true)
             window?.setBackgroundDrawable(null)
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
             setOnDismissListener {
                 if (!confirmed && UiSettingsStore.globalScalePercent(this@SettingsActivity) != originalScale) {
                     UiSettingsStore.setGlobalScalePercent(this@SettingsActivity, originalScale)
