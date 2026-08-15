@@ -3,23 +3,22 @@ package com.github.gbandszxc.tvmediaplayer.playback
 import android.net.Uri
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
-import java.util.Properties
+import java.util.concurrent.ConcurrentHashMap
 import jcifs.CIFSContext
-import jcifs.config.PropertyConfiguration
-import jcifs.context.BaseContext
-import jcifs.smb.NtlmPasswordAuthenticator
 import jcifs.smb.SmbFile
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 
 class SmbMediaItemFactory {
 
+    /** 目录 → 同目录封面 URL 的记忆化缓存，避免滚动宫格时反复探测 SMB */
+    private val directoryArtworkCache = ConcurrentHashMap<String, String?>()
+
     fun create(config: SmbConfig, queue: List<SmbEntry>): List<MediaItem> {
-        val context = buildContext(config)
-        val artworkCache = mutableMapOf<String, String?>()
+        val context = SmbContextFactory.build(config)
         return queue.map { entry ->
             val directoryPath = entry.fullPath.substringBeforeLast('/', "")
-            val artworkUri = artworkCache.getOrPut(directoryPath) {
+            val artworkUri = directoryArtworkCache.getOrPut(directoryPath) {
                 resolveArtworkUri(config, directoryPath, context)
             }
             MediaItem.Builder()
@@ -70,26 +69,6 @@ class SmbMediaItemFactory {
             share.isNotBlank() -> "$hostBase/$share/$path"
             path.isBlank() -> hostBase
             else -> "$hostBase/$path"
-        }
-    }
-
-    private fun buildContext(config: SmbConfig): CIFSContext {
-        val properties = Properties().apply {
-            setProperty("jcifs.smb.client.responseTimeout", "10000")
-            setProperty("jcifs.smb.client.connTimeout", "10000")
-            setProperty("jcifs.smb.client.soTimeout", "10000")
-            if (config.smb1Enabled) {
-                setProperty("jcifs.smb.client.minVersion", "SMB1")
-            } else {
-                setProperty("jcifs.smb.client.minVersion", "SMB202")
-            }
-            setProperty("jcifs.smb.client.maxVersion", "SMB311")
-        }
-        val base = BaseContext(PropertyConfiguration(properties))
-        return if (config.guest) {
-            base.withCredentials(NtlmPasswordAuthenticator("", ""))
-        } else {
-            base.withCredentials(NtlmPasswordAuthenticator("", config.username.trim(), config.password))
         }
     }
 }

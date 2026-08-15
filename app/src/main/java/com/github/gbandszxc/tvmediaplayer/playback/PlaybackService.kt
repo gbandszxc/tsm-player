@@ -77,7 +77,7 @@ class PlaybackService : MediaSessionService() {
             .build()
     }
 
-    private fun saveSnapshotFromPlayer() {
+    private fun saveSnapshotFromPlayer(immediate: Boolean = false) {
         if (!UiSettingsStore.rememberLastPlayback(this)) return
         val player = mediaSession?.player ?: return
         if (player.mediaItemCount == 0) return
@@ -96,22 +96,29 @@ class PlaybackService : MediaSessionService() {
             }
         }
         if (uris.isEmpty()) return
-        LastPlaybackStore.save(
-            this,
-            LastPlaybackStore.Snapshot(
-                queueUris = uris,
-                queueMediaIds = ids,
-                currentIndex = player.currentMediaItemIndex,
-                positionMs = player.currentPosition.coerceAtLeast(0L),
-                title = player.mediaMetadata.title?.toString().orEmpty(),
-                artist = player.mediaMetadata.artist?.toString().orEmpty(),
-                albumTitle = player.mediaMetadata.albumTitle?.toString().orEmpty(),
-                currentMediaId = currentMediaId,
-                currentDirectoryPath = currentDirectoryPath,
-                sourceConnectionId = null,
-                sourceConfig = sourceConfig
-            )
+        val snapshot = LastPlaybackStore.Snapshot(
+            queueUris = uris,
+            queueMediaIds = ids,
+            currentIndex = player.currentMediaItemIndex,
+            positionMs = player.currentPosition.coerceAtLeast(0L),
+            title = player.mediaMetadata.title?.toString().orEmpty(),
+            artist = player.mediaMetadata.artist?.toString().orEmpty(),
+            albumTitle = player.mediaMetadata.albumTitle?.toString().orEmpty(),
+            currentMediaId = currentMediaId,
+            currentDirectoryPath = currentDirectoryPath,
+            sourceConnectionId = null,
+            sourceConfig = sourceConfig
         )
+        // 快照在主线程采集（ExoPlayer 状态只允许主线程读），写盘切到 IO 线程，
+        // 避免每次切歌在主线程执行整队列 JSON 序列化 + SQLite 写入；
+        // 睡眠定时等即将退出进程的场景必须同步落盘
+        if (immediate) {
+            LastPlaybackStore.save(this, snapshot)
+        } else {
+            serviceScope.launch(Dispatchers.IO) {
+                LastPlaybackStore.save(this@PlaybackService, snapshot)
+            }
+        }
     }
 
     private fun recordHistory(mediaItem: MediaItem?) {
@@ -141,7 +148,7 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun executeSleepTimerAction() {
-        runCatching { saveSnapshotFromPlayer() }
+        runCatching { saveSnapshotFromPlayer(immediate = true) }
         runCatching {
             mediaSession?.player?.run {
                 pause()

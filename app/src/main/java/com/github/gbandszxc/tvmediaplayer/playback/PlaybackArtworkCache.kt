@@ -27,7 +27,10 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object PlaybackArtworkCache {
 
-    private val memory = object : LruCache<String, Bitmap>(24) {}
+    /** 内存缓存按字节预算淘汰：24 张 1024px ARGB 位图可达近百 MB，会撑爆 TV 端堆 */
+    private val memory = object : LruCache<String, Bitmap>(24 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
+    }
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val diskLock = Any()
 
@@ -133,11 +136,12 @@ object PlaybackArtworkCache {
     private fun indexFile(context: Context): File =
         File(artworkCacheDir(context), "index.json")
 
-    /** 将任意字符串 key 映射为稳定的短标识符，用作索引 key */
-    private fun keyHash(key: String): String {
-        val hash = key.hashCode()
-        return if (hash >= 0) "p$hash" else "n${-hash}"
-    }
+    /**
+     * 将任意字符串 key 映射为稳定的短标识符，用作索引 key。
+     * 使用 MD5 而非 String.hashCode()：32 位哈希在数千首曲目规模下
+     * 生日碰撞概率不可忽略，碰撞会导致磁盘缓存串图。
+     */
+    private fun keyHash(key: String): String = md5Hex(key.toByteArray(Charsets.UTF_8))
 
     private fun md5Hex(bytes: ByteArray): String {
         val digest = MessageDigest.getInstance("MD5").digest(bytes)

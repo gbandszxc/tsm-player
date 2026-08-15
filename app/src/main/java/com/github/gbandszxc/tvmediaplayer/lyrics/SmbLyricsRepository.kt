@@ -4,14 +4,11 @@ import android.net.Uri
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.playback.SmbAudioMetadataProbe
+import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import com.github.gbandszxc.tvmediaplayer.playback.SmbPathResolver
 import java.io.File
 import java.nio.charset.Charset
-import java.util.Properties
 import jcifs.CIFSContext
-import jcifs.config.PropertyConfiguration
-import jcifs.context.BaseContext
-import jcifs.smb.NtlmPasswordAuthenticator
 import jcifs.smb.SmbFile
 import jcifs.smb.SmbFileInputStream
 import kotlinx.coroutines.Dispatchers
@@ -39,7 +36,7 @@ class SmbLyricsRepository {
             return@withContext LoadResult(Status.MISS)
         }
 
-        val context = buildContext(config)
+        val context = SmbContextFactory.build(config)
         coroutineScope {
             val externalDeferred = async { runCatching { loadExternalLrc(config, entry, context) } }
             // 外置歌词先发起；若未快速命中，再并发内嵌探测。
@@ -163,25 +160,5 @@ class SmbLyricsRepository {
         }
         val utf8 = bytes.toString(Charsets.UTF_8)
         return if (utf8.contains('\uFFFD')) bytes.toString(Charset.forName("GB18030")) else utf8
-    }
-
-    private fun buildContext(config: SmbConfig): CIFSContext {
-        val properties = Properties().apply {
-            setProperty("jcifs.smb.client.responseTimeout", "10000")
-            setProperty("jcifs.smb.client.connTimeout", "10000")
-            setProperty("jcifs.smb.client.soTimeout", "10000")
-            if (config.smb1Enabled) {
-                setProperty("jcifs.smb.client.minVersion", "SMB1")
-            } else {
-                setProperty("jcifs.smb.client.minVersion", "SMB202")
-            }
-            setProperty("jcifs.smb.client.maxVersion", "SMB311")
-        }
-        val base = BaseContext(PropertyConfiguration(properties))
-        return if (config.guest) {
-            base.withCredentials(NtlmPasswordAuthenticator("", ""))
-        } else {
-            base.withCredentials(NtlmPasswordAuthenticator("", config.username.trim(), config.password))
-        }
     }
 }

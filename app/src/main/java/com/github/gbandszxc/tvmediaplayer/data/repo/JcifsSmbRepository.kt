@@ -3,11 +3,7 @@
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.domain.repo.SmbRepository
-import java.util.Properties
-import jcifs.CIFSContext
-import jcifs.config.PropertyConfiguration
-import jcifs.context.BaseContext
-import jcifs.smb.NtlmPasswordAuthenticator
+import com.github.gbandszxc.tvmediaplayer.playback.SmbContextFactory
 import jcifs.smb.SmbFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,8 +17,7 @@ class JcifsSmbRepository : SmbRepository {
 
         val currentPath = path.trim('/').ifBlank { config.normalizedPath() }
         val target = resolveTarget(config, currentPath)
-        val context = buildContext(config)
-        val directory = SmbFile(target.url, context)
+        val directory = SmbFile(target.url, SmbContextFactory.build(config))
 
         directory.listFiles()
             .orEmpty()
@@ -76,27 +71,6 @@ class JcifsSmbRepository : SmbRepository {
                 sizeBytes = runCatching { file.length() }.getOrNull(),
                 lastModifiedAt = lastModifiedAt,
             )
-        }
-    }
-
-    private fun buildContext(config: SmbConfig): CIFSContext {
-        val properties = Properties().apply {
-            setProperty("jcifs.smb.client.responseTimeout", "10000")
-            setProperty("jcifs.smb.client.connTimeout", "10000")
-            setProperty("jcifs.smb.client.soTimeout", "10000")
-            if (config.smb1Enabled) {
-                setProperty("jcifs.smb.client.minVersion", "SMB1")
-            } else {
-                setProperty("jcifs.smb.client.minVersion", "SMB202")
-            }
-            setProperty("jcifs.smb.client.maxVersion", "SMB311")
-        }
-
-        val base = BaseContext(PropertyConfiguration(properties))
-        return if (config.guest) {
-            base.withCredentials(NtlmPasswordAuthenticator("", ""))
-        } else {
-            base.withCredentials(NtlmPasswordAuthenticator("", config.username.trim(), config.password))
         }
     }
 

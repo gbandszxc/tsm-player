@@ -1,6 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.playback
 
 import android.net.Uri
+import android.util.LruCache
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import java.io.File
 import java.io.FileOutputStream
@@ -26,8 +27,17 @@ object SmbAudioMetadataProbe {
     private const val OGG_TAG_PROBE_BYTES = 2L * 1024 * 1024
     private const val FLAC_MAX_METADATA_BYTES = 32L * 1024 * 1024
     private const val FLAC_POST_METADATA_AUDIO_BYTES = 16L * 1024
+    private const val MEMORY_CACHE_MAX_KB = 16 * 1024
+    private const val MISSING_CACHE_MAX = 2048
 
-    private val memoryCache = ConcurrentHashMap<String, SmbAudioMetadata>()
+    /**
+     * 元数据内存缓存按字节预算淘汰（内嵌封面可达数 MB，无上限缓存会在
+     * 连续播放/滚动宫格时耗尽 TV 端堆内存）。单位 KB。
+     */
+    private val memoryCache = object : LruCache<String, SmbAudioMetadata>(MEMORY_CACHE_MAX_KB) {
+        override fun sizeOf(key: String, value: SmbAudioMetadata): Int =
+            (1024 + (value.artworkData?.size ?: 0)) / 1024
+    }
     private val missingKeys = ConcurrentHashMap.newKeySet<String>()
     private val inFlight = ConcurrentHashMap<String, CompletableDeferred<SmbAudioMetadata?>>()
     private val missingArtworkKeys = ConcurrentHashMap.newKeySet<String>()
@@ -38,7 +48,7 @@ object SmbAudioMetadataProbe {
         val isLocal = Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)
         if (!isSmb && !isLocal) return null
         val key = if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()
-        memoryCache[key]?.let { return it }
+        memoryCache.get(key)?.let { return it }
         if (key in missingKeys) return null
 
         val waiter = CompletableDeferred<SmbAudioMetadata?>()
@@ -47,7 +57,11 @@ object SmbAudioMetadataProbe {
 
         return try {
             val loaded = if (isSmb) load(config, mediaUri) else loadLocal(mediaUri)
-            if (loaded != null) memoryCache[key] = loaded else missingKeys += key
+            if (loaded != null) {
+                memoryCache.put(key, loaded)
+            } else {
+                markMissing(missingKeys, key)
+            }
             waiter.complete(loaded)
             loaded
         } catch (t: Throwable) {
@@ -63,20 +77,29 @@ object SmbAudioMetadataProbe {
         val isSmb = mediaUri.startsWith("smb://", ignoreCase = true)
         val isLocal = Uri.parse(mediaUri).scheme.equals("file", ignoreCase = true)
         if (!isSmb && !isLocal) return null
-        val key = (if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()) + "|artwork"
+        val baseKey = if (isSmb) buildKey(config, mediaUri) else mediaUri.trim()
+        val key = "$baseKey|artwork"
         if (key in missingArtworkKeys) return null
+        // 播放页 probe() 已缓存的完整元数据含内嵌封面，直接复用，避免重复 SMB 探测
+        memoryCache.get(baseKey)?.artworkData?.let { return it }
+        memoryCache.get(key)?.artworkData?.let { return it }
 
         val waiter = CompletableDeferred<ByteArray?>()
         val existing = artworkInFlight.putIfAbsent(key, waiter)
         if (existing != null) return existing.await()
 
         return try {
-            val artwork = if (isSmb) {
-                load(config, mediaUri, allowFullFallback = false)?.artworkData
+            val loaded = if (isSmb) {
+                load(config, mediaUri, allowFullFallback = false)
             } else {
-                loadLocal(mediaUri)?.artworkData
+                loadLocal(mediaUri)
             }
-            if (artwork == null) missingArtworkKeys += key
+            val artwork = loaded?.artworkData
+            if (artwork == null) {
+                markMissing(missingArtworkKeys, key)
+            } else {
+                memoryCache.put(key, SmbAudioMetadata(null, null, null, null, artwork))
+            }
             waiter.complete(artwork)
             artwork
         } catch (t: Throwable) {
@@ -85,6 +108,12 @@ object SmbAudioMetadataProbe {
         } finally {
             artworkInFlight.remove(key, waiter)
         }
+    }
+
+    /** miss 集合封顶：超限整体清空，代价只是极端规模下重新探测一次 */
+    private fun markMissing(set: MutableSet<String>, key: String) {
+        if (set.size >= MISSING_CACHE_MAX) set.clear()
+        set += key
     }
 
     private fun buildKey(config: SmbConfig, mediaUri: String): String {

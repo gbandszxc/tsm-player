@@ -7,13 +7,8 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import java.io.IOException
-import java.util.Properties
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
-import jcifs.CIFSContext
-import jcifs.config.PropertyConfiguration
-import jcifs.context.BaseContext
-import jcifs.smb.NtlmPasswordAuthenticator
 import jcifs.smb.SmbFile
 import jcifs.smb.SmbRandomAccessFile
 import kotlin.math.min
@@ -39,6 +34,13 @@ class SmbDataSource(
     // --- 预读状态 ---
     private val chunkQueue = LinkedBlockingQueue<ByteArray>(MAX_QUEUED_CHUNKS)
     @Volatile private var prefetchCancelled = false
+    /**
+     * 预读世代标记：close() 与 startPrefetch() 递增。
+     * close() 的 join(500) 超时后旧线程可能仍存活；DataSource 实例被 ExoPlayer
+     * 复用时，若没有世代隔离，旧线程会把上一首的 EOF/数据块投进新歌的队列，
+     * 造成新曲目被提前截断。旧线程发现世代变化后立即停止投递。
+     */
+    @Volatile private var prefetchGeneration = 0
     private var prefetchThread: Thread? = null
 
     // ExoPlayer 当前正在消费的块及其读取偏移
@@ -58,7 +60,7 @@ class SmbDataSource(
         this.dataSpec = dataSpec
 
         try {
-            val context = buildContext(configProvider())
+            val context = SmbContextFactory.build(configProvider())
             val file = SmbFile(uri.toString(), context)
             val raf = SmbRandomAccessFile(file, "r")
             randomAccessFile = raf
@@ -98,12 +100,13 @@ class SmbDataSource(
         pendingChunk = null
         pendingOffset = 0
         prefetchCancelled = false
+        val generation = ++prefetchGeneration
 
         prefetchThread = Thread({
             var remaining = totalBytes
             val buf = ByteArray(PREFETCH_CHUNK_SIZE)
             try {
-                while (!prefetchCancelled && remaining > 0) {
+                while (!prefetchCancelled && prefetchGeneration == generation && remaining > 0) {
                     val toRead = min(PREFETCH_CHUNK_SIZE.toLong(), remaining).toInt()
                     var filled = 0
                     // 循环确保读满 toRead 字节（RAF 可能一次返回不足）
@@ -114,8 +117,8 @@ class SmbDataSource(
                     }
                     if (filled == 0) break
                     val chunk = buf.copyOf(filled)
-                    // 队列满时阻塞（背压），每 100ms 检查一次取消标志
-                    while (!prefetchCancelled) {
+                    // 队列满时阻塞（背压），每 100ms 检查一次取消/世代标志
+                    while (!prefetchCancelled && prefetchGeneration == generation) {
                         if (chunkQueue.offer(chunk, 100, TimeUnit.MILLISECONDS)) break
                     }
                     remaining -= filled
@@ -125,8 +128,8 @@ class SmbDataSource(
             } catch (_: Exception) {
                 // SMB 读取异常：放入 EOF 让消费侧感知
             }
-            // 投递 EOF 哨兵，通知消费侧流已结束
-            if (!prefetchCancelled) {
+            // 投递 EOF 哨兵，通知消费侧流已结束（仅当当前仍是本世代）
+            if (!prefetchCancelled && prefetchGeneration == generation) {
                 runCatching { chunkQueue.offer(EOF_SENTINEL, 5, TimeUnit.SECONDS) }
             }
         }, "smb-prefetch").apply {
@@ -165,8 +168,10 @@ class SmbDataSource(
     override fun getUri() = dataSpec?.uri
 
     override fun close() {
-        // 先取消并等预读线程退出，再关 RAF，避免 RAF 关闭时线程还在读
+        // 先取消并等预读线程退出，再关 RAF，避免 RAF 关闭时线程还在读；
+        // join 超时残留的旧线程由世代标记兜底，不会再投递数据
         prefetchCancelled = true
+        prefetchGeneration++
         prefetchThread?.interrupt()
         prefetchThread?.join(500)
         prefetchThread = null
@@ -184,27 +189,6 @@ class SmbDataSource(
                 opened = false
                 transferEnded()
             }
-        }
-    }
-
-    private fun buildContext(config: SmbConfig): CIFSContext {
-        val properties = Properties().apply {
-            setProperty("jcifs.smb.client.responseTimeout", "10000")
-            setProperty("jcifs.smb.client.connTimeout", "10000")
-            setProperty("jcifs.smb.client.soTimeout", "10000")
-            if (config.smb1Enabled) {
-                setProperty("jcifs.smb.client.minVersion", "SMB1")
-            } else {
-                setProperty("jcifs.smb.client.minVersion", "SMB202")
-            }
-            setProperty("jcifs.smb.client.maxVersion", "SMB311")
-        }
-
-        val base = BaseContext(PropertyConfiguration(properties))
-        return if (config.guest) {
-            base.withCredentials(NtlmPasswordAuthenticator("", ""))
-        } else {
-            base.withCredentials(NtlmPasswordAuthenticator("", config.username.trim(), config.password))
         }
     }
 
