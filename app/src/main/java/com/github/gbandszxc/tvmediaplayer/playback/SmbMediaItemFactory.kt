@@ -11,16 +11,19 @@ import androidx.media3.common.MediaMetadata
 
 class SmbMediaItemFactory {
 
-    /** 目录 → 同目录封面 URL 的记忆化缓存，避免滚动宫格时反复探测 SMB */
-    private val directoryArtworkCache = ConcurrentHashMap<String, String?>()
+    /**
+     * 目录 → 同目录封面 URL 的记忆化缓存，避免滚动宫格时反复探测 SMB。
+     * ConcurrentHashMap 不允许 null 值：无封面用空串哨兵表示，读取时转回 null。
+     */
+    private val directoryArtworkCache = ConcurrentHashMap<String, String>()
 
     fun create(config: SmbConfig, queue: List<SmbEntry>): List<MediaItem> {
         val context = SmbContextFactory.build(config)
         return queue.map { entry ->
             val directoryPath = entry.fullPath.substringBeforeLast('/', "")
             val artworkUri = directoryArtworkCache.getOrPut(directoryPath) {
-                resolveArtworkUri(config, directoryPath, context)
-            }
+                resolveArtworkUri(config, directoryPath, context).orEmpty()
+            }.takeIf { it.isNotEmpty() }
             MediaItem.Builder()
                 .setMediaId(entry.fullPath)
                 .setUri(requireNotNull(entry.streamUri))
