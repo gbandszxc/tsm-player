@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.util.Log
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -17,8 +18,10 @@ import com.github.gbandszxc.tvmediaplayer.data.db.AppSettingsDbStore
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
 import java.io.IOException
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -45,12 +48,16 @@ interface BrowserConfigStore {
 }
 
 class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
-    private val dbHelper = FavoritesDbHelper(appContext.applicationContext)
-    private val settings = AppSettingsDbStore(appContext.applicationContext)
+    private val dbHelper = FavoritesDbHelper.shared(appContext)
+    private val settings = AppSettingsDbStore(appContext)
 
-    override suspend fun loadState(): SmbConfigStoreState {
+    /** 进程内迁移只跑一次；之后各方法不再重复探测 legacy 状态 */
+    @Volatile
+    private var migrationChecked = false
+
+    override suspend fun loadState(): SmbConfigStoreState = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
-        return loadStateFromDb()
+        loadStateFromDb()
     }
 
     private fun loadStateFromDb(): SmbConfigStoreState {
@@ -105,79 +112,87 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         )
     }
 
-    override suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean) {
+    override suspend fun saveConnection(connection: SavedSmbConnection, activate: Boolean) = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
-        upsertConnection(connection)
-        if (activate) {
-            settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, connection.id)
-            writeActiveConfigToDb(connection.config)
-            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, connection.config.normalizedPath())
+        settings.inTransaction {
+            upsertConnection(connection)
+            if (activate) {
+                settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, connection.id)
+                writeActiveConfigToDb(connection.config)
+                settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, connection.config.normalizedPath())
+            }
         }
     }
 
-    override suspend fun setActiveConnection(id: String) {
+    override suspend fun setActiveConnection(id: String) = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
-        val target = loadSavedConnectionsFromDb().firstOrNull { it.id == id } ?: return
-        settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, id)
-        writeActiveConfigToDb(target.config)
-        settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, target.config.normalizedPath())
+        val target = loadSavedConnectionsFromDb().firstOrNull { it.id == id } ?: return@withContext
+        settings.inTransaction {
+            settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, id)
+            writeActiveConfigToDb(target.config)
+            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, target.config.normalizedPath())
+        }
     }
 
-    override suspend fun deleteConnection(id: String): SmbConfigStoreState {
+    override suspend fun deleteConnection(id: String): SmbConfigStoreState = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
         val current = loadSavedConnectionsFromDb()
-        if (current.none { it.id == id }) return loadStateFromDb()
+        if (current.none { it.id == id }) return@withContext loadStateFromDb()
 
-        dbHelper.writableDatabase.delete(TABLE_SMB_CONNECTIONS, "id = ?", arrayOf(id))
-        val remaining = current.filterNot { it.id == id }
-        val currentActiveId = settings.getString(DB_KEY_ACTIVE_CONNECTION_ID)
-        val activeBrowsePath = settings.getString(DB_KEY_ACTIVE_BROWSE_PATH).orEmpty()
-        val nextActive = when {
-            remaining.isEmpty() -> null
-            currentActiveId == id -> remaining.first()
-            else -> remaining.firstOrNull { it.id == currentActiveId } ?: remaining.first()
-        }
-
-        if (nextActive == null) {
-            settings.remove(DB_KEY_ACTIVE_CONNECTION_ID)
-            writeActiveConfigToDb(SmbConfig.Empty)
-            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, "")
-        } else {
-            settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, nextActive.id)
-            writeActiveConfigToDb(nextActive.config)
-            val nextBrowsePath = if (nextActive.id == currentActiveId && currentActiveId != id) {
-                activeBrowsePath
-            } else {
-                nextActive.config.normalizedPath()
+        settings.inTransaction {
+            dbHelper.writableDatabase.delete(TABLE_SMB_CONNECTIONS, "id = ?", arrayOf(id))
+            val remaining = current.filterNot { it.id == id }
+            val currentActiveId = settings.getString(DB_KEY_ACTIVE_CONNECTION_ID)
+            val activeBrowsePath = settings.getString(DB_KEY_ACTIVE_BROWSE_PATH).orEmpty()
+            val nextActive = when {
+                remaining.isEmpty() -> null
+                currentActiveId == id -> remaining.first()
+                else -> remaining.firstOrNull { it.id == currentActiveId } ?: remaining.first()
             }
-            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, normalizeBrowsePath(nextBrowsePath))
+
+            if (nextActive == null) {
+                settings.remove(DB_KEY_ACTIVE_CONNECTION_ID)
+                writeActiveConfigToDb(SmbConfig.Empty)
+                settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, "")
+            } else {
+                settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, nextActive.id)
+                writeActiveConfigToDb(nextActive.config)
+                val nextBrowsePath = if (nextActive.id == currentActiveId && currentActiveId != id) {
+                    activeBrowsePath
+                } else {
+                    nextActive.config.normalizedPath()
+                }
+                settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, normalizeBrowsePath(nextBrowsePath))
+            }
+
+            dbHelper.writableDatabase.delete(
+                TABLE_BROWSE_ANCHORS,
+                "namespace = ?",
+                arrayOf(id)
+            )
         }
-
-        dbHelper.writableDatabase.delete(
-            TABLE_BROWSE_ANCHORS,
-            "namespace = ?",
-            arrayOf(id)
-        )
-        return loadStateFromDb()
+        loadStateFromDb()
     }
 
-    override suspend fun setActiveConfig(config: SmbConfig, browsePath: String) {
+    override suspend fun setActiveConfig(config: SmbConfig, browsePath: String) = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
-        settings.remove(DB_KEY_ACTIVE_CONNECTION_ID)
-        writeActiveConfigToDb(config)
-        settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, normalizeBrowsePath(browsePath))
+        settings.inTransaction {
+            settings.remove(DB_KEY_ACTIVE_CONNECTION_ID)
+            writeActiveConfigToDb(config)
+            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, normalizeBrowsePath(browsePath))
+        }
     }
 
-    override suspend fun saveActiveBrowsePath(path: String) {
+    override suspend fun saveActiveBrowsePath(path: String) = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
         settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, normalizeBrowsePath(path))
     }
 
-    override suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor? {
+    override suspend fun loadBrowseAnchor(connectionId: String?, directoryPath: String): BrowseFocusAnchor? = withContext(Dispatchers.IO) {
         migrateLegacyIfNeeded()
         val namespace = connectionId.orEmpty()
         val path = normalizeBrowsePath(directoryPath)
-        return dbHelper.readableDatabase.query(
+        dbHelper.readableDatabase.query(
             TABLE_BROWSE_ANCHORS,
             null,
             "namespace = ? AND directory_path = ?",
@@ -196,46 +211,59 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
     }
 
     override suspend fun saveBrowseAnchor(connectionId: String?, directoryPath: String, anchor: BrowseFocusAnchor) {
-        migrateLegacyIfNeeded()
-        val values = ContentValues().apply {
-            put("namespace", connectionId.orEmpty())
-            put("directory_path", normalizeBrowsePath(directoryPath))
-            put("item_key", anchor.itemKey)
-            put("anchor_index", anchor.index)
-            put("updated_at", anchor.updatedAt)
+        withContext(Dispatchers.IO) {
+            migrateLegacyIfNeeded()
+            val values = ContentValues().apply {
+                put("namespace", connectionId.orEmpty())
+                put("directory_path", normalizeBrowsePath(directoryPath))
+                put("item_key", anchor.itemKey)
+                put("anchor_index", anchor.index)
+                put("updated_at", anchor.updatedAt)
+            }
+            dbHelper.writableDatabase.insertWithOnConflict(
+                TABLE_BROWSE_ANCHORS,
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_REPLACE
+            )
         }
-        dbHelper.writableDatabase.insertWithOnConflict(
-            TABLE_BROWSE_ANCHORS,
-            null,
-            values,
-            SQLiteDatabase.CONFLICT_REPLACE
-        )
     }
 
     override suspend fun clearBrowseCache() {
-        migrateLegacyIfNeeded()
-        dbHelper.writableDatabase.delete(TABLE_BROWSE_ANCHORS, null, null)
+        withContext(Dispatchers.IO) {
+            migrateLegacyIfNeeded()
+            dbHelper.writableDatabase.delete(TABLE_BROWSE_ANCHORS, null, null)
+        }
     }
 
     override fun newConnectionId(): String = UUID.randomUUID().toString()
 
     private suspend fun migrateLegacyIfNeeded() {
-        if (hasDbSmbState()) return
-        val legacy = loadLegacyState()
-        legacy.savedConnections.forEach { upsertConnection(it) }
-        if (legacy.activeConnectionId != null) {
-            settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, legacy.activeConnectionId)
+        if (migrationChecked) return
+        if (hasDbSmbState()) {
+            migrationChecked = true
+            return
         }
-        writeActiveConfigToDb(legacy.activeConfig)
-        settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, legacy.activeBrowsePath)
+        val legacy = loadLegacyState()
+        settings.inTransaction {
+            legacy.savedConnections.forEach { upsertConnection(it) }
+            if (legacy.activeConnectionId != null) {
+                settings.putString(DB_KEY_ACTIVE_CONNECTION_ID, legacy.activeConnectionId)
+            }
+            writeActiveConfigToDb(legacy.activeConfig)
+            settings.putString(DB_KEY_ACTIVE_BROWSE_PATH, legacy.activeBrowsePath)
+        }
 
         val preferences = appContext.smbDataStore.data
             .catch { ex -> if (ex is IOException) emit(emptyPreferences()) else throw ex }
             .first()
-        decodeBrowseAnchors(preferences[Keys.BROWSE_ANCHORS_JSON]).forEach { (key, anchor) ->
-            val parts = key.split("|", limit = 2)
-            upsertBrowseAnchor(parts.getOrNull(0), parts.getOrNull(1).orEmpty(), anchor)
+        settings.inTransaction {
+            decodeBrowseAnchors(preferences[Keys.BROWSE_ANCHORS_JSON]).forEach { (key, anchor) ->
+                val parts = key.split("|", limit = 2)
+                upsertBrowseAnchor(parts.getOrNull(0), parts.getOrNull(1).orEmpty(), anchor)
+            }
         }
+        migrationChecked = true
     }
 
     private fun hasDbSmbState(): Boolean {
@@ -370,6 +398,8 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
                     )
                 }
             }
+        }.onFailure { ex ->
+            Log.w(TAG, "decode legacy saved connections failed", ex)
         }.getOrDefault(emptyList())
     }
 
@@ -394,6 +424,8 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
                     )
                 }
             }.toMutableMap()
+        }.onFailure { ex ->
+            Log.w(TAG, "decode legacy browse anchors failed", ex)
         }.getOrDefault(mutableMapOf())
     }
 
@@ -425,6 +457,7 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
     }
 
     private companion object {
+        const val TAG = "SmbConfigStore"
         const val TABLE_SMB_CONNECTIONS = "smb_connections"
         const val TABLE_BROWSE_ANCHORS = "browse_anchors"
         const val DB_KEY_ACTIVE_CONNECTION_ID = "smb.active_connection_id"

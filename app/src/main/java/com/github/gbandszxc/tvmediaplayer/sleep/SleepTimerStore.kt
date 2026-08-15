@@ -15,7 +15,31 @@ class SleepTimerStore(context: Context) : SleepTimerStoreContract {
     private val prefs = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     private val db = AppSettingsDbStore(appContext)
 
+    /** legacy SharedPreferences 迁移只需探测一次 */
+    @Volatile
+    private var legacyMigrated = false
+
+    /**
+     * 原始状态短缓存：播放页进度 ticker 每 300ms 轮询剩余分钟，
+     * 避免因此对 SQLite 产生每秒多次同步查询；写入时同步刷新缓存。
+     */
+    @Volatile
+    private var cachedRaw: SleepTimerState? = null
+    @Volatile
+    private var cachedRawAtMs = 0L
+
     override fun loadRaw(): SleepTimerState {
+        val cached = cachedRaw
+        if (cached != null && System.currentTimeMillis() - cachedRawAtMs < RAW_CACHE_TTL_MS) {
+            return cached
+        }
+        val state = loadRawFromDb()
+        cachedRaw = state
+        cachedRawAtMs = System.currentTimeMillis()
+        return state
+    }
+
+    private fun loadRawFromDb(): SleepTimerState {
         migrateLegacyIfNeeded()
         val enabled = db.getBoolean(DB_KEY_ENABLED) ?: false
         if (!enabled) return SleepTimerState.Disabled
@@ -34,23 +58,42 @@ class SleepTimerStore(context: Context) : SleepTimerStoreContract {
     }
 
     override fun saveEnabled(targetEpochMillis: Long, durationMinutes: Int) {
-        db.putBoolean(DB_KEY_ENABLED, true)
-        db.putLong(DB_KEY_TARGET_EPOCH_MILLIS, targetEpochMillis)
-        db.putInt(DB_KEY_DURATION_MINUTES, durationMinutes.coerceAtLeast(1))
+        val duration = durationMinutes.coerceAtLeast(1)
+        db.inTransaction {
+            db.putBoolean(DB_KEY_ENABLED, true)
+            db.putLong(DB_KEY_TARGET_EPOCH_MILLIS, targetEpochMillis)
+            db.putInt(DB_KEY_DURATION_MINUTES, duration)
+        }
+        updateCache(SleepTimerState.Enabled(targetEpochMillis, duration))
     }
 
     override fun clear() {
-        db.remove(DB_KEY_ENABLED)
-        db.remove(DB_KEY_TARGET_EPOCH_MILLIS)
-        db.remove(DB_KEY_DURATION_MINUTES)
+        db.inTransaction {
+            db.remove(DB_KEY_ENABLED)
+            db.remove(DB_KEY_TARGET_EPOCH_MILLIS)
+            db.remove(DB_KEY_DURATION_MINUTES)
+        }
+        updateCache(SleepTimerState.Disabled)
+    }
+
+    private fun updateCache(state: SleepTimerState) {
+        cachedRaw = state
+        cachedRawAtMs = System.currentTimeMillis()
     }
 
     private fun migrateLegacyIfNeeded() {
-        if (db.getString(DB_KEY_ENABLED) != null) return
+        if (legacyMigrated) return
+        if (db.getString(DB_KEY_ENABLED) != null) {
+            legacyMigrated = true
+            return
+        }
         if (!prefs.contains(KEY_ENABLED)) return
-        db.putBoolean(DB_KEY_ENABLED, prefs.getBoolean(KEY_ENABLED, false))
-        db.putLong(DB_KEY_TARGET_EPOCH_MILLIS, prefs.getLong(KEY_TARGET_EPOCH_MILLIS, 0L))
-        db.putInt(DB_KEY_DURATION_MINUTES, prefs.getInt(KEY_DURATION_MINUTES, 0))
+        db.inTransaction {
+            db.putBoolean(DB_KEY_ENABLED, prefs.getBoolean(KEY_ENABLED, false))
+            db.putLong(DB_KEY_TARGET_EPOCH_MILLIS, prefs.getLong(KEY_TARGET_EPOCH_MILLIS, 0L))
+            db.putInt(DB_KEY_DURATION_MINUTES, prefs.getInt(KEY_DURATION_MINUTES, 0))
+        }
+        legacyMigrated = true
     }
 
     companion object {
@@ -61,5 +104,6 @@ class SleepTimerStore(context: Context) : SleepTimerStoreContract {
         private const val DB_KEY_ENABLED = "sleep.timer.enabled"
         private const val DB_KEY_TARGET_EPOCH_MILLIS = "sleep.timer.target_epoch_millis"
         private const val DB_KEY_DURATION_MINUTES = "sleep.timer.duration_minutes"
+        private const val RAW_CACHE_TTL_MS = 1000L
     }
 }

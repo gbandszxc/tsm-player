@@ -18,10 +18,12 @@ class WebDavConfigStore(context: Context) {
         }
 
     fun save(config: WebDavConfig) {
-        db.putString(DB_KEY_URL, config.url.trim())
-        db.putString(DB_KEY_USERNAME, config.username.trim())
-        db.putString(DB_KEY_PASSWORD, config.password)
-        db.remove(DB_KEY_REMOTE_DIRECTORY)
+        db.inTransaction {
+            db.putString(DB_KEY_URL, config.url.trim())
+            db.putString(DB_KEY_USERNAME, config.username.trim())
+            db.putString(DB_KEY_PASSWORD, config.password)
+            db.remove(DB_KEY_REMOTE_DIRECTORY)
+        }
     }
 
     private fun migrateLegacyIfNeeded() {

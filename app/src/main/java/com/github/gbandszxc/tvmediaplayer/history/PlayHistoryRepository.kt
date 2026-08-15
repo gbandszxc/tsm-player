@@ -11,7 +11,7 @@ import java.util.UUID
 
 class PlayHistoryRepository(context: Context) {
 
-    private val dbHelper = FavoritesDbHelper(context.applicationContext)
+    private val dbHelper = FavoritesDbHelper.shared(context)
 
     fun record(track: PlayHistoryTrack) {
         val db = dbHelper.writableDatabase

@@ -5,7 +5,7 @@ import android.content.Context
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
 
 class AppSettingsDbStore(context: Context) {
-    private val dbHelper = FavoritesDbHelper(context.applicationContext)
+    private val dbHelper = FavoritesDbHelper.shared(context)
 
     fun getString(key: String): String? =
         dbHelper.readableDatabase.query(
@@ -41,6 +41,22 @@ class AppSettingsDbStore(context: Context) {
 
     fun removePrefix(prefix: String) {
         dbHelper.writableDatabase.delete(TABLE, "$COLUMN_KEY LIKE ?", arrayOf("$prefix%"))
+    }
+
+    /**
+     * 将多次读写合并为同一个事务：既减少逐条写入的 fsync 开销，
+     * 也保证批量写入（如保存连接、播放快照）的原子性。
+     */
+    fun <T> inTransaction(block: () -> T): T {
+        val db = dbHelper.writableDatabase
+        db.beginTransaction()
+        try {
+            val result = block()
+            db.setTransactionSuccessful()
+            return result
+        } finally {
+            db.endTransaction()
+        }
     }
 
     fun getInt(key: String): Int? = getString(key)?.toIntOrNull()

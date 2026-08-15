@@ -9,7 +9,7 @@ import java.util.UUID
 
 class FavoritesRepository(context: Context) {
 
-    private val dbHelper = FavoritesDbHelper(context.applicationContext)
+    private val dbHelper = FavoritesDbHelper.shared(context)
 
     fun getPlaylists(): List<FavoritePlaylist> {
         dbHelper.ensureDefaultPlaylist()

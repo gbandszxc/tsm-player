@@ -67,6 +67,8 @@ class SqliteBackupManager(context: Context) {
 
     fun exportToFile(target: File): BackupOperationResult {
         val source = appContext.getDatabasePath(FavoritesDbHelper.DB_NAME)
+        // 导出前关闭共享连接：保证 WAL checkpoint 落盘完整，文件句柄生命周期可控
+        FavoritesDbHelper.resetShared(appContext)
         if (!source.exists()) {
             FavoritesDbHelper(appContext).use { it.ensureDefaultPlaylist() }
         }
@@ -98,6 +100,8 @@ class SqliteBackupManager(context: Context) {
 
         val target = appContext.getDatabasePath(FavoritesDbHelper.DB_NAME)
         return runCatching {
+            // 替换主库前关闭共享连接：旧连接持有被覆盖文件的句柄时，后续读写会命中旧页缓存
+            FavoritesDbHelper.resetShared(appContext)
             target.parentFile?.mkdirs()
             deleteWalFiles(target)
             verifiedCopy.copyTo(target, overwrite = true)
@@ -114,6 +118,7 @@ class SqliteBackupManager(context: Context) {
         File(appContext.getExternalFilesDir(null) ?: appContext.filesDir, "backups").apply { mkdirs() }
 
     private fun checkpointDatabase() {
+        // 临时连接执行 checkpoint 后立即关闭，不持有文件句柄
         FavoritesDbHelper(appContext).use { helper ->
             helper.writableDatabase.rawQuery("PRAGMA wal_checkpoint(FULL)", emptyArray()).use { cursor ->
                 if (cursor.moveToFirst()) {

@@ -15,19 +15,20 @@ class LocalFileRepository {
         }
         require(directory.isDirectory && directory.canRead()) { "Local directory is unavailable" }
 
+        val rootPath = root.toPath()
         directory.listFiles().orEmpty().mapNotNull { file ->
             val name = file.name.trim()
             if (name.isBlank() || file.isHidden) return@mapNotNull null
             when {
                 file.isDirectory -> SmbEntry(
                     name = name,
-                    fullPath = root.toPath().relativize(file.canonicalFile.toPath()).toString().replace('\\', '/'),
+                    fullPath = rootPath.relativize(file.canonicalFile.toPath()).toString().replace('\\', '/'),
                     isDirectory = true,
                     lastModifiedAt = file.lastModified().takeIf { it > 0L },
                 )
                 isAudioFile(name) -> SmbEntry(
                     name = name,
-                    fullPath = root.toPath().relativize(file.canonicalFile.toPath()).toString().replace('\\', '/'),
+                    fullPath = rootPath.relativize(file.canonicalFile.toPath()).toString().replace('\\', '/'),
                     isDirectory = false,
                     streamUri = file.toURI().toString(),
                     sizeBytes = file.length(),

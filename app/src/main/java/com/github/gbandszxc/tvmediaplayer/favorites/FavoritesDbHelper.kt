@@ -45,10 +45,12 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
         }
     }
 
+    /**
+     * 复用 helper 提供的单条连接，不做关闭；helper 由进程级 [shared] 统一持有，
+     * 关闭共享连接会破坏其它正在进行的读写（历史 bug：use{} 会 close 整个库）。
+     */
     fun ensureDefaultPlaylist() {
-        writableDatabase.use { db ->
-            insertDefaultPlaylist(db)
-        }
+        insertDefaultPlaylist(writableDatabase)
     }
 
     private fun insertDefaultPlaylist(db: SQLiteDatabase) {
@@ -386,5 +388,21 @@ class FavoritesDbHelper(context: Context) : SQLiteOpenHelper(context, DB_NAME, n
         const val LEGACY_FAVORITES_DB_NAME = "favorites.db"
         const val DB_VERSION = 4
         const val DEFAULT_PLAYLIST_NAME = "收藏夹"
+
+        private val sharedByApp = java.util.concurrent.ConcurrentHashMap<Context, FavoritesDbHelper>()
+
+        /** 进程内按 applicationContext 共享单条 SQLite 连接，避免重复打开与 fd 泄漏 */
+        fun shared(context: Context): FavoritesDbHelper =
+            sharedByApp.getOrPut(context.applicationContext) { FavoritesDbHelper(context.applicationContext) }
+
+        /**
+         * 主库文件被整体替换（备份导入）后调用：关闭旧的共享连接，
+         * 后续访问会基于新文件重新打开，避免读到旧页缓存。
+         */
+        fun resetShared(context: Context) {
+            sharedByApp.remove(context.applicationContext)?.let { helper ->
+                runCatching { helper.close() }
+            }
+        }
     }
 }
