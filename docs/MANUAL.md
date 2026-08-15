@@ -297,3 +297,15 @@ docs/icon/icon_final_preview.png
 
 脚本会更新 `mipmap-mdpi` 到 `mipmap-xxxhdpi` 下的 `ic_launcher.png`、`ic_launcher_round.png` 和 `ic_launcher_foreground.png`。生成后需至少执行 `.\gradlew.bat assembleDebug` 确认 Debug APK 可打包。
 
+## 18. 代码质量专项（refactor/code-quality 分支）
+
+2026-08-15 在 `refactor/code-quality` 分支完成一轮全局代码 review 与改造，前提是功能与交互逻辑不变，共 5 个批次提交：
+
+1. **死代码清理**：删除生产代码中无引用的 `FakeSmbRepository`、`TsmModalBuilders`、`FavoritePlaylistChoiceAdapter` 与若干无调用方法；同步删除 7 条无引用字符串（中英）、1 个 drawable、1 个 color、3 个 dimens、1 个 style，并同步 `DESIGN.md` token 表；移除未直接使用的 `recyclerview` 显式依赖（leanback 传递提供，`appcompat` 因 `fontFamily` attr 依赖保留）。
+2. **数据层**：`FavoritesDbHelper` 改为按 applicationContext 进程级共享单连接（`FavoritesDbHelper.shared()/resetShared()`），修复各 Store 重复开库与 `ensureDefaultPlaylist` 误关共享库的问题；`AppSettingsDbStore` 新增 `inTransaction` 批量写入；`SmbConfigStore` 全部 suspend 方法切 `Dispatchers.IO`、legacy 迁移一次性标志、多写合并单事务、迁移解码失败增加日志；`SleepTimerStore` 增加原始状态 1s 短缓存（播放页 300ms ticker 不再反复查库）；`LastPlaybackStore` 读写合并单事务。备份导入前 `resetShared` 关闭旧连接，替换主库后自动重开，避免旧页缓存。
+3. **播放层**：`SmbContextFactory` 按 `SmbConfig` 缓存 `CIFSContext`（连接复用），四处重复的 `buildContext` 收敛到工厂；`SmbAudioMetadataProbe` 内存缓存改 16MB 字节预算 LruCache、miss 集合封顶、`probeArtwork` 读穿复用 `probe()` 缓存；`PlaybackArtworkCache`/`PlaybackLyricsCache` 磁盘键由 `String.hashCode` 改 MD5（防碰撞串图/串歌词），内存缓存按字节/条目数封顶；`SmbDataSource` 增加预读世代标记修复复用实例时旧预读线程污染新队列的竞态；`PlaybackService` 切歌快照主线程采集、IO 落盘，睡眠到点路径保持同步写盘。
+4. **UI 层**：播放页收藏状态按曲目 key 记忆化、歌词渲染 timeline+高亮行未变时跳过重建、进度文本去重；浏览页状态收集绑定 `viewLifecycleOwner`、工具栏按钮按组合 key 去重、目录指纹增加列表恒等短路、`SimpleDateFormat` ThreadLocal 复用；收藏页歌单 tile 查询移出主线程、Back 关闭弹窗后重置去重闩；历史页查询切 IO；设置页缓存统计/清理切 IO；五个页面的 `MediaController` future 回调增加释放竞态守卫。
+5. **安全加固**：`AppUpdateManager` 单一 `MainScope` + Activity 存活守卫 + APK 临时目录清理；WebDAV 上传分块传输防 OOM、URL 解析错误映射为可读提示；`MainActivity` 定位 Intent 改进程内随机 token（凭据不再进 exported 组件 extras）；新增 `res/xml/backup_rules.xml` 与 `data_extraction_rules.xml` 将含明文凭据的主库排除出 Android 云备份（设备直连迁移保留）。
+
+注意事项：封面/歌词磁盘缓存键格式升级为 MD5，升级后首次使用视为缓存未命中（旧文件等待“清理缓存”或系统回收）；`FavoritesDbHelper.shared()` 语义要求新代码不要再直接 `FavoritesDbHelper(context)` 长期持连接。全部改动通过 `testDebugUnitTest`（247 项）与 `assembleDebug` 双 ABI 打包验证。
+
