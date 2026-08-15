@@ -55,6 +55,9 @@ class WebDavBackupClient(
         ensureConfiguredCollection(config)
         val connection = open(config, fileName, "PUT").apply {
             doOutput = true
+            // 分块传输：不设流式模式时 HttpURLConnection 会把整个请求体缓存在
+            // Java 堆中以计算 Content-Length，主库备份可达数十 MB，存在 OOM 风险
+            setChunkedStreamingMode(8192)
             setRequestProperty("Content-Type", "application/octet-stream")
         }
         try {
@@ -104,7 +107,7 @@ class WebDavBackupClient(
     }
 
     private fun open(config: WebDavConfig, fileName: String, method: String): HttpURLConnection {
-        return connectionFactory(URL(resolveFileUrl(config, fileName))).apply {
+        return connectionFactory(toUrl(resolveFileUrl(config, fileName))).apply {
             setRequestMethodCompat(method)
             connectTimeout = 15_000
             readTimeout = 30_000
@@ -126,7 +129,7 @@ class WebDavBackupClient(
     }
 
     private fun ensureConfiguredCollection(config: WebDavConfig): EnsureCollectionResult {
-        val collectionUrl = URL(normalizeCollectionUrl(config.url))
+        val collectionUrl = toUrl(normalizeCollectionUrl(config.url))
         return ensureCollection(config, collectionUrl, mutableSetOf())
     }
 
@@ -172,6 +175,13 @@ class WebDavBackupClient(
         }
     }
 
+    /** URL 解析失败（缺 scheme、非法字符等）统一映射为可读的 WebDAV 配置错误 */
+    private fun toUrl(raw: String): URL = try {
+        URL(raw)
+    } catch (ex: java.net.MalformedURLException) {
+        throw WebDavException(messages.invalidDirectory(raw))
+    }
+
     private fun resolveFileUrl(config: WebDavConfig, fileName: String): String {
         val base = normalizeCollectionUrl(config.url)
         val encodedFile = encodePathSegment(fileName)
@@ -180,15 +190,23 @@ class WebDavBackupClient(
 
     private fun normalizeCollectionUrl(value: String): String {
         val trimmed = value.trim()
-        return if (trimmed.endsWith("/") && URL(trimmed).path != "/") {
-            trimmed.trimEnd('/')
-        } else {
-            trimmed
+        return try {
+            if (trimmed.endsWith("/") && URL(trimmed).path != "/") {
+                trimmed.trimEnd('/')
+            } else {
+                trimmed
+            }
+        } catch (ex: java.net.MalformedURLException) {
+            throw WebDavException(messages.invalidDirectory(trimmed))
         }
     }
 
     private fun parentCollectionUrl(url: URL): URL? {
-        val uri = url.toURI()
+        val uri = try {
+            url.toURI()
+        } catch (ex: java.net.URISyntaxException) {
+            throw WebDavException(messages.invalidDirectory(url.toString()))
+        }
         val path = uri.path.trimEnd('/')
         val parentPath = path.substringBeforeLast('/', missingDelimiterValue = "")
         if (parentPath.isBlank()) return null

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ 云备份排除主库（含 SMB/WebDAV 明文凭据）；
+     设备间直连迁移保留，属用户主动的加密本地通道 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+            domain="database"
+            path="tsm-player.db" />
+    </cloud-backup>
+</data-extraction-rules>

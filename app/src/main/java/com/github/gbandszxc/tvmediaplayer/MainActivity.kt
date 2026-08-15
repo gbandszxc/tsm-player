@@ -3,7 +3,6 @@ package com.github.gbandszxc.tvmediaplayer
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLocationResolver
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStartup
@@ -74,64 +73,38 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private const val EXTRA_LOCATE_MEDIA_ID = "playback_locate_media_id"
-        private const val EXTRA_LOCATE_DIRECTORY_PATH = "playback_locate_directory_path"
-        private const val EXTRA_LOCATE_CONNECTION_ID = "playback_locate_connection_id"
-        private const val EXTRA_LOCATE_HOST = "playback_locate_host"
-        private const val EXTRA_LOCATE_SHARE = "playback_locate_share"
-        private const val EXTRA_LOCATE_PATH = "playback_locate_path"
-        private const val EXTRA_LOCATE_USERNAME = "playback_locate_username"
-        private const val EXTRA_LOCATE_PASSWORD = "playback_locate_password"
-        private const val EXTRA_LOCATE_GUEST = "playback_locate_guest"
-        private const val EXTRA_LOCATE_SMB1 = "playback_locate_smb1"
+        private const val EXTRA_LOCATE_TOKEN = "playback_locate_token"
+
+        /**
+         * MainActivity 是 exported 组件，SMB 连接（含密码）不再放入 intent extras，
+         * 改为进程内单槽暂存 + 随机 token 关联：外部应用伪造的 locate intent
+         * 因 token 不匹配而被直接忽略，应用内定位流程不受影响。
+         */
+        @Volatile
+        private var pendingLocateTarget: PlaybackLocationResolver.Target? = null
+        @Volatile
+        private var pendingLocateToken: String? = null
 
         fun createLocateIntent(context: Context, target: PlaybackLocationResolver.Target): Intent {
+            val token = java.util.UUID.randomUUID().toString()
+            pendingLocateTarget = target
+            pendingLocateToken = token
             return Intent(context, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                putExtra(EXTRA_LOCATE_MEDIA_ID, target.mediaId)
-                putExtra(EXTRA_LOCATE_DIRECTORY_PATH, target.directoryPath)
-                putExtra(EXTRA_LOCATE_CONNECTION_ID, target.sourceConnectionId)
-                putExtra(EXTRA_LOCATE_HOST, target.sourceConfig.host)
-                putExtra(EXTRA_LOCATE_SHARE, target.sourceConfig.share)
-                putExtra(EXTRA_LOCATE_PATH, target.sourceConfig.path)
-                putExtra(EXTRA_LOCATE_USERNAME, target.sourceConfig.username)
-                putExtra(EXTRA_LOCATE_PASSWORD, target.sourceConfig.password)
-                putExtra(EXTRA_LOCATE_GUEST, target.sourceConfig.guest)
-                putExtra(EXTRA_LOCATE_SMB1, target.sourceConfig.smb1Enabled)
+                putExtra(EXTRA_LOCATE_TOKEN, token)
             }
         }
 
         private fun readPlaybackLocateTarget(intent: Intent?): PlaybackLocationResolver.Target? {
             val locateIntent = intent ?: return null
-            val directoryPath = locateIntent.getStringExtra(EXTRA_LOCATE_DIRECTORY_PATH).orEmpty()
-            if (directoryPath.isBlank()) return null
-            return PlaybackLocationResolver.Target(
-                mediaId = locateIntent.getStringExtra(EXTRA_LOCATE_MEDIA_ID).orEmpty(),
-                directoryPath = directoryPath,
-                sourceConnectionId = locateIntent.getStringExtra(EXTRA_LOCATE_CONNECTION_ID),
-                sourceConfig = SmbConfig(
-                    host = locateIntent.getStringExtra(EXTRA_LOCATE_HOST).orEmpty(),
-                    share = locateIntent.getStringExtra(EXTRA_LOCATE_SHARE).orEmpty(),
-                    path = locateIntent.getStringExtra(EXTRA_LOCATE_PATH).orEmpty(),
-                    username = locateIntent.getStringExtra(EXTRA_LOCATE_USERNAME).orEmpty(),
-                    password = locateIntent.getStringExtra(EXTRA_LOCATE_PASSWORD).orEmpty(),
-                    guest = locateIntent.getBooleanExtra(EXTRA_LOCATE_GUEST, true),
-                    smb1Enabled = locateIntent.getBooleanExtra(EXTRA_LOCATE_SMB1, false)
-                )
-            )
+            val token = locateIntent.getStringExtra(EXTRA_LOCATE_TOKEN)
+            if (token.isNullOrBlank() || token != pendingLocateToken) return null
+            pendingLocateToken = null
+            return pendingLocateTarget.also { pendingLocateTarget = null }
         }
 
         private fun clearPlaybackLocateExtras(intent: Intent?) {
-            intent?.removeExtra(EXTRA_LOCATE_MEDIA_ID)
-            intent?.removeExtra(EXTRA_LOCATE_DIRECTORY_PATH)
-            intent?.removeExtra(EXTRA_LOCATE_CONNECTION_ID)
-            intent?.removeExtra(EXTRA_LOCATE_HOST)
-            intent?.removeExtra(EXTRA_LOCATE_SHARE)
-            intent?.removeExtra(EXTRA_LOCATE_PATH)
-            intent?.removeExtra(EXTRA_LOCATE_USERNAME)
-            intent?.removeExtra(EXTRA_LOCATE_PASSWORD)
-            intent?.removeExtra(EXTRA_LOCATE_GUEST)
-            intent?.removeExtra(EXTRA_LOCATE_SMB1)
+            intent?.removeExtra(EXTRA_LOCATE_TOKEN)
         }
     }
 }

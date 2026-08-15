@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 云备份排除主库：库内含 SMB/WebDAV 明文凭据，跨设备迁移请使用应用内
+     备份恢复（本地导出 / WebDAV），其上传与存储路径由用户自己掌控 -->
+<full-backup-content>
+    <exclude
+        domain="database"
+        path="tsm-player.db" />
+</full-backup-content>

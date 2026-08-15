@@ -35,6 +35,9 @@ object AppUpdateManager {
     private const val PROGRESS_UPDATE_INTERVAL_MS = 500L
     private var automaticCheckStarted = false
 
+    /** 进程内单一主线程作用域：此前每次调用都新建 MainScope 且从不取消 */
+    private val scope = MainScope()
+
     data class UpdateInfo(
         val versionName: String,
         val assetName: String,
@@ -56,40 +59,38 @@ object AppUpdateManager {
     }
 
     fun checkAndPrompt(activity: Activity, silentWhenNoUpdate: Boolean) {
-        MainScope().let { scope ->
-            scope.launchSafely(activity) {
-                val result = withContext(Dispatchers.IO) {
-                    runCatching { fetchLatestUpdate() }
-                }
-                if (activity.isFinishing || activity.isDestroyed) return@launchSafely
-                result.fold(
-                    onSuccess = { update ->
-                        if (update == null) {
-                            if (!silentWhenNoUpdate) {
-                                Toast.makeText(activity, R.string.update_latest_version, Toast.LENGTH_SHORT).show()
-                            }
-                        } else if (silentWhenNoUpdate &&
-                            UpdatePromptSnoozeStore(activity).shouldSkipAutomaticPrompt(update.versionName)
-                        ) {
-                            return@launchSafely
-                        } else {
-                            showUpdateDialog(activity, update)
-                        }
-                    },
-                    onFailure = { error ->
-                        if (!silentWhenNoUpdate) {
-                            Toast.makeText(
-                                activity,
-                                activity.getString(
-                                    R.string.update_check_failed,
-                                    error.message ?: activity.getString(R.string.update_network_unavailable),
-                                ),
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                )
+        scope.launchSafely(activity) {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { fetchLatestUpdate() }
             }
+            if (activity.isFinishing || activity.isDestroyed) return@launchSafely
+            result.fold(
+                onSuccess = { update ->
+                    if (update == null) {
+                        if (!silentWhenNoUpdate) {
+                            Toast.makeText(activity, R.string.update_latest_version, Toast.LENGTH_SHORT).show()
+                        }
+                    } else if (silentWhenNoUpdate &&
+                        UpdatePromptSnoozeStore(activity).shouldSkipAutomaticPrompt(update.versionName)
+                    ) {
+                        return@launchSafely
+                    } else {
+                        showUpdateDialog(activity, update)
+                    }
+                },
+                onFailure = { error ->
+                    if (!silentWhenNoUpdate) {
+                        Toast.makeText(
+                            activity,
+                            activity.getString(
+                                R.string.update_check_failed,
+                                error.message ?: activity.getString(R.string.update_network_unavailable),
+                            ),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            )
         }
     }
 
@@ -245,33 +246,35 @@ object AppUpdateManager {
             )
         )
 
-        MainScope().let { scope ->
-            scope.launchSafely(activity) {
-                val result = withContext(Dispatchers.IO) {
-                    runCatching {
-                        downloadApk(activity, update) { state ->
-                            activity.runOnUiThread {
+        scope.launchSafely(activity) {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    downloadApk(activity, update) { state ->
+                        activity.runOnUiThread {
+                            if (!activity.isFinishing && !activity.isDestroyed) {
                                 progressHandle.onProgress(state)
                             }
                         }
                     }
                 }
-                progressHandle.onDismiss()
-                if (activity.isFinishing || activity.isDestroyed) return@launchSafely
-                result.fold(
-                    onSuccess = { installApk(activity, it) },
-                    onFailure = {
-                        Toast.makeText(
-                            activity,
-                            activity.getString(
-                                R.string.update_download_failed,
-                                it.message ?: activity.getString(R.string.update_network_unavailable),
-                            ),
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                )
             }
+            if (!activity.isFinishing && !activity.isDestroyed) {
+                progressHandle.onDismiss()
+            }
+            if (activity.isFinishing || activity.isDestroyed) return@launchSafely
+            result.fold(
+                onSuccess = { installApk(activity, it) },
+                onFailure = {
+                    Toast.makeText(
+                        activity,
+                        activity.getString(
+                            R.string.update_download_failed,
+                            it.message ?: activity.getString(R.string.update_network_unavailable),
+                        ),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            )
         }
     }
 
@@ -280,7 +283,11 @@ object AppUpdateManager {
         update: UpdateInfo,
         onProgress: (DownloadProgressState) -> Unit
     ): File {
-        val dir = File(context.cacheDir, "updates").apply { mkdirs() }
+        val dir = File(context.cacheDir, "updates").apply {
+            mkdirs()
+            // 目录内只保留本次下载：清掉历史版本 APK 与中断残留的半成品文件
+            listFiles()?.forEach { it.delete() }
+        }
         val apk = File(dir, update.assetName)
         val connection = openConnection(update.downloadUrl)
         try {
@@ -322,6 +329,9 @@ object AppUpdateManager {
                     )
                 }
             }
+        } catch (t: Throwable) {
+            apk.delete()
+            throw t
         } finally {
             connection.disconnect()
         }
@@ -344,7 +354,7 @@ object AppUpdateManager {
                 message = activity.getString(R.string.update_preview_download_message),
             )
         )
-        MainScope().launchSafely(activity) {
+        scope.launchSafely(activity) {
             var downloaded = 0L
             var tick = 0
             while (downloaded < totalBytes && !activity.isFinishing && !activity.isDestroyed) {
