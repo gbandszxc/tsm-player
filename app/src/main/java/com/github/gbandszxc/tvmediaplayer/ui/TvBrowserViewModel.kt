@@ -388,10 +388,6 @@ class TvBrowserViewModel(
         _state.update { it.copy(toast = null) }
     }
 
-    fun consumeInlineMessage() {
-        _state.update { it.copy(inlineMessage = null) }
-    }
-
     fun navigateUp(): Boolean {
         if (_state.value.currentPath.isBlank()) return false
         updateCurrentPath(_state.value.currentPath.substringBeforeLast('/', ""))

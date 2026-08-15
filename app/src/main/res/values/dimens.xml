@@ -2,7 +2,6 @@
 <resources>
     <dimen name="ui_radius_none">0dp</dimen>
     <dimen name="ui_radius_indicator">2dp</dimen>
-    <dimen name="ui_radius_tag">3dp</dimen>
     <dimen name="ui_radius_item">4dp</dimen>
     <dimen name="ui_radius_button">6dp</dimen>
     <dimen name="ui_radius_panel">8dp</dimen>
@@ -15,14 +14,12 @@
     <dimen name="ui_playback_favorite_button_expanded_min_width">96dp</dimen>
     <dimen name="ui_playback_locate_button_expanded_min_width">96dp</dimen>
     <dimen name="ui_playback_sleep_button_expanded_min_width">96dp</dimen>
-    <dimen name="ui_sleep_stepper_width">132dp</dimen>
     <dimen name="ui_sleep_preset_min_width">112dp</dimen>
     <dimen name="ui_sleep_preset_wide_min_width">128dp</dimen>
     <dimen name="ui_sleep_action_min_width">132dp</dimen>
     <dimen name="ui_sleep_back_min_width">100dp</dimen>
     <dimen name="ui_playlist_tile_width">180dp</dimen>
     <dimen name="ui_playlist_tile_height">148dp</dimen>
-    <dimen name="ui_favorites_delete_button_width">56dp</dimen>
     <dimen name="ui_browser_size_column_width">72dp</dimen>
     <dimen name="ui_browser_time_column_width">140dp</dimen>
     <dimen name="ui_browser_grid_min_item_width">160dp</dimen>

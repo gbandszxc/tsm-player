@@ -87,12 +87,6 @@ object SmbAudioMetadataProbe {
         }
     }
 
-    fun clearMemory() {
-        memoryCache.clear()
-        missingKeys.clear()
-        missingArtworkKeys.clear()
-    }
-
     private fun buildKey(config: SmbConfig, mediaUri: String): String {
         return listOf(
             mediaUri.trim(),

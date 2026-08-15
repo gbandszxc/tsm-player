@@ -53,15 +53,6 @@ object UiSettingsStore {
         return globalScalePresets[(index + 1).coerceAtMost(globalScalePresets.lastIndex)]
     }
 
-    fun cycleGlobalScalePreset(context: Context): Int {
-        val current = globalScalePercent(context)
-        val index = globalScalePresets.indexOf(current).coerceAtLeast(0)
-        val nextIndex = (index + 1) % globalScalePresets.size
-        val next = globalScalePresets[nextIndex]
-        setGlobalScalePercent(context, next)
-        return next
-    }
-
     fun playbackLyricsFontSp(context: Context): Int {
         val value = db(context).getInt(dbKey(KEY_PLAYBACK_LYRICS_FONT_SP))
             ?: prefs(context).takeIf { it.contains(KEY_PLAYBACK_LYRICS_FONT_SP) }

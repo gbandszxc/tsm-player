@@ -34,30 +34,6 @@ class PlaybackActivityLayoutTest {
     }
 
     @Test
-    fun `favorite playlist choices expose disabled rows to list selection`() {
-        val context = RuntimeEnvironment.getApplication()
-        val adapter = FavoritePlaylistChoiceAdapter(
-            context = context,
-            choices = listOf(
-                FavoritePlaylistChoice(
-                    playlistId = "already-added",
-                    label = "已收藏",
-                    disabled = true,
-                ),
-                FavoritePlaylistChoice(
-                    playlistId = "available",
-                    label = "可收藏",
-                    disabled = false,
-                ),
-            ),
-        )
-
-        assertFalse(adapter.areAllItemsEnabled())
-        assertFalse(adapter.isEnabled(0))
-        assertTrue(adapter.isEnabled(1))
-    }
-
-    @Test
     fun `buildFavoritePlaylistChoices puts create new item after playlists`() {
         val choices = PlaybackActivity.buildFavoritePlaylistChoicesForTest(
             playlists = listOf(

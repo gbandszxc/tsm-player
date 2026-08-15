@@ -40,7 +40,6 @@ tokens:
     ui_accent_yellow_stroke: "#FEF3C7"
     ui_accent_red: "#DC2626"
     ui_accent_red_focus: "#B91C1C"
-    ui_accent_red_stroke: "#FCA5A5"
     ui_accent_red_text: "#FEE2E2"
     ui_divider: "#1E3A5F"
     # 触屏点按反馈 overlay：仅用于触屏涟漪/加深，遥控器焦点态不触发
@@ -60,7 +59,6 @@ tokens:
   radii:
     ui_radius_none: "0dp"
     ui_radius_indicator: "2dp"
-    ui_radius_tag: "3dp"
     ui_radius_item: "4dp"
     ui_radius_button: "6dp"
     ui_radius_panel: "8dp"

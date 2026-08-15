@@ -34,10 +34,6 @@ class SmbLyricsRepository {
         val timeline: LrcTimeline? = null,
     )
 
-    suspend fun load(config: SmbConfig, entry: SmbEntry): LrcTimeline? {
-        return loadDetailed(config, entry).timeline
-    }
-
     suspend fun loadDetailed(config: SmbConfig, entry: SmbEntry): LoadResult = withContext(Dispatchers.IO) {
         if (entry.isDirectory || entry.streamUri.isNullOrBlank()) {
             return@withContext LoadResult(Status.MISS)

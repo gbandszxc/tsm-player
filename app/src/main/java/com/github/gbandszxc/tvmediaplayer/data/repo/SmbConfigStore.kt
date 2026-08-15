@@ -219,16 +219,6 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
 
     override fun newConnectionId(): String = UUID.randomUUID().toString()
 
-    private fun writeLegacy(preferences: androidx.datastore.preferences.core.MutablePreferences, config: SmbConfig) {
-        preferences[Keys.HOST] = config.host
-        preferences[Keys.SHARE] = config.share
-        preferences[Keys.PATH] = config.path
-        preferences[Keys.USERNAME] = config.username
-        preferences[Keys.PASSWORD] = config.password
-        preferences[Keys.GUEST] = config.guest
-        preferences[Keys.SMB1] = config.smb1Enabled
-    }
-
     private suspend fun migrateLegacyIfNeeded() {
         if (hasDbSmbState()) return
         val legacy = loadLegacyState()
@@ -383,31 +373,6 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         }.getOrDefault(emptyList())
     }
 
-    private fun encodeSaved(list: List<SavedSmbConnection>): String {
-        val array = JSONArray()
-        list.forEach { saved ->
-            array.put(
-                JSONObject().apply {
-                    put("id", saved.id)
-                    put("name", saved.name)
-                    put(
-                        "config",
-                        JSONObject().apply {
-                            put("host", saved.config.host)
-                            put("share", saved.config.share)
-                            put("path", saved.config.path)
-                            put("username", saved.config.username)
-                            put("password", saved.config.password)
-                            put("guest", saved.config.guest)
-                            put("smb1Enabled", saved.config.smb1Enabled)
-                        }
-                    )
-                }
-            )
-        }
-        return array.toString()
-    }
-
     private fun decodeBrowseAnchors(json: String?): MutableMap<String, BrowseFocusAnchor> {
         if (json.isNullOrBlank()) return mutableMapOf()
         return runCatching {
@@ -432,21 +397,6 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         }.getOrDefault(mutableMapOf())
     }
 
-    private fun encodeBrowseAnchors(anchors: Map<String, BrowseFocusAnchor>): String {
-        val root = JSONObject()
-        anchors.forEach { (key, anchor) ->
-            root.put(
-                key,
-                JSONObject().apply {
-                    put("itemKey", anchor.itemKey)
-                    put("index", anchor.index)
-                    put("updatedAt", anchor.updatedAt)
-                }
-            )
-        }
-        return root.toString()
-    }
-
     private fun Preferences.toLegacyConfig(): SmbConfig =
         SmbConfig(
             host = this[Keys.HOST].orEmpty(),
@@ -459,9 +409,6 @@ class SmbConfigStore(private val appContext: Context) : BrowserConfigStore {
         )
 
     private fun normalizeBrowsePath(path: String): String = path.trim().replace("\\", "/").trim('/')
-
-    private fun anchorKey(connectionId: String?, directoryPath: String): String =
-        "${connectionId.orEmpty()}|${normalizeBrowsePath(directoryPath)}"
 
     private object Keys {
         val HOST = stringPreferencesKey("host")

@@ -19,7 +19,6 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -92,26 +91,6 @@ internal data class FavoritePlaylistChoice(
     val createNew: Boolean = false,
 ) {
     override fun toString(): String = label
-}
-
-internal class FavoritePlaylistChoiceAdapter(
-    context: android.content.Context,
-    choices: List<FavoritePlaylistChoice>,
-) : ArrayAdapter<FavoritePlaylistChoice>(
-    context,
-    android.R.layout.simple_list_item_1,
-    choices,
-) {
-    override fun areAllItemsEnabled(): Boolean = false
-
-    override fun isEnabled(position: Int): Boolean = !getItem(position)!!.disabled
-
-    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val view = super.getView(position, convertView, parent)
-        view.isEnabled = isEnabled(position)
-        (view as? TextView)?.alpha = if (isEnabled(position)) 1f else 0.45f
-        return view
-    }
 }
 
 class PlaybackActivity : BaseActivity() {

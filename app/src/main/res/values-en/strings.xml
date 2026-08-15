@@ -3,9 +3,7 @@
 
     <string name="common_confirm">OK</string>
     <string name="common_cancel">Cancel</string>
-    <string name="common_delete">Delete</string>
     <string name="common_save">Save</string>
-    <string name="common_back">Back</string>
     <string name="common_play">Play</string>
     <string name="common_pause">Pause</string>
     <string name="common_previous">Previous</string>
@@ -170,10 +168,8 @@
     <string name="favorites_player_init_failed">Player is starting. Try again in a moment</string>
     <string name="favorites_player_connect_failed">Player connection failed</string>
     <string name="favorites_play_failed">Playback failed: %1$s</string>
-    <string name="favorites_empty_play_uri">Playback URL is empty</string>
     <string name="favorites_name_label">Name</string>
     <string name="favorites_playlist_already_added">%1$s (already in playlist)</string>
-    <string name="favorites_add_new_playlist_row">+ New Playlist</string>
 
     <string name="history_title">History</string>
     <string name="history_back">Back</string>
@@ -321,7 +317,6 @@
     <string name="smb_error_timeout">Connection timed out. Try again later</string>
     <string name="smb_error_unknown">SMB browsing failed. Check the configuration and try again</string>
     <string name="smb_host_required">SMB host address cannot be empty</string>
-    <string name="smb_host_share_required">SMB host address and share name cannot be empty</string>
 
     <string name="update_latest_version">You are on the latest version</string>
     <string name="update_check_failed">Update check failed: %1$s</string>
@@ -344,10 +339,8 @@
     <string name="update_preview_download_message">Preview mode: shows the download UI only and will not install APKs.</string>
     <string name="download_progress_downloaded_only">Downloaded %1$s MB</string>
 
-    <string name="modal_default_confirm">OK</string>
     <string name="modal_default_cancel">Cancel</string>
     <string name="modal_default_delete">Delete</string>
-    <string name="modal_progress_unit">%d%%</string>
 
     <string name="smb_connection_manager">Connection Manager</string>
     <string name="smb_switch_connection">Switch SMB Connection</string>

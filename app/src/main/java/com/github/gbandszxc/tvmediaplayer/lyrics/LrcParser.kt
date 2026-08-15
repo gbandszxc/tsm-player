@@ -14,10 +14,6 @@ object LrcParser {
     private val timeTag = Regex("\\[(\\d{2}):(\\d{2})(?:\\.(\\d{1,3}))?]")
     private val offsetTag = Regex("\\[offset:([+-]?\\d+)]", RegexOption.IGNORE_CASE)
 
-    fun parse(content: String): List<LyricLine> {
-        return parseTimeline(content).lines
-    }
-
     fun parseTimeline(content: String): LrcTimeline {
         val offset = offsetTag.find(content)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
         return content.lineSequence().flatMap { line ->
