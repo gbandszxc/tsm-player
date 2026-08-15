@@ -116,6 +116,11 @@ class PlaybackActivity : BaseActivity() {
 
     private var currentTimeline: LrcTimeline? = null
     private var currentLyricKey: String? = null
+    // 歌词重渲染去重：timeline 实例与高亮行都没变时跳过整段 Spannable 重建
+    private var renderedLyricsTimeline: LrcTimeline? = null
+    private var renderedLyricsLineIndex: Int = -1
+    // 进度时间文本去重：内容不变时不触发 TextView 重排
+    private var renderedProgressText: String? = null
     private var currentArtworkKey: String? = null
     private var currentArtworkBitmap: Bitmap? = null
     private var currentTagKey: String? = null
@@ -148,6 +153,7 @@ class PlaybackActivity : BaseActivity() {
     private var renderedPlaybackModeFocused: Boolean? = null
     private var currentTrackInDefaultFavorites: Boolean = false
     private var renderedFavoriteInDefault: Boolean? = null
+    private var favoriteStateCheckKey: String? = null
     private var renderedFavoriteFocused: Boolean? = null
     private var renderedLocateFocused: Boolean? = null
     private var renderedPlayPausePlaying: Boolean? = null
@@ -413,18 +419,21 @@ class PlaybackActivity : BaseActivity() {
         controllerFuture = future
         future.addListener(
             {
-                runCatching { future.get() }
-                    .onSuccess { controller ->
-                        mediaController = controller
-                        controller.addListener(playerListener)
-                        updatePlaybackModeFromPlayer(controller)
-                        renderPlayerState(controller)
-                        startProgressTicker()
-                    }
-                    .onFailure {
-                        controllerFuture = null
-                        Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
-                    }
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
+                    return@addListener
+                }
+                if (controllerFuture !== future) {
+                    // onStop 已释放该 future，不要持有已释放的 controller
+                    return@addListener
+                }
+                mediaController = controller
+                controller.addListener(playerListener)
+                updatePlaybackModeFromPlayer(controller)
+                renderPlayerState(controller)
+                startProgressTicker()
             },
             MoreExecutors.directExecutor()
         )
@@ -504,6 +513,14 @@ class PlaybackActivity : BaseActivity() {
 
     private fun refreshFavoriteState() {
         val track = currentFavoriteTrack()
+        val checkKey = track?.let(FavoriteTrackIdentity::keyOf)
+        // 同一曲目已查询过收藏状态时直接复用结果，避免每次播放器事件都查库；
+        // 收藏变更路径会重置 checkKey 触发重查
+        if (checkKey != null && checkKey == favoriteStateCheckKey) {
+            updateFavoriteButtonPresentation()
+            return
+        }
+        favoriteStateCheckKey = checkKey
         val inDefault = track?.let {
             favoritesRepository.containsTrack(FavoritesRepository.DEFAULT_PLAYLIST_ID, it)
         } ?: false
@@ -941,6 +958,7 @@ class PlaybackActivity : BaseActivity() {
             }
             else getString(R.string.favorites_already_in_playlist)
         )
+        favoriteStateCheckKey = null
         refreshFavoriteState()
     }
 
@@ -1006,6 +1024,7 @@ class PlaybackActivity : BaseActivity() {
                     isDanger = true,
                     onClick = {
                         favoritesRepository.removeTrack(playlistId, track)
+                        favoriteStateCheckKey = null
                         refreshFavoriteState()
                         invalidFavoriteDialogTrackKey = null
                     },
@@ -1099,7 +1118,11 @@ class PlaybackActivity : BaseActivity() {
 
     private fun renderProgress(positionMs: Long, durationMs: Long) {
         val safeDuration = if (durationMs <= 0 || durationMs == C.TIME_UNSET) 0L else durationMs
-        tvTime.text = "${formatMs(positionMs)} / ${formatMs(safeDuration)}"
+        val timeText = "${formatMs(positionMs)} / ${formatMs(safeDuration)}"
+        if (timeText != renderedProgressText) {
+            renderedProgressText = timeText
+            tvTime.text = timeText
+        }
         pbProgress.progress = if (safeDuration <= 0L) {
             0
         } else {
@@ -1116,7 +1139,10 @@ class PlaybackActivity : BaseActivity() {
         currentLyricKey = key
         currentTimeline = null
         PlaybackLyricsCache.get(key)?.let {
-            PlaybackLyricsCache.clearMiss(applicationContext, key)
+            // 文件删除是低频小操作，放后台避免在主线程做磁盘 IO
+            lifecycleScope.launch(Dispatchers.IO) {
+                PlaybackLyricsCache.clearMiss(applicationContext, key)
+            }
             currentTimeline = it
             renderLyrics(player.currentPosition)
             return
@@ -1201,6 +1227,15 @@ class PlaybackActivity : BaseActivity() {
             positionMs = positionMs,
         )
         val currentIndex = renderPlan.currentLineIndex
+        if (
+            timeline === renderedLyricsTimeline &&
+            currentIndex == renderedLyricsLineIndex &&
+            !renderPlan.shouldResetScrollToTop
+        ) {
+            return
+        }
+        renderedLyricsTimeline = timeline
+        renderedLyricsLineIndex = currentIndex
 
         val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
         val highlightColor = ContextCompat.getColor(this, android.R.color.white)

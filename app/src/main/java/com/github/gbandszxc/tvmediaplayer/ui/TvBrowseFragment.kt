@@ -86,6 +86,11 @@ class TvBrowseFragment : Fragment() {
     private val fastLocateConfirmGuard = FastLocateConfirmGuard()
     private val browseListRenderGate = BrowseListRenderGate()
 
+    /** 每行格式化开销大，进程内复用同一 SimpleDateFormat（仅主线程使用） */
+    private val modifiedTimeFormatter = java.lang.ThreadLocal.withInitial {
+        java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+    }
+
     private lateinit var panelConnection: View
     private lateinit var rootScroll: ScrollView
     private lateinit var btnBackTop: Button
@@ -291,12 +296,31 @@ class TvBrowseFragment : Fragment() {
         if (requestCode == REQUEST_LOCAL_STORAGE) viewModel.onLocalStoragePermissionChanged()
     }
 
+    /** 工具栏紧凑按钮的渲染去重 key：模式/视图模式/各按钮焦点都未变化时跳过重渲染 */
+    private var renderedBrowserButtonsKey: String? = null
+
     private fun updateBrowserPlaybackButtonPresentation() {
+        val stateValue = viewModel.state.value
+        val key = buildString {
+            append(stateValue.mode.name)
+            append('|')
+            append(stateValue.viewMode.name)
+            append('|')
+            append(btnBrowseMode.hasFocus())
+            append(btnViewMode.hasFocus())
+            append(btnFavorites.hasFocus())
+            append(btnHistory.hasFocus())
+            append(btnPlayAll.hasFocus())
+            append(btnPlayShuffle.hasFocus())
+        }
+        if (key == renderedBrowserButtonsKey) return
+        renderedBrowserButtonsKey = key
+
         applyBrowserButtonSpec(
             btnBrowseMode,
             PlaybackButtonPresentation.browserBrowseMode(
                 requireContext(),
-                local = viewModel.state.value.mode == BrowseMode.LOCAL,
+                local = stateValue.mode == BrowseMode.LOCAL,
                 focused = btnBrowseMode.hasFocus(),
             ),
         )
@@ -304,7 +328,7 @@ class TvBrowseFragment : Fragment() {
             btnViewMode,
             PlaybackButtonPresentation.browserViewMode(
                 requireContext(),
-                grid = viewModel.state.value.viewMode == BrowserViewMode.GRID,
+                grid = stateValue.viewMode == BrowserViewMode.GRID,
                 focused = btnViewMode.hasFocus(),
             ),
         )
@@ -355,7 +379,8 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun collectState() {
-        lifecycleScope.launch {
+        // 绑定 viewLifecycleOwner：view 销毁后不再向已分离的视图树 render
+        viewLifecycleOwner.lifecycleScope.launch {
             viewModel.state.collect { state ->
                 render(state)
                 state.toast?.let {
@@ -419,7 +444,7 @@ class TvBrowseFragment : Fragment() {
             calculateGridLayout(filesContainer.width)
         }
         val renderKey = "${state.currentPath}|${state.sortOption.name}|${state.viewMode}|$gridLayout"
-        if (browseListRenderGate.shouldRebuild(renderKey, displayEntries)) {
+        if (browseListRenderGate.shouldRebuild(renderKey, displayEntries, state.entries)) {
             renderFileItems(state, displayEntries)
         }
         ensureBrowseFocus(state, displayEntries)
@@ -863,16 +888,16 @@ class TvBrowseFragment : Fragment() {
         controllerFuture = future
         future.addListener(
             {
-                runCatching { future.get() }
-                    .onSuccess { controller ->
-                        mediaController = controller
-                        controller.addListener(browsePlayerListener)
-                        updateNowPlayingButton()
-                    }
-                    .onFailure {
-                        controllerFuture = null
-                        Toast.makeText(requireContext(), R.string.browser_player_connect_failed, Toast.LENGTH_SHORT).show()
-                    }
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    Toast.makeText(requireContext(), R.string.browser_player_connect_failed, Toast.LENGTH_SHORT).show()
+                    return@addListener
+                }
+                if (controllerFuture !== future) return@addListener
+                mediaController = controller
+                controller.addListener(browsePlayerListener)
+                updateNowPlayingButton()
             },
             MoreExecutors.directExecutor()
         )
@@ -1129,8 +1154,7 @@ class TvBrowseFragment : Fragment() {
     @VisibleForTesting
     internal fun formatModifiedTime(timestamp: Long?): String {
         if (timestamp == null) return "--"
-        val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-        return formatter.format(java.util.Date(timestamp))
+        return modifiedTimeFormatter.get().format(java.util.Date(timestamp))
     }
 
     @VisibleForTesting

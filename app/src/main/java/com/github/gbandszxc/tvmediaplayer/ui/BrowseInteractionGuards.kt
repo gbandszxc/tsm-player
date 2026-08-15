@@ -43,8 +43,28 @@ class FastLocateConfirmGuard {
 class BrowseListRenderGate {
 
     private var lastFingerprint: String? = null
+    private var lastDirectoryPath: String? = null
+    private var lastEntries: List<SmbEntry>? = null
 
-    fun shouldRebuild(directoryPath: String, entries: List<SmbEntry>): Boolean {
+    /**
+     * @param directoryPath 渲染指纹（路径+排序+视图模式等）
+     * @param entries 本次要渲染的完整条目（可能每次重新拼装）
+     * @param identityEntries 状态流中的原始条目引用，内容未变时实例恒等，
+     *        用于先于指纹构建做 O(1) 短路
+     */
+    fun shouldRebuild(
+        directoryPath: String,
+        entries: List<SmbEntry>,
+        identityEntries: List<SmbEntry>? = null,
+    ): Boolean {
+        if (
+            identityEntries != null &&
+            identityEntries === lastEntries &&
+            directoryPath == lastDirectoryPath &&
+            lastFingerprint != null
+        ) {
+            return false
+        }
         val fingerprint = buildString(entries.size * 24 + directoryPath.length + 16) {
             append(directoryPath)
             append('#')
@@ -59,11 +79,15 @@ class BrowseListRenderGate {
         }
         if (fingerprint == lastFingerprint) return false
         lastFingerprint = fingerprint
+        lastDirectoryPath = directoryPath
+        lastEntries = identityEntries ?: entries
         return true
     }
 
     fun reset() {
         lastFingerprint = null
+        lastDirectoryPath = null
+        lastEntries = null
     }
 }
 

@@ -43,6 +43,9 @@ class LyricsFullscreenActivity : BaseActivity() {
 
     private var currentTimeline: LrcTimeline? = null
     private var currentLyricKey: String? = null
+    // 歌词重渲染去重：timeline 实例与高亮行都没变时跳过整段 Spannable 重建
+    private var renderedLyricsTimeline: LrcTimeline? = null
+    private var renderedLyricsLineIndex: Int = -1
 
     private lateinit var tvTitle: TextView
     private lateinit var scrollLyrics: ScrollView
@@ -101,18 +104,18 @@ class LyricsFullscreenActivity : BaseActivity() {
         controllerFuture = future
         future.addListener(
             {
-                runCatching { future.get() }
-                    .onSuccess { controller ->
-                        mediaController = controller
-                        controller.addListener(playerListener)
-                        maybeLoadLyrics(controller)
-                        renderLyrics(controller.currentPosition)
-                        startTicker()
-                    }
-                    .onFailure {
-                        controllerFuture = null
-                        Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
-                    }
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    Toast.makeText(this, R.string.playback_player_connect_failed, Toast.LENGTH_SHORT).show()
+                    return@addListener
+                }
+                if (controllerFuture !== future) return@addListener
+                mediaController = controller
+                controller.addListener(playerListener)
+                maybeLoadLyrics(controller)
+                renderLyrics(controller.currentPosition)
+                startTicker()
             },
             MoreExecutors.directExecutor()
         )
@@ -156,7 +159,10 @@ class LyricsFullscreenActivity : BaseActivity() {
 
         // 内存缓存命中
         PlaybackLyricsCache.get(key)?.let {
-            PlaybackLyricsCache.clearMiss(applicationContext, key)
+            // 文件删除放后台，避免主线程磁盘 IO
+            lifecycleScope.launch(Dispatchers.IO) {
+                PlaybackLyricsCache.clearMiss(applicationContext, key)
+            }
             currentTimeline = it
             renderLyrics(player.currentPosition)
             return
@@ -229,6 +235,15 @@ class LyricsFullscreenActivity : BaseActivity() {
             positionMs = positionMs,
         )
         val currentIndex = renderPlan.currentLineIndex
+        if (
+            timeline === renderedLyricsTimeline &&
+            currentIndex == renderedLyricsLineIndex &&
+            !renderPlan.shouldResetScrollToTop
+        ) {
+            return
+        }
+        renderedLyricsTimeline = timeline
+        renderedLyricsLineIndex = currentIndex
 
         val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
         val highlightColor = ContextCompat.getColor(this, android.R.color.white)

@@ -168,6 +168,8 @@ class FavoritesActivity : BaseActivity() {
         currentPlaylist = null
         currentTracks = emptyList()
         activeFavoritePlaybackMediaIds = emptySet()
+        // 视图重建后重置失效歌曲弹窗的去重闩，避免 Back 关闭弹窗后提示被永久抑制
+        invalidDialogTrackId = null
         tvTitle.text = getString(R.string.favorites_title)
         updateDeletePlaylistButton(null)
         scrollPlaylists.visibility = View.VISIBLE
@@ -186,6 +188,7 @@ class FavoritesActivity : BaseActivity() {
     private fun showTracks(playlist: FavoritePlaylist) {
         currentPlaylist = playlist
         currentTracks = repository.getTracks(playlist.id)
+        invalidDialogTrackId = null
         activeFavoritePlaybackMediaIds = emptySet()
         tvTitle.text = playlistDisplayName(playlist)
         updateDeletePlaylistButton(playlist)
@@ -575,15 +578,15 @@ class FavoritesActivity : BaseActivity() {
         controllerFuture = future
         future.addListener(
             {
-                runCatching { future.get() }
-                    .onSuccess { controller ->
-                        mediaController = controller
-                        controller.addListener(playerListener)
-                    }
-                    .onFailure {
-                        controllerFuture = null
-                        Toast.makeText(this, R.string.favorites_player_connect_failed, Toast.LENGTH_SHORT).show()
-                    }
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    Toast.makeText(this, R.string.favorites_player_connect_failed, Toast.LENGTH_SHORT).show()
+                    return@addListener
+                }
+                if (controllerFuture !== future) return@addListener
+                mediaController = controller
+                controller.addListener(playerListener)
             },
             MoreExecutors.directExecutor(),
         )
@@ -601,17 +604,19 @@ class FavoritesActivity : BaseActivity() {
         tag = requestKey
         setImageResource(R.drawable.default_cover)
 
-        val tracks = repository.getTracks(playlist.id)
-        val coverTrack = tracks.firstOrNull { !it.artworkUri.isNullOrBlank() } ?: tracks.firstOrNull()
-        val artworkCacheKey = coverTrack?.let(::favoriteArtworkCacheKey)
-        artworkCacheKey?.let { cacheKey ->
-            PlaybackArtworkCache.get(cacheKey)?.let { bitmap ->
-                setImageBitmap(bitmap)
-                return
-            }
-        }
-
         lifecycleScope.launch {
+            // 每个歌单 tile 的曲目查询移出主线程（打开收藏页时按歌单数 N 次全表查询）
+            val tracks = withContext(Dispatchers.IO) { repository.getTracks(playlist.id) }
+            val coverTrack = tracks.firstOrNull { !it.artworkUri.isNullOrBlank() } ?: tracks.firstOrNull()
+            val artworkCacheKey = coverTrack?.let(::favoriteArtworkCacheKey)
+
+            artworkCacheKey?.let { cacheKey ->
+                PlaybackArtworkCache.get(cacheKey)?.let { bitmap ->
+                    if (tag == requestKey) setImageBitmap(bitmap)
+                    return@launch
+                }
+            }
+
             val diskBitmap = withContext(Dispatchers.IO) {
                 artworkCacheKey?.let { PlaybackArtworkCache.loadFromDisk(applicationContext, it) }
             }

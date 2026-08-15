@@ -30,7 +30,9 @@ import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -115,11 +117,16 @@ class HistoryActivity : BaseActivity() {
     }
 
     private fun loadPage(page: Int) {
-        val result = repository.query(page.coerceAtLeast(0), currentQuery)
-        currentPage = result.page
-        currentTracks = result.items
-        totalCount = result.totalCount
-        render()
+        lifecycleScope.launch {
+            // LIKE 全表扫描移出主线程，查询完成后再回主线程渲染
+            val result = withContext(Dispatchers.IO) {
+                repository.query(page.coerceAtLeast(0), currentQuery)
+            }
+            currentPage = result.page
+            currentTracks = result.items
+            totalCount = result.totalCount
+            render()
+        }
     }
 
     private fun render() {
@@ -275,12 +282,14 @@ class HistoryActivity : BaseActivity() {
         controllerFuture = future
         future.addListener(
             {
-                runCatching { future.get() }
-                    .onSuccess { mediaController = it }
-                    .onFailure {
-                        controllerFuture = null
-                        Toast.makeText(this, R.string.history_player_connect_failed, Toast.LENGTH_SHORT).show()
-                    }
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    Toast.makeText(this, R.string.history_player_connect_failed, Toast.LENGTH_SHORT).show()
+                    return@addListener
+                }
+                if (controllerFuture !== future) return@addListener
+                mediaController = controller
             },
             MoreExecutors.directExecutor(),
         )

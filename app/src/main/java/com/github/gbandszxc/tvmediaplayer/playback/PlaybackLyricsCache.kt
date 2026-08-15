@@ -15,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 object PlaybackLyricsCache {
 
     private const val DEFAULT_NEGATIVE_TTL_MS = 10 * 60 * 1000L
+    private const val MEMORY_CACHE_MAX_ENTRIES = 512
     private val memory = ConcurrentHashMap<String, LrcTimeline>()
     private val negativeMemory = ConcurrentHashMap<String, Long>()
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -22,8 +23,9 @@ object PlaybackLyricsCache {
     /** 查内存缓存 */
     fun get(key: String): LrcTimeline? = memory[key]
 
-    /** 仅写内存缓存 */
+    /** 仅写内存缓存；超限时整体清空防止长期驻留无限增长 */
     fun put(key: String, timeline: LrcTimeline) {
+        if (memory.size >= MEMORY_CACHE_MAX_ENTRIES) memory.clear()
         memory[key] = timeline
         negativeMemory.remove(key)
     }
@@ -102,16 +104,19 @@ object PlaybackLyricsCache {
     private fun lyricsCacheDir(context: Context): File =
         File(context.cacheDir, "lyrics").also { it.mkdirs() }
 
-    private fun cacheFile(context: Context, key: String): File {
-        val hash = key.hashCode()
-        val name = if (hash >= 0) "p$hash.json" else "n${-hash}.json"
-        return File(lyricsCacheDir(context), name)
-    }
+    private fun cacheFile(context: Context, key: String): File =
+        File(lyricsCacheDir(context), "${stableKeyHash(key)}.json")
 
-    private fun missFile(context: Context, key: String): File {
-        val hash = key.hashCode()
-        val name = if (hash >= 0) "p$hash.miss" else "n${-hash}.miss"
-        return File(lyricsCacheDir(context), name)
+    private fun missFile(context: Context, key: String): File =
+        File(lyricsCacheDir(context), "${stableKeyHash(key)}.miss")
+
+    /**
+     * MD5 作为磁盘文件名散列：String.hashCode 32 位空间在数千曲目规模下
+     * 存在生日碰撞概率，碰撞会导致串歌词。
+     */
+    private fun stableKeyHash(key: String): String {
+        val digest = java.security.MessageDigest.getInstance("MD5").digest(key.toByteArray(Charsets.UTF_8))
+        return digest.joinToString("") { "%02x".format(it) }
     }
 
     private fun serialize(timeline: LrcTimeline): String {

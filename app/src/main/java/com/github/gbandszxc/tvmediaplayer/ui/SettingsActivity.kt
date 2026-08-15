@@ -211,25 +211,21 @@ class SettingsActivity : BaseActivity() {
                             descriptionProvider = {
                                 getString(R.string.settings_clear_cache_desc)
                             },
-                            valueProvider = {
-                                val total = PlaybackLyricsCache.diskCacheSize(this) +
-                                        PlaybackArtworkCache.diskCacheSize(this)
-                                val kb = total / 1024
-                                if (kb < 1024) "${kb} KB" else "${"%.1f".format(kb / 1024.0)} MB"
-                            }
+                            valueProvider = { cachedCacheSizeText }
                         ) {
-                            PlaybackLyricsCache.clearDisk(this)
-                            PlaybackArtworkCache.clearDisk(this)
+                            cachedCacheSizeText = "0 KB"
+                            lifecycleScope.launch(Dispatchers.IO) {
+                                PlaybackLyricsCache.clearDisk(this@SettingsActivity)
+                                PlaybackArtworkCache.clearDisk(this@SettingsActivity)
+                                runCatching {
+                                    SmbConfigStore(applicationContext).clearBrowseCache()
+                                }
+                            }
                             Toast.makeText(
                                 this,
                                 getString(R.string.settings_cache_cleared),
                                 Toast.LENGTH_SHORT
                             ).show()
-                            lifecycleScope.launch {
-                                runCatching {
-                                    SmbConfigStore(applicationContext).clearBrowseCache()
-                                }
-                            }
                             rebuildCurrentCategory(moveFocusToDetail = false)
                         }
                     )
@@ -357,6 +353,24 @@ class SettingsActivity : BaseActivity() {
         super.onResume()
         UiSettingsApplier.applyAll(this)
         rebuildCurrentCategory(moveFocusToDetail = false)
+        refreshCacheSizeTextAsync()
+    }
+
+    /** 缓存目录全量 stat 走 IO 线程异步统计，主线程只回显缓存值 */
+    private var cachedCacheSizeText: String = ""
+    private fun refreshCacheSizeTextAsync() {
+        lifecycleScope.launch {
+            val kb = withContext(Dispatchers.IO) {
+                (PlaybackLyricsCache.diskCacheSize(this@SettingsActivity) +
+                    PlaybackArtworkCache.diskCacheSize(this@SettingsActivity)) / 1024
+            }
+            val text = if (kb < 1024) "${kb} KB" else "${"%.1f".format(kb / 1024.0)} MB"
+            if (text == cachedCacheSizeText) return@launch
+            cachedCacheSizeText = text
+            if (categories.getOrNull(selectedCategoryIndex)?.title == getString(R.string.settings_category_other)) {
+                rebuildCurrentCategory(moveFocusToDetail = false)
+            }
+        }
     }
 
     private fun buildCategoryList() {
