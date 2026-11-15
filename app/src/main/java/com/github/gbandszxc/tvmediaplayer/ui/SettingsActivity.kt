@@ -74,6 +74,7 @@ class SettingsActivity : BaseActivity() {
     private val categoryViews = mutableListOf<View>()
     private val modalCoordinator by lazy { TsmModalCoordinator(this) }
     private var pendingImportUri: Uri? = null
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
 
     private val categories by lazy {
         listOf(
@@ -336,6 +337,10 @@ class SettingsActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         UiSettingsApplier.applyAll(this)
 
         containerCategories = findViewById(R.id.container_categories)
@@ -347,6 +352,12 @@ class SettingsActivity : BaseActivity() {
         containerCategories.post {
             categoryViews.firstOrNull()?.requestFocus()
         }
+    }
+
+    override fun onDestroy() {
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
     }
 
     override fun onResume() {
@@ -380,6 +391,7 @@ class SettingsActivity : BaseActivity() {
             )
             itemView.findViewById<TextView>(R.id.tv_category_title).text = category.title
             itemView.setOnClickListener { selectCategory(index, moveFocusToDetail = true) }
+            itemView.setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerCategories.addView(itemView)
             categoryViews.add(itemView)
@@ -475,6 +487,7 @@ class SettingsActivity : BaseActivity() {
                 }
             }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
+            itemView.setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             containerDetail.addView(itemView)
             if (firstEntryView == null) firstEntryView = itemView
         }

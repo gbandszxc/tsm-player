@@ -1,16 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 设置页主布局：左侧分类面板 + 右侧详情面板 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 设置页主布局：液态玻璃氛围底 + 左侧分类面板 + 右侧详情面板 -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/ui_bg_app"
-    android:orientation="horizontal">
+    android:layout_height="match_parent">
+
+    <!-- 液态玻璃氛围底：模糊封面铺满 + 暗化遮罩，内容层位于其上 -->
+    <ImageView
+        android:id="@+id/iv_ambient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <View
+        android:id="@+id/view_ambient_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/ui_ambient_scrim" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
 
     <!-- 左侧：分类面板（固定宽度，方便遥控器聚焦） -->
     <LinearLayout
         android:layout_width="260dp"
         android:layout_height="match_parent"
-        android:background="@color/ui_bg_sidebar"
+        android:background="@color/ui_glass_sidebar"
         android:orientation="vertical"
         android:padding="@dimen/ui_space_4xl">
 
@@ -62,4 +79,6 @@
 
     </ScrollView>
 
-</LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

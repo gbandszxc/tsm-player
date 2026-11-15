@@ -83,6 +83,7 @@ class TvBrowseFragment : Fragment() {
     private val modalCoordinator by lazy { TsmModalCoordinator(requireActivity()) }
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
     private val fastLocateConfirmGuard = FastLocateConfirmGuard()
     private val browseListRenderGate = BrowseListRenderGate()
 
@@ -134,7 +135,12 @@ class TvBrowseFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
-        return inflater.inflate(R.layout.fragment_tv_browser, container, false)
+        val view = inflater.inflate(R.layout.fragment_tv_browser, container, false)
+        ambientBackdrop = AmbientBackdrop.bind(
+            view.findViewById(R.id.iv_ambient),
+            view.findViewById(R.id.view_ambient_scrim),
+        )
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -168,6 +174,8 @@ class TvBrowseFragment : Fragment() {
         fastLocateConfirmGuard.reset()
         browseListRenderGate.reset()
         gridArtworkJob?.cancel()
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
         super.onDestroyView()
     }
 
@@ -512,6 +520,7 @@ class TvBrowseFragment : Fragment() {
                 true
             }
             itemView.setOnFocusChangeListener { _, hasFocus ->
+                UiMotion.animateFocusScale(itemView, hasFocus)
                 if (!hasFocus || viewModel.state.value.isFastLocateMode) return@setOnFocusChangeListener
                 val stateIndex = mapDisplayIndexToStateIndex(displayIndex, hasParentEntry) ?: return@setOnFocusChangeListener
                 viewModel.onItemFocused(stateIndex, entry)
@@ -922,8 +931,11 @@ class TvBrowseFragment : Fragment() {
                 if (title.isBlank()) getString(R.string.browser_now_playing)
                 else getString(R.string.browser_now_playing_with_title, title)
             )
+            ambientBackdrop?.update(currentMediaItem.mediaMetadata.artworkUri?.toString())
             return
         }
+
+        ambientBackdrop?.update(null)
 
         val ctx = context ?: return
         if (UiSettingsStore.rememberLastPlayback(ctx) && LastPlaybackStore.hasSnapshot(ctx)) {

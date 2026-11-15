@@ -3,11 +3,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <!-- 液态玻璃氛围底：模糊封面铺满 + 暗化遮罩，内容层位于其上 -->
+    <ImageView
+        android:id="@+id/iv_ambient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <View
+        android:id="@+id/view_ambient_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/ui_ambient_scrim" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@color/ui_bg_tv_blue"
         android:padding="@dimen/ui_space_4xl">
 
         <!-- 上方主内容区：封面 + 信息 -->

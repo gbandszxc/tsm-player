@@ -49,4 +49,21 @@
     <color name="ui_accent_red_text">#FEE2E2</color>
 
     <color name="ui_divider">#1E3A5F</color>
+
+    <!-- 液态玻璃材质：半透明深色玻璃填充（内容透出氛围底，文字对比度由浓度红线保证） -->
+    <color name="ui_glass_panel">#B31B2437</color>
+    <color name="ui_glass_panel_strong">#CC111827</color>
+    <color name="ui_glass_panel_deep">#99111827</color>
+    <color name="ui_glass_panel_muted">#9914233A</color>
+    <color name="ui_glass_item">#992A2E39</color>
+    <color name="ui_glass_item_focus">#B32B3548</color>
+    <color name="ui_glass_sidebar">#CC0D1A2E</color>
+    <!-- 玻璃高光：静置态渐变描边（rim）与表面顶部光泽（gloss） -->
+    <color name="ui_glass_rim_light">#66FFFFFF</color>
+    <color name="ui_glass_rim_soft">#1AFFFFFF</color>
+    <color name="ui_glass_gloss_top">#26FFFFFF</color>
+    <color name="ui_glass_gloss_bottom">#0AFFFFFF</color>
+    <!-- 氛围底：模糊封面上的暗化遮罩，保证远距离暗光下的文字对比度 -->
+    <color name="ui_ambient_scrim">#B30B1220</color>
+    <color name="ui_ambient_scrim_deep">#D90B1220</color>
 </resources>

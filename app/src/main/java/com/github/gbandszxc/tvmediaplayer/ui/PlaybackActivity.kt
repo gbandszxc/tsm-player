@@ -123,6 +123,8 @@ class PlaybackActivity : BaseActivity() {
     private var renderedProgressText: String? = null
     private var currentArtworkKey: String? = null
     private var currentArtworkBitmap: Bitmap? = null
+    private var currentArtworkUri: String? = null
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
     private var currentTagKey: String? = null
     private val trackInfoStore = PlaybackTrackInfoStore.shared
     private var fallbackConfig: SmbConfig = SmbConfig.Empty
@@ -216,7 +218,17 @@ class PlaybackActivity : BaseActivity() {
         super.onStop()
     }
 
+    override fun onDestroy() {
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
+    }
+
     private fun bindViews() {
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         layoutArtworkFrame = findViewById(R.id.layout_artwork_frame)
         ivArtwork = findViewById(R.id.iv_artwork)
         tvTitle = findViewById(R.id.tv_playback_title)
@@ -1275,6 +1287,7 @@ class PlaybackActivity : BaseActivity() {
         val artworkKey = mediaCacheKey(mediaItem)
         if (artworkKey == currentArtworkKey) return
         currentArtworkKey = artworkKey
+        currentArtworkUri = mediaItem.mediaMetadata.artworkUri?.toString()
         PlaybackArtworkCache.get(artworkKey)?.let {
             setCurrentArtworkBitmap(it)
             return
@@ -1311,6 +1324,7 @@ class PlaybackActivity : BaseActivity() {
     private fun setCurrentArtworkBitmap(bitmap: Bitmap) {
         currentArtworkBitmap = bitmap
         ivArtwork.setImageBitmap(bitmap)
+        ambientBackdrop?.update(currentArtworkUri, bitmap)
         if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
             renderArtworkFullscreen(bitmap)
         }
@@ -1318,7 +1332,9 @@ class PlaybackActivity : BaseActivity() {
 
     private fun setDefaultArtwork() {
         currentArtworkBitmap = null
+        currentArtworkUri = null
         ivArtwork.setImageResource(R.drawable.default_cover)
+        ambientBackdrop?.update(null)
         if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
             hideArtworkFullscreen()
         }

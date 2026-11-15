@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 氛围底兜底：无当前播放封面时的深色对角渐变（沿用既有背景 token，不新增颜色） -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:startColor="@color/ui_bg_app_deep"
+        android:centerColor="@color/ui_bg_tv_blue"
+        android:endColor="@color/ui_bg_app" />
+</shape>

@@ -309,3 +309,15 @@ docs/icon/icon_final_preview.png
 
 注意事项：封面/歌词磁盘缓存键格式升级为 MD5，升级后首次使用视为缓存未命中（旧文件等待“清理缓存”或系统回收）；`FavoritesDbHelper.shared()` 语义要求新代码不要再直接 `FavoritesDbHelper(context)` 长期持连接。全部改动通过 `testDebugUnitTest`（247 项）与 `assembleDebug` 双 ABI 打包验证。
 
+
+## 19. 液态玻璃视觉 Demo（feature/liquid-glass 分支）
+
+2026-11-15 在 `feature/liquid-glass` 分支完成整体视觉从"实色大色块"向"深色液态玻璃"的换装 Demo，**整体布局与交互结构不变**，只动材质、透明度与焦点动效。方向由产品负责人指定；PRODUCT.md 的 anti-reference 已同步修订（禁亮色玻璃拟态，深色液态玻璃为正式方向）。
+
+1. **玻璃 token**：`colors.xml` 新增 `ui_glass_*`（panel/panel_strong/panel_deep/panel_muted/item/item_focus/sidebar 半透明填充 + rim_light/rim_soft 白光描边 + gloss_top/gloss_bottom 顶部光泽）与 `ui_ambient_scrim(_deep)`；`dimens.xml` 新增 `ui_stroke_glass_rim 1.5dp`、`ui_stroke_hairline 1dp`。焦点语义描边沿用既有 `ui_accent_*_stroke`，未改。
+2. **玻璃配方（纯 XML，全设备可用）**：外层白光渐变 rim + 内层内缩 `ui_stroke_glass_rim` 玻璃底 + 内层 gloss 渐变，焦点态换玻璃亮面填充 + gloss + 语义描边。改造 16 个 `bg_*` drawable：`bg_panel`、`bg_file_item`、`bg_playlist_tile`、`bg_button_dark`、5 个彩色按钮（实色语义填充 + 顶部光泽，不玻璃化）、`bg_modal_panel/surface/surface_focused/input`、`bg_browser_sort_dropdown`、`bg_playback_toast`、`bg_settings_category/entry`；新增 `bg_ambient_fallback.xml` 深色渐变兜底。浓度红线：面板 ≥70%、modal/浮层 ≥80%、条目 ≥60%（DESIGN.md Elevation & Depth）。
+3. **氛围底 `ui/AmbientBackdrop.kt`**：当前播放封面缩样 ≤160px → 复用 `BitmapBlur.blur(radius=14)` 一次性 CPU 模糊 → RGB_565 小缓存（LruCache 3 张）→ `TransitionDrawable` 250ms 交叉淡入；无封面/解码失败回落 `bg_ambient_fallback`。不做逐帧/GPU 实时模糊（低配 TV 红线）。接入点：浏览页（`TvBrowseFragment` 经 MediaController currentMediaItem artworkUri）、播放页（`PlaybackActivity` setCurrentArtworkBitmap/setDefaultArtwork 钩子）、收藏页（默认歌单封面）、设置页与历史页（仅兜底渐变）；5 个页面根布局第 0/1 位插入 `iv_ambient` + `view_ambient_scrim`（设置页根布局从 LinearLayout 包了一层 FrameLayout）。
+4. **Modal 窗口模糊增强（API 31+ 自动降级）**：`TsmModalCoordinator.applyGlassWindowBackdrop` 统一 5 处弹窗窗口设置——API 31+ 且 `isCrossWindowBlurEnabled` 时 `Window.setBackgroundBlurRadius(24)` 并把遮罩降为 `ui_ambient_scrim` 浓度；低版本/不支持时保持纯遮罩。
+5. **焦点缩放动效**：`UiMotion.animateFocusScale(view, focused)`——聚焦 150ms 放大 1.04、失焦 120ms 回落，沿用 EXPAND/COLLAPSE 插值与触屏模式/未布局守卫，切焦点前取消旧动画。应用于卡片类表面：文件行/宫格卡、歌单 tile、设置分类与条目、收藏页操作按钮；按钮不叠加（避免与聚焦展开动效冲突）。
+
+注意事项：玻璃面板下方必须铺氛围底，否则半透明材质失去意义；新页面接入氛围底时根布局须为 FrameLayout，第 0/1 位放 `iv_ambient`/`view_ambient_scrim` 并调用 `AmbientBackdrop.bind`；`ui_bg_tv_blue` 仍作为浏览/收藏/历史页根布局兜底色（被氛围层覆盖）。该 Demo 分支尚未在真机/模拟器上完成逐屏截图走查（本地 FmTV 模拟器缺 hypervisor 驱动、MuMu 无法命令行拉起、TLS 连接的手机中途离线），采纳前需补一轮设备验证。

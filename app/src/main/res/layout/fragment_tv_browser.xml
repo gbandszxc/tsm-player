@@ -4,6 +4,20 @@
     android:layout_height="match_parent"
     android:background="@color/ui_bg_tv_blue">
 
+    <!-- 液态玻璃氛围底：模糊封面铺满 + 暗化遮罩，内容层位于其上 -->
+    <ImageView
+        android:id="@+id/iv_ambient"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+
+    <View
+        android:id="@+id/view_ambient_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/ui_ambient_scrim" />
+
     <ScrollView
         android:id="@+id/root_scroll"
         android:layout_width="match_parent"

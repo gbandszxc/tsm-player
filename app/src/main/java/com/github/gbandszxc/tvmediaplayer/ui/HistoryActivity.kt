@@ -55,14 +55,25 @@ class HistoryActivity : BaseActivity() {
     private lateinit var btnNext: Button
     private lateinit var tvStatus: TextView
     private lateinit var historyContainer: LinearLayout
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         UiSettingsApplier.applyAll(this)
         bindViews()
         bindActions()
         loadPage(0)
+    }
+
+    override fun onDestroy() {
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
     }
 
     override fun onStart() {

@@ -1,5 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="@dimen/ui_radius_panel" />
-    <solid android:color="@color/ui_bg_panel" />
-</shape>
+<!-- 液态玻璃面板：白光渐变 rim + 半透明玻璃底 + 顶部光泽，底下氛围模糊封面隐约透出 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_rim_light"
+                android:endColor="@color/ui_glass_rim_soft" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/ui_stroke_glass_rim"
+        android:left="@dimen/ui_stroke_glass_rim"
+        android:right="@dimen/ui_stroke_glass_rim"
+        android:top="@dimen/ui_stroke_glass_rim">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_button" />
+            <solid android:color="@color/ui_glass_panel" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/ui_stroke_glass_rim"
+        android:left="@dimen/ui_stroke_glass_rim"
+        android:right="@dimen/ui_stroke_glass_rim"
+        android:top="@dimen/ui_stroke_glass_rim">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_button" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_gloss_top"
+                android:endColor="@color/ui_glass_gloss_bottom" />
+        </shape>
+    </item>
+</layer-list>

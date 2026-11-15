@@ -2,10 +2,15 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 
 import android.app.Activity
 import android.app.Dialog
+import android.content.Context
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
+import android.view.Window
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
@@ -36,6 +41,22 @@ class TsmModalCoordinator(
 ) {
     /** 记录弹窗打开前的焦点 View，关闭后恢复 */
     private var lastFocusedView: View? = null
+
+    /**
+     * 弹窗窗口玻璃化：在清空窗口背景与全屏布局策略之上，
+     * API 31+ 且设备支持跨窗口模糊时启用背景模糊（液态玻璃弹层的实时景深），
+     * 并把 shell 遮罩换成更轻的 [R.color.ui_ambient_scrim] 浓度——模糊已提供层级分离，
+     * 避免与深色遮罩叠加过黑。低版本或设备不支持时保持纯遮罩，自动降级。
+     */
+    private fun applyGlassWindowBackdrop(shell: View, window: Window?) {
+        window?.setBackgroundDrawable(null)
+        window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+        if (window == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val wm = host.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        if (!wm.isCrossWindowBlurEnabled) return
+        window.setBackgroundBlurRadius(MODAL_BACKDROP_BLUR_RADIUS)
+        shell.background = ColorDrawable(ContextCompat.getColor(host, R.color.ui_ambient_scrim))
+    }
 
     /**
      * 展示操作型 Modal。
@@ -99,8 +120,7 @@ class TsmModalCoordinator(
             setContentView(content)
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            applyGlassWindowBackdrop(content, window)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
                 spec.onDismiss?.invoke()
@@ -206,8 +226,7 @@ class TsmModalCoordinator(
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            applyGlassWindowBackdrop(content, window)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -282,8 +301,7 @@ class TsmModalCoordinator(
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            applyGlassWindowBackdrop(content, window)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -347,8 +365,7 @@ class TsmModalCoordinator(
             setContentView(content)
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            applyGlassWindowBackdrop(content, window)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -425,8 +442,7 @@ class TsmModalCoordinator(
             setContentView(content)
             setCancelable(false)
             setCanceledOnTouchOutside(false)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            applyGlassWindowBackdrop(content, window)
             setOnDismissListener {
                 lastFocusedView?.requestFocus()
             }
@@ -678,5 +694,8 @@ class TsmModalCoordinator(
         internal const val TAG_ACTION_PRIMARY = "action_primary"
         internal const val TAG_ACTION_SECONDARY = "action_secondary"
         internal const val TAG_ACTION_LEADING = "action_leading"
+
+        /** Modal 窗口背景模糊半径（API 31+，不支持跨窗口模糊的设备自动降级为纯遮罩）。 */
+        private const val MODAL_BACKDROP_BLUR_RADIUS = 24
     }
 }

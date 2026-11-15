@@ -1,21 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 歌单 tile 玻璃选择器：静置白光 rim，聚焦保留蓝色柔和高亮描边 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
-        <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_bg_item_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_blue_stroke_soft" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@color/ui_glass_item_focus" />
+                </shape>
+            </item>
+            <item
+                android:bottom="@dimen/ui_stroke_focus"
+                android:left="@dimen/ui_stroke_focus"
+                android:right="@dimen/ui_stroke_focus"
+                android:top="@dimen/ui_stroke_focus">
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/ui_glass_gloss_top"
+                        android:endColor="@color/ui_glass_gloss_bottom" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke
+                        android:width="@dimen/ui_stroke_focus"
+                        android:color="@color/ui_accent_blue_stroke_soft" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
     <item>
-        <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_bg_panel" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_divider" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/ui_glass_rim_light"
+                        android:endColor="@color/ui_glass_rim_soft" />
+                </shape>
+            </item>
+            <item
+                android:bottom="@dimen/ui_stroke_glass_rim"
+                android:left="@dimen/ui_stroke_glass_rim"
+                android:right="@dimen/ui_stroke_glass_rim"
+                android:top="@dimen/ui_stroke_glass_rim">
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <solid android:color="@color/ui_glass_panel" />
+                </shape>
+            </item>
+            <item
+                android:bottom="@dimen/ui_stroke_glass_rim"
+                android:left="@dimen/ui_stroke_glass_rim"
+                android:right="@dimen/ui_stroke_glass_rim"
+                android:top="@dimen/ui_stroke_glass_rim">
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/ui_glass_gloss_top"
+                        android:endColor="@color/ui_glass_gloss_bottom" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
 </selector>

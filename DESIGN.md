@@ -45,6 +45,22 @@ tokens:
     # 触屏点按反馈 overlay：仅用于触屏涟漪/加深，遥控器焦点态不触发
     ui_press_overlay_dark: "#2E000000"
     ui_press_overlay_light: "#38FFFFFF"
+    # 液态玻璃材质：半透明深色玻璃填充（浓度红线 ≥60%，保证暗光远距文字对比度）
+    ui_glass_panel: "#B31B2437"
+    ui_glass_panel_strong: "#CC111827"
+    ui_glass_panel_deep: "#99111827"
+    ui_glass_panel_muted: "#9914233A"
+    ui_glass_item: "#992A2E39"
+    ui_glass_item_focus: "#B32B3548"
+    ui_glass_sidebar: "#CC0D1A2E"
+    # 玻璃高光：静置态白光渐变描边（rim）与表面顶部光泽（gloss）
+    ui_glass_rim_light: "#66FFFFFF"
+    ui_glass_rim_soft: "#1AFFFFFF"
+    ui_glass_gloss_top: "#26FFFFFF"
+    ui_glass_gloss_bottom: "#0AFFFFFF"
+    # 氛围底：模糊封面上的暗化遮罩，保证文字对比度
+    ui_ambient_scrim: "#B30B1220"
+    ui_ambient_scrim_deep: "#D90B1220"
   spacing:
     ui_space_xs: "4dp"
     ui_space_sm: "6dp"
@@ -62,6 +78,11 @@ tokens:
     ui_radius_item: "4dp"
     ui_radius_button: "6dp"
     ui_radius_panel: "8dp"
+  strokes:
+    ui_stroke_focus: "2dp"
+    ui_stroke_artwork_focus: "3dp"
+    ui_stroke_glass_rim: "1.5dp"
+    ui_stroke_hairline: "1dp"
   typography:
     ui_text_caption: "12sp"
     ui_text_body: "14sp"
@@ -76,7 +97,7 @@ tokens:
 
 # Android TV UI/交互设计规范
 
-> 最后同步：2026-07-16，新增网络 / 本地浏览模式、主外部存储授权与根级连接管理隐藏规则。
+> 最后同步：2026-11-15，新增液态玻璃视觉材质（半透明深色玻璃 + 氛围底 + 焦点缩放），布局结构不变。
 
 ## Overview
 
@@ -93,7 +114,8 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 
 颜色以深色背景、蓝色焦点、绿色播放操作和黄色提醒操作组成。Android XML 使用 `@color/ui_*`，不得新增通用硬编码颜色。
 
-- 背景层：`ui_bg_app` 用于主深色页面，`ui_bg_app_deep` 用于更沉浸的全屏歌词，`ui_bg_sidebar` 用于设置页左栏，`ui_bg_panel*` 用于面板、卡片和设置项。
+- 背景层：`ui_bg_app` 用于主深色页面与窗口兜底背景，`ui_bg_app_deep` 用于更沉浸的全屏歌词，`ui_bg_sidebar` 保留为设置页左栏兜底色（当前已由 `ui_glass_sidebar` 玻璃材质取代），`ui_bg_panel*` 保留为玻璃面板的原始色基（`ui_glass_*` 为其半透明形态）。
+- 玻璃层：`ui_glass_*` 是液态玻璃材质的半透明填充与高光颜色，语义色（蓝/绿/黄/红）不玻璃化；`ui_ambient_scrim*` 用于氛围底暗化遮罩。
 - 文本层：`ui_text_primary` 用于主文本，`ui_text_secondary` 用于说明文本，`ui_text_muted` 用于弱信息和非当前歌词。
 - 蓝色层：`ui_accent_blue*` 用于页面标题、遥控器焦点、选中指示条和主操作按钮。
 - 绿色层：`ui_accent_green*` 用于播放、继续播放之外的成功/媒体操作。
@@ -132,11 +154,15 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 
 ## Elevation & Depth
 
-项目不使用复杂投影层级。深浅背景、描边、焦点框和浮层透明背景承担视觉层次。
+液态玻璃材质通过"氛围底 + 暗化遮罩 + 半透明面板 + 高光描边"四层表达深度，不用投影阴影。
 
-- 主页面背景最深，面板略亮，焦点项通过更亮底色与描边浮出。
-- 快速定位模式使用右下角悬浮层，避免跟随长列表滚动。
+- **氛围底**：每个主页面根布局最底层铺 `iv_ambient`（当前播放封面缩样至 ≤160px → `BitmapBlur` 一次性 CPU 模糊 → 放大铺满），其上叠 `view_ambient_scrim`（`@color/ui_ambient_scrim`）暗化保对比度；无封面时回落 `@drawable/bg_ambient_fallback` 深色渐变。由 `AmbientBackdrop` 统一驱动，换曲 250ms 交叉淡入。
+- **玻璃面板**：中性面板/卡片/侧栏/暗色按钮使用半透明深色玻璃 token（`ui_glass_*`），底下氛围模糊封面隐约透出；静置态边缘为白光渐变 rim（外层 `ui_glass_rim_light→rim_soft` 渐变 + 内层内缩 `ui_stroke_glass_rim` 形成"渐变描边"），表面顶部叠加 gloss 光泽（`ui_glass_gloss_top→bottom`）。
+- **玻璃浓度红线**：普通面板 ≥70%（`ui_glass_panel`）、modal/浮层 ≥80%（`ui_glass_panel_strong`）、列表条目 ≥60%（`ui_glass_item`）；任何新玻璃表面不得低于 60% 浓度，保证客厅暗光、2-3 米距离的正文对比度。
+- **语义按钮不玻璃化**：蓝/绿/红/黄/琥珀按钮保持近实色语义填充，仅叠加顶部光泽——语义色在远距离的辨识优先于材质统一。
+- **焦点语义不变**：聚焦态仍是"更亮填充 + 2dp 语义描边"（绿=文件行、蓝=设置/歌单、白=暗色按钮/modal 行），描边颜色 token 一律沿用既有 `ui_accent_*_stroke`；玻璃 rim 只承担静置态边缘高光。
 - 图片全屏预览使用背景模糊图层 + 前景 `fitCenter` 原图形成深度，不裁切原图主体。
+- Modal 弹窗在 API 31+ 且设备支持跨窗口模糊时启用窗口背景模糊（`Window.setBackgroundBlurRadius` 24px），遮罩降为 `ui_ambient_scrim` 浓度；低版本或设备不支持时自动保持纯遮罩。
 
 ## Shapes
 
@@ -161,6 +187,24 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 - `@style/TsmButtonDanger`：关闭睡眠等表示不可逆/停止操作的红色按钮。
 
 新增 XML UI 样式必须优先引用 `@color/ui_*`、`@dimen/ui_*`、`@style/Tsm*` 和既有 `@drawable/bg_*`，不得新增散落的通用硬编码颜色或圆角。
+
+### 液态玻璃材质配方
+
+所有中性面板/卡片/条目的玻璃背景遵循同一分层配方（纯 XML LayerDrawable，全设备可用，无实时 GPU 模糊依赖）：
+
+```text
+┌─ 玻璃表面分层（自下而上）────────────────────────────┐
+│ ③ 顶部光泽 gloss：ui_glass_gloss_top → bottom 渐变   │
+│ ② 玻璃底色 fill：ui_glass_* 半透明填充（内缩 rim）   │
+│ ① 白光 rim：ui_glass_rim_light → rim_soft 渐变矩形， │
+│    内层 inset ui_stroke_glass_rim 后形成渐变高光描边 │
+│ 焦点态：玻璃亮面填充 + gloss + 语义描边（2dp）       │
+└──────────────────────────────────────────────────────┘
+```
+
+- 配方实现见 `bg_panel.xml` / `bg_file_item.xml` / `bg_playlist_tile.xml` / `bg_modal_*` / `bg_settings_entry.xml` / `bg_button_dark.xml`；彩色语义按钮（`bg_button_{primary,green,red,light_yellow,amber}.xml`）为"实色语义填充 + 顶部光泽"两层配方。
+- 玻璃底下必须铺氛围底（`AmbientBackdrop` + `iv_ambient` + `view_ambient_scrim`），否则半透明材质失去意义；新页面接入氛围底时，根布局须为 FrameLayout 并在第 0/1 位放这两个视图。
+- `bg_ambient_fallback.xml` 为无封面时的深色对角渐变兜底（复用 `ui_bg_app_deep` / `ui_bg_tv_blue`）。
 
 ### 首页：网络 / 本地浏览器
 
@@ -583,6 +627,8 @@ Progress Modal 示例（下载更新）：
 
 交互控件的可复用动效统一收敛到 `ui/UiMotion.kt`。动效服从 product 语义：仅用于传达状态、给反馈、澄清层级，不做无意义装饰；时长落在 150–250ms 区间，无回弹/弹性。
 
+- **遥控器焦点缩放（液态玻璃）**：`UiMotion.animateFocusScale(view, focused)`——聚焦 150ms 放大至 1.04（复用 EXPAND ease-out 插值），失焦 120ms 回落（COLLAPSE ease-in）。仅应用于卡片类表面（文件行/宫格卡、歌单 tile、设置分类与条目、收藏操作按钮），按钮不叠加（已有聚焦展开动效，避免忙乱）；触屏模式 / 未布局时直接落定目标值；切换焦点前取消旧动画。缩放不触发 requestLayout，轻微外溢由卡片间距吸收。
+
 **严格隔离原则（核心）**：触屏反馈与遥控器反馈互斥，不共用任何视觉路径，且按输入来源物理隔离。
 
 - **触屏点按（涟漪 + 加深）**：由真实触摸（`MotionEvent`）驱动，遥控器 OK 键不产生 `MotionEvent`，因此该反馈物理上不可能在遥控器触发。
@@ -616,5 +662,7 @@ Progress Modal 示例（下载更新）：
 - Don't: 调整 selector 时破坏 `state_focused + state_selected` 的优先级。
 - Don't: 为 TV 工作流添加会抢走遥控器焦点的装饰性元素。
 - Don't: 把图标、launcher 或一次性插画资产强行纳入通用 UI token。
-- Do: 触屏反馈走 `UiMotion.applyPressFeedback`、聚焦展开走 `UiMotion.animateWidthTo`，保持触屏与遥控器动效隔离。
+- Do: 触屏反馈走 `UiMotion.applyPressFeedback`、聚焦展开走 `UiMotion.animateWidthTo`、卡片类焦点缩放走 `UiMotion.animateFocusScale`，保持触屏与遥控器动效隔离。
+- Don't: 新增玻璃表面时把透明度降到 60% 浓度以下，或给蓝/绿/红/黄语义按钮换半透明填充——浓度红线与语义色可辨识度优先于材质统一。
+- Don't: 在玻璃面板下方省略氛围底直接叠在纯色窗口背景上（玻璃感不可见），也不要引入逐帧实时 GPU 模糊（低配 TV 性能红线）。
 - Don't: 给背景 selector 加 `state_pressed`（会破坏触屏/遥控器隔离）；触屏涟漪由 `foreground` overlay 驱动。

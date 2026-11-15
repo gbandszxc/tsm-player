@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modal 内容行默认背景：圆角条目背景 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="@dimen/ui_radius_item" />
-    <solid android:color="@color/ui_bg_item" />
-</shape>
+<!-- Modal 内容行默认背景：半透明玻璃条目，叠加顶部光泽 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_item" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_gloss_top"
+                android:endColor="@color/ui_glass_gloss_bottom" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,7 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <solid android:color="@color/ui_bg_panel" />
-    <corners android:radius="@dimen/ui_radius_panel" />
-    <stroke android:width="@dimen/ui_stroke_focus" android:color="@color/ui_accent_blue_stroke" />
-</shape>
+<!-- 排序下拉浮层：玻璃面板 + 保留蓝色描边表达"当前浮层"边界 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_rim_light"
+                android:endColor="@color/ui_glass_rim_soft" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/ui_stroke_focus"
+        android:left="@dimen/ui_stroke_focus"
+        android:right="@dimen/ui_stroke_focus"
+        android:top="@dimen/ui_stroke_focus">
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ui_radius_button" />
+            <solid android:color="@color/ui_glass_panel_strong" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_gloss_top"
+                android:endColor="@color/ui_glass_gloss_bottom" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ui_radius_panel" />
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_accent_blue_stroke" />
+        </shape>
+    </item>
+</layer-list>

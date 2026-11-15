@@ -41,6 +41,12 @@ internal object UiMotion {
 
     private val widthAnimators = WeakHashMap<View, ValueAnimator>()
     private val clearForegroundRunnables = WeakHashMap<View, Runnable>()
+    private val focusScaleAnimators = WeakHashMap<View, ValueAnimator>()
+
+    /** 液态玻璃焦点缩放：轻微放大增强"液态"手感，仅卡片类表面使用，按钮不叠加。 */
+    private const val FOCUS_SCALE = 1.04f
+    private const val FOCUS_SCALE_IN_DURATION_MS = 150L
+    private const val FOCUS_SCALE_OUT_DURATION_MS = 120L
 
     /**
      * 绑定触屏点按反馈（涟漪 + 加深）。仅由真实触摸触发；遥控器 OK 永不触发。
@@ -155,6 +161,47 @@ internal object UiMotion {
         if (view.layoutParams.width == widthPx) return
         view.layoutParams.width = widthPx
         view.requestLayout()
+    }
+
+    /**
+     * 遥控器焦点缩放（液态玻璃动效）：聚焦 150ms 放大到 [FOCUS_SCALE]，失焦 120ms 回落。
+     * 仅由焦点变化驱动，触屏模式 / 未布局时直接落定目标值（与 [animateWidthTo] 守卫一致）。
+     * 切换焦点前取消旧动画，避免快速连按方向键时动画叠加。
+     * 缩放不改布局（无需 requestLayout），轻微外溢由卡片间既有间距吸收。
+     */
+    fun animateFocusScale(view: View, focused: Boolean) {
+        focusScaleAnimators.remove(view)?.cancel()
+
+        val targetScale = if (focused) FOCUS_SCALE else 1f
+        if (view.isInTouchMode || view.width <= 0 || view.height <= 0) {
+            applyScale(view, targetScale)
+            return
+        }
+
+        val fromScale = view.scaleX
+        if (fromScale == targetScale) return
+
+        val animator = ValueAnimator.ofFloat(fromScale, targetScale).apply {
+            interpolator = if (focused) EXPAND else COLLAPSE
+            duration = if (focused) FOCUS_SCALE_IN_DURATION_MS else FOCUS_SCALE_OUT_DURATION_MS
+            addUpdateListener { applyScale(view, it.animatedValue as Float) }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    if (focusScaleAnimators[view] === animation) {
+                        focusScaleAnimators.remove(view)
+                    }
+                }
+            })
+        }
+        focusScaleAnimators[view] = animator
+        animator.start()
+    }
+
+    private fun applyScale(view: View, scale: Float) {
+        if (view.scaleX != scale) {
+            view.scaleX = scale
+            view.scaleY = scale
+        }
     }
 
     private fun applyWidthSpec(view: View, widthSpec: Int) {

@@ -69,6 +69,7 @@ class FavoritesActivity : BaseActivity() {
     private var currentTracks: List<FavoriteTrack> = emptyList()
     private var activeFavoritePlaybackMediaIds: Set<String> = emptySet()
     private var invalidDialogTrackId: String? = null
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
 
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: Button
@@ -101,11 +102,21 @@ class FavoritesActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_favorites)
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         UiSettingsApplier.applyAll(this)
         bindViews()
         bindActions()
         bindBackHandling()
         showPlaylistGrid()
+    }
+
+    override fun onDestroy() {
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
     }
 
     override fun onStart() {
@@ -256,6 +267,7 @@ class FavoritesActivity : BaseActivity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
+            setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             isFocusable = true
             isClickable = true
             background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_playlist_tile)
@@ -393,6 +405,7 @@ class FavoritesActivity : BaseActivity() {
             gravity = Gravity.CENTER
             setCompoundDrawables(null, null, null, null)
             setOnClickListener { onClick() }
+            setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             UiMotion.applyPressFeedback(this, R.color.ui_press_overlay_dark)
             layoutParams = LinearLayout.LayoutParams(size, size).apply {
                 marginStart = marginStartPx
@@ -609,6 +622,10 @@ class FavoritesActivity : BaseActivity() {
             val tracks = withContext(Dispatchers.IO) { repository.getTracks(playlist.id) }
             val coverTrack = tracks.firstOrNull { !it.artworkUri.isNullOrBlank() } ?: tracks.firstOrNull()
             val artworkCacheKey = coverTrack?.let(::favoriteArtworkCacheKey)
+            // 氛围底跟随默认收藏夹的封面（每个 tile 都会走这里，用默认歌单保证确定性）
+            if (playlist.isDefault) {
+                ambientBackdrop?.update(coverTrack?.artworkUri)
+            }
 
             artworkCacheKey?.let { cacheKey ->
                 PlaybackArtworkCache.get(cacheKey)?.let { bitmap ->

@@ -1,9 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modal 内容行焦点态背景：亮色填充 + 高亮描边 -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <corners android:radius="@dimen/ui_radius_item" />
-    <solid android:color="@color/ui_bg_item_focus" />
-    <stroke
-        android:width="@dimen/ui_stroke_focus"
-        android:color="@color/ui_text_primary" />
-</shape>
+<!-- Modal 内容行焦点态背景：玻璃亮面填充 + 高亮描边 + 光泽 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_item_focus" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/ui_stroke_focus"
+        android:left="@dimen/ui_stroke_focus"
+        android:right="@dimen/ui_stroke_focus"
+        android:top="@dimen/ui_stroke_focus">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_indicator" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/ui_glass_gloss_top"
+                android:endColor="@color/ui_glass_gloss_bottom" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@android:color/transparent" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_text_primary" />
+        </shape>
+    </item>
+</layer-list>
