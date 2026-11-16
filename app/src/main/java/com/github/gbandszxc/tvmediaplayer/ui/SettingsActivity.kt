@@ -391,7 +391,6 @@ class SettingsActivity : BaseActivity() {
             )
             itemView.findViewById<TextView>(R.id.tv_category_title).text = category.title
             itemView.setOnClickListener { selectCategory(index, moveFocusToDetail = true) }
-            itemView.setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerCategories.addView(itemView)
             categoryViews.add(itemView)
@@ -487,7 +486,6 @@ class SettingsActivity : BaseActivity() {
                 }
             }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
-            itemView.setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             containerDetail.addView(itemView)
             if (firstEntryView == null) firstEntryView = itemView
         }

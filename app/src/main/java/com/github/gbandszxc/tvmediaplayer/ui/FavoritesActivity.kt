@@ -267,7 +267,6 @@ class FavoritesActivity : BaseActivity() {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setOnFocusChangeListener { v, hasFocus -> UiMotion.animateFocusScale(v, hasFocus) }
             isFocusable = true
             isClickable = true
             background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_playlist_tile)

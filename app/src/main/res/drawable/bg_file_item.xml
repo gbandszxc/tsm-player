@@ -1,72 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 文件行/宫格卡玻璃选择器：静置白光 rim，聚焦保留绿色语义描边（浏览/收藏/历史行共用） -->
+<!-- 文件行/宫格卡选择器：静置纯半透明平铺（密集列表不做 rim/gloss 装饰），聚焦完整语义环 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
-        <layer-list>
-            <item>
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_item" />
-                    <solid android:color="@color/ui_glass_item_focus" />
-                </shape>
-            </item>
-            <item
-                android:bottom="@dimen/ui_stroke_focus"
-                android:left="@dimen/ui_stroke_focus"
-                android:right="@dimen/ui_stroke_focus"
-                android:top="@dimen/ui_stroke_focus">
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_indicator" />
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/ui_glass_gloss_top"
-                        android:endColor="@color/ui_glass_gloss_bottom" />
-                </shape>
-            </item>
-            <item>
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_item" />
-                    <solid android:color="@android:color/transparent" />
-                    <stroke
-                        android:width="@dimen/ui_stroke_focus"
-                        android:color="@color/ui_accent_green_stroke" />
-                </shape>
-            </item>
-        </layer-list>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_item_focus" />
+            <stroke
+                android:width="@dimen/ui_stroke_focus"
+                android:color="@color/ui_accent_green_stroke" />
+        </shape>
     </item>
     <item>
-        <layer-list>
-            <item>
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_item" />
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/ui_glass_rim_light"
-                        android:endColor="@color/ui_glass_rim_soft" />
-                </shape>
-            </item>
-            <item
-                android:bottom="@dimen/ui_stroke_glass_rim"
-                android:left="@dimen/ui_stroke_glass_rim"
-                android:right="@dimen/ui_stroke_glass_rim"
-                android:top="@dimen/ui_stroke_glass_rim">
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_indicator" />
-                    <solid android:color="@color/ui_glass_item" />
-                </shape>
-            </item>
-            <item
-                android:bottom="@dimen/ui_stroke_glass_rim"
-                android:left="@dimen/ui_stroke_glass_rim"
-                android:right="@dimen/ui_stroke_glass_rim"
-                android:top="@dimen/ui_stroke_glass_rim">
-                <shape>
-                    <corners android:radius="@dimen/ui_radius_indicator" />
-                    <gradient
-                        android:angle="270"
-                        android:startColor="@color/ui_glass_gloss_top"
-                        android:endColor="@color/ui_glass_gloss_bottom" />
-                </shape>
-            </item>
-        </layer-list>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_item" />
+        </shape>
     </item>
 </selector>

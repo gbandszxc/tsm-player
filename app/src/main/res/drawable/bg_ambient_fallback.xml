@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 氛围底兜底：无当前播放封面时的深色对角渐变（沿用既有背景 token，不新增颜色） -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="rectangle">
-    <gradient
-        android:angle="315"
-        android:startColor="@color/ui_bg_app_deep"
-        android:centerColor="@color/ui_bg_tv_blue"
-        android:endColor="@color/ui_bg_app" />
-</shape>
+<!-- 氛围底兜底：无封面时的深色渐变 + 右上角径向光晕（沿用既有背景/强调 token，不新增硬编码色值） -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="@color/ui_bg_app_deep"
+                android:centerColor="@color/ui_bg_tv_blue"
+                android:endColor="@color/ui_bg_app" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.82"
+                android:centerY="0.12"
+                android:centerColor="@color/ui_ambient_glow"
+                android:endColor="@color/ui_transparent"
+                android:gradientRadius="620dp"
+                android:type="radial" />
+        </shape>
+    </item>
+</layer-list>

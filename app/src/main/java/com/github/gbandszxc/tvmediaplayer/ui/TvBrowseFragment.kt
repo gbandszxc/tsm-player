@@ -84,6 +84,7 @@ class TvBrowseFragment : Fragment() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private var ambientBackdrop: AmbientBackdrop.Controller? = null
+    private var ambientFedForDirectory = false
     private val fastLocateConfirmGuard = FastLocateConfirmGuard()
     private val browseListRenderGate = BrowseListRenderGate()
 
@@ -467,6 +468,7 @@ class TvBrowseFragment : Fragment() {
         filesContainer.columnCount = gridLayout?.columns ?: 1
         val hasParentEntry = state.currentPath.isNotBlank()
         val artworkTargets = mutableListOf<Pair<SmbEntry, ImageView>>()
+        ambientFedForDirectory = false
         entries.forEachIndexed { displayIndex, entry ->
             val itemView = layoutInflater.inflate(
                 if (gridMode) R.layout.item_file_entry_grid else R.layout.item_file_entry,
@@ -520,7 +522,6 @@ class TvBrowseFragment : Fragment() {
                 true
             }
             itemView.setOnFocusChangeListener { _, hasFocus ->
-                UiMotion.animateFocusScale(itemView, hasFocus)
                 if (!hasFocus || viewModel.state.value.isFastLocateMode) return@setOnFocusChangeListener
                 val stateIndex = mapDisplayIndexToStateIndex(displayIndex, hasParentEntry) ?: return@setOnFocusChangeListener
                 viewModel.onItemFocused(stateIndex, entry)
@@ -617,6 +618,14 @@ class TvBrowseFragment : Fragment() {
                     PlaybackArtworkCache.put(cacheKey, bitmap)
                     sourceCacheKeys.getOrPut(sourceKey, ::mutableListOf) += cacheKey
                     if (imageView.tag == cacheKey) showGridArtwork(imageView, bitmap)
+                    // 氛围底跟随当前目录封面（复用本次已解析的位图，零额外 IO）；
+                    // 有活跃播放时让位给"当前播放封面"（updateNowPlayingButton 驱动）。
+                    if (!ambientFedForDirectory && mediaController?.currentMediaItem == null) {
+                        ambientFedForDirectory = true
+                        mediaItem.mediaMetadata.artworkUri?.toString()?.let { uri ->
+                            ambientBackdrop?.update(uri, bitmap)
+                        }
+                    }
                 }
             }
 

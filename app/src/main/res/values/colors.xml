@@ -58,12 +58,13 @@
     <color name="ui_glass_item">#992A2E39</color>
     <color name="ui_glass_item_focus">#B32B3548</color>
     <color name="ui_glass_sidebar">#CC0D1A2E</color>
-    <!-- 玻璃高光：静置态渐变描边（rim）与表面顶部光泽（gloss） -->
-    <color name="ui_glass_rim_light">#66FFFFFF</color>
-    <color name="ui_glass_rim_soft">#1AFFFFFF</color>
-    <color name="ui_glass_gloss_top">#26FFFFFF</color>
+    <!-- 玻璃高光：仅面板级表面（panel/modal/浮层）使用，行/条目为纯半透明平铺 -->
+    <color name="ui_glass_rim_light">#38FFFFFF</color>
+    <color name="ui_glass_rim_soft">#0DFFFFFF</color>
+    <color name="ui_glass_gloss_top">#14FFFFFF</color>
     <color name="ui_glass_gloss_bottom">#0AFFFFFF</color>
     <!-- 氛围底：模糊封面上的暗化遮罩，保证远距离暗光下的文字对比度 -->
-    <color name="ui_ambient_scrim">#B30B1220</color>
+    <color name="ui_ambient_scrim">#990B1220</color>
     <color name="ui_ambient_scrim_deep">#D90B1220</color>
+    <color name="ui_ambient_glow">#2E38BDF8</color>
 </resources>

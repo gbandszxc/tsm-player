@@ -321,3 +321,15 @@ docs/icon/icon_final_preview.png
 5. **焦点缩放动效**：`UiMotion.animateFocusScale(view, focused)`——聚焦 150ms 放大 1.04、失焦 120ms 回落，沿用 EXPAND/COLLAPSE 插值与触屏模式/未布局守卫，切焦点前取消旧动画。应用于卡片类表面：文件行/宫格卡、歌单 tile、设置分类与条目、收藏页操作按钮；按钮不叠加（避免与聚焦展开动效冲突）。
 
 注意事项：玻璃面板下方必须铺氛围底，否则半透明材质失去意义；新页面接入氛围底时根布局须为 FrameLayout，第 0/1 位放 `iv_ambient`/`view_ambient_scrim` 并调用 `AmbientBackdrop.bind`；`ui_bg_tv_blue` 仍作为浏览/收藏/历史页根布局兜底色（被氛围层覆盖）。该 Demo 分支尚未在真机/模拟器上完成逐屏截图走查（本地 FmTV 模拟器缺 hypervisor 驱动、MuMu 无法命令行拉起、TLS 连接的手机中途离线），采纳前需补一轮设备验证。
+
+### 19.1 首版走查修正（v2）
+
+首版在 MuMu（Android 15）真机内容走查暴露三类问题，当日修正：
+
+1. **密集条目"药丸群"**：rim/gloss 贴到每条列表行后亮边互相打架、gloss 在大表面呈灰色湿条。修正：行/modal 行/设置条目/暗按钮/歌单 tile 全部退为单层半透明平铺；rim+gloss 完整配方仅保留在 panel/modal 面板/排序下拉/播放提示/彩色按钮。
+2. **玻璃底下纯黑**：冷启动无播放时 fallback 渐变 + 70% 遮罩≈纯黑，半透明不可见。修正：浏览页宫格封面解析复用为氛围底来源（无活跃播放时优先目录封面，零额外 IO）；fallback 增加径向光晕（`ui_ambient_glow`）；scrim 70%→60%。
+3. **焦点环残缺**：全宽行 scale 1.04 超出父容器被裁剪，绿色描边只剩上下两段。修正：行/宫格卡/tile/设置条目移除 scale，`animateFocusScale` 仅保留在收藏页操作按钮（有间距吸收）；焦点态回归"亮填充 + 完整语义环"。
+4. 参数降档：rim_light 40%→22%、rim_soft 10%→5%、gloss_top 15%→8%。
+5. MuMu（API 35）实测 `isCrossWindowBlurEnabled=false`，Modal 窗口模糊按设计自动降级为纯遮罩——增强路径仅在支持的设备生效。
+
+修正后 v2 走查全部通过：浏览列表/宫格（目录封面氛围底）、播放页（封面氛围底 + 底栏语义色）、设置页（玻璃侧栏）、连接管理 Modal、排序下拉、焦点态完整语义环。

@@ -53,14 +53,15 @@ tokens:
     ui_glass_item: "#992A2E39"
     ui_glass_item_focus: "#B32B3548"
     ui_glass_sidebar: "#CC0D1A2E"
-    # 玻璃高光：静置态白光渐变描边（rim）与表面顶部光泽（gloss）
-    ui_glass_rim_light: "#66FFFFFF"
-    ui_glass_rim_soft: "#1AFFFFFF"
-    ui_glass_gloss_top: "#26FFFFFF"
+    # 玻璃高光：仅面板级表面（panel/modal/浮层）使用，行/条目为纯半透明平铺
+    ui_glass_rim_light: "#38FFFFFF"
+    ui_glass_rim_soft: "#0DFFFFFF"
+    ui_glass_gloss_top: "#14FFFFFF"
     ui_glass_gloss_bottom: "#0AFFFFFF"
     # 氛围底：模糊封面上的暗化遮罩，保证文字对比度
-    ui_ambient_scrim: "#B30B1220"
+    ui_ambient_scrim: "#990B1220"
     ui_ambient_scrim_deep: "#D90B1220"
+    ui_ambient_glow: "#2E38BDF8"
   spacing:
     ui_space_xs: "4dp"
     ui_space_sm: "6dp"
@@ -156,8 +157,9 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 
 液态玻璃材质通过"氛围底 + 暗化遮罩 + 半透明面板 + 高光描边"四层表达深度，不用投影阴影。
 
-- **氛围底**：每个主页面根布局最底层铺 `iv_ambient`（当前播放封面缩样至 ≤160px → `BitmapBlur` 一次性 CPU 模糊 → 放大铺满），其上叠 `view_ambient_scrim`（`@color/ui_ambient_scrim`）暗化保对比度；无封面时回落 `@drawable/bg_ambient_fallback` 深色渐变。由 `AmbientBackdrop` 统一驱动，换曲 250ms 交叉淡入。
-- **玻璃面板**：中性面板/卡片/侧栏/暗色按钮使用半透明深色玻璃 token（`ui_glass_*`），底下氛围模糊封面隐约透出；静置态边缘为白光渐变 rim（外层 `ui_glass_rim_light→rim_soft` 渐变 + 内层内缩 `ui_stroke_glass_rim` 形成"渐变描边"），表面顶部叠加 gloss 光泽（`ui_glass_gloss_top→bottom`）。
+- **氛围底**：每个主页面根布局最底层铺 `iv_ambient`（封面缩样至 ≤160px → `BitmapBlur` 一次性 CPU 模糊 → 放大铺满），其上叠 `view_ambient_scrim`（`@color/ui_ambient_scrim`，60% 浓度）暗化保对比度；无封面时回落 `@drawable/bg_ambient_fallback`（深色渐变 + 右上径向光晕）。来源优先级：当前播放封面（播放页/浏览页经 MediaController）> 浏览页宫格模式当前目录封面（复用已解析位图，零额外 IO，无活跃播放时）> 兜底渐变。由 `AmbientBackdrop` 统一驱动，换源 250ms 交叉淡入。
+- **玻璃分层铁律——玻璃只给"chrome"，不给密集内容**：rim（白光渐变描边）与 gloss（顶部光泽）**仅用于面板级稀疏表面**（`bg_panel`、`bg_modal_panel`、排序下拉、播放轻提示、彩色语义按钮）；**列表行、宫格卡、modal 行、设置条目等密集条目一律纯半透明平铺（单层 shape），不叠 rim/gloss**——密集表面上每条的亮边与光泽会互相打架，形成"药丸群"噪点（首版 Demo 的核心教训）。
+- **玻璃面板**：面板级表面使用半透明深色玻璃 token（`ui_glass_*`），底下氛围模糊封面隐约透出；静置态边缘为白光渐变 rim（外层 `ui_glass_rim_light→rim_soft` 渐变 + 内层内缩 `ui_stroke_glass_rim` 形成"渐变描边"），表面顶部叠加 gloss 光泽（`ui_glass_gloss_top→bottom`）。
 - **玻璃浓度红线**：普通面板 ≥70%（`ui_glass_panel`）、modal/浮层 ≥80%（`ui_glass_panel_strong`）、列表条目 ≥60%（`ui_glass_item`）；任何新玻璃表面不得低于 60% 浓度，保证客厅暗光、2-3 米距离的正文对比度。
 - **语义按钮不玻璃化**：蓝/绿/红/黄/琥珀按钮保持近实色语义填充，仅叠加顶部光泽——语义色在远距离的辨识优先于材质统一。
 - **焦点语义不变**：聚焦态仍是"更亮填充 + 2dp 语义描边"（绿=文件行、蓝=设置/歌单、白=暗色按钮/modal 行），描边颜色 token 一律沿用既有 `ui_accent_*_stroke`；玻璃 rim 只承担静置态边缘高光。
@@ -202,7 +204,7 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 └──────────────────────────────────────────────────────┘
 ```
 
-- 配方实现见 `bg_panel.xml` / `bg_file_item.xml` / `bg_playlist_tile.xml` / `bg_modal_*` / `bg_settings_entry.xml` / `bg_button_dark.xml`；彩色语义按钮（`bg_button_{primary,green,red,light_yellow,amber}.xml`）为"实色语义填充 + 顶部光泽"两层配方。
+- 完整配方（rim + fill + gloss）实现见 `bg_panel.xml` / `bg_modal_panel.xml` / `bg_browser_sort_dropdown.xml` / `bg_playback_toast.xml`；彩色语义按钮（`bg_button_{primary,green,red,light_yellow,amber}.xml`）为"实色语义填充 + 顶部光泽"两层配方；密集条目（`bg_file_item.xml` / `bg_modal_surface*.xml` / `bg_settings_entry.xml` / `bg_settings_category.xml` / `bg_button_dark.xml` / `bg_playlist_tile.xml`）一律单层平铺，静置无任何高光装饰。
 - 玻璃底下必须铺氛围底（`AmbientBackdrop` + `iv_ambient` + `view_ambient_scrim`），否则半透明材质失去意义；新页面接入氛围底时，根布局须为 FrameLayout 并在第 0/1 位放这两个视图。
 - `bg_ambient_fallback.xml` 为无封面时的深色对角渐变兜底（复用 `ui_bg_app_deep` / `ui_bg_tv_blue`）。
 
@@ -627,7 +629,7 @@ Progress Modal 示例（下载更新）：
 
 交互控件的可复用动效统一收敛到 `ui/UiMotion.kt`。动效服从 product 语义：仅用于传达状态、给反馈、澄清层级，不做无意义装饰；时长落在 150–250ms 区间，无回弹/弹性。
 
-- **遥控器焦点缩放（液态玻璃）**：`UiMotion.animateFocusScale(view, focused)`——聚焦 150ms 放大至 1.04（复用 EXPAND ease-out 插值），失焦 120ms 回落（COLLAPSE ease-in）。仅应用于卡片类表面（文件行/宫格卡、歌单 tile、设置分类与条目、收藏操作按钮），按钮不叠加（已有聚焦展开动效，避免忙乱）；触屏模式 / 未布局时直接落定目标值；切换焦点前取消旧动画。缩放不触发 requestLayout，轻微外溢由卡片间距吸收。
+- **遥控器焦点缩放（液态玻璃）**：`UiMotion.animateFocusScale(view, focused)`——聚焦 150ms 放大至 1.04（复用 EXPAND ease-out 插值），失焦 120ms 回落（COLLAPSE ease-in）。**仅限有明确间距吸收外溢的小型方块表面**（收藏页播放/删除操作按钮）；全宽行、宫格卡、歌单 tile、设置条目**禁用 scale**——全宽行放大后超出父容器被 clipChildren 裁掉左右，语义描边只剩上下两段，焦点环残缺（首版 Demo 教训）；触屏模式 / 未布局时直接落定目标值；切换焦点前取消旧动画；缩放不触发 requestLayout。
 
 **严格隔离原则（核心）**：触屏反馈与遥控器反馈互斥，不共用任何视觉路径，且按输入来源物理隔离。
 
