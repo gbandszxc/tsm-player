@@ -333,3 +333,14 @@ docs/icon/icon_final_preview.png
 5. MuMu（API 35）实测 `isCrossWindowBlurEnabled=false`，Modal 窗口模糊按设计自动降级为纯遮罩——增强路径仅在支持的设备生效。
 
 修正后 v2 走查全部通过：浏览列表/宫格（目录封面氛围底）、播放页（封面氛围底 + 底栏语义色）、设置页（玻璃侧栏）、连接管理 Modal、排序下拉、焦点态完整语义环。
+
+### 19.2 v3——基底中性化与封面取色光晕
+
+用户反馈"深蓝底色不搭、设置页观感未适配"，当日完成 v3：
+
+1. **全套 token 中性化**：`ui_bg_*` 全家族（app/app_deep/sidebar/tv_blue/artwork/panel×3/item×2/overlay/track/divider）与 `ui_glass_*` 玻璃填充、`ui_ambient_scrim(_deep)` 全部去蓝相转中性深炭（明度关系不变）；`ui_bg_tv_blue` 为历史命名保留（值已中性化）。语义色 `ui_accent_*` 不动——蓝色只活在焦点与交互语义上。
+2. **封面主色光晕**：`AmbientBackdrop.deriveGlowColor` 从模糊位图采样均值 → HSV 提饱和（0.25–0.6）限明度（0.35–0.55），以 0x30 透明度做右上角 radial 柔光（`GradientDrawable.RADIAL_GRADIENT`，与兜底渐变光晕同位）；每个封面的"房间灯光"色温不同，无封面时用中性微光（`ui_ambient_glow` 已去蓝）。
+3. **设置页接播放状态**：`SettingsActivity` 补 MediaController 接线（对齐 HistoryActivity 模式），氛围底跟随当前播放封面；浏览页"当前播放"氛围源对 SMB URI 回退 `PlaybackArtworkCache` 内存位图。
+4. 构建注意：JDK 目录已迁移（`jdk-17.0.16+8` 不存在），现用 `D:\Develop\Java\zulu17.58.21` 作为 Gradle JAVA_HOME。
+
+v3 已在 MuMu 走查：根目录（中性底）、Apple 目录列表、播放页（封面光晕）、设置页（跟随播放封面 + 玻璃侧栏）全部通过。

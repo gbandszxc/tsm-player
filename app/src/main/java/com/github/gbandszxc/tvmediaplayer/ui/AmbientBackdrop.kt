@@ -2,14 +2,18 @@ package com.github.gbandszxc.tvmediaplayer.ui
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.TransitionDrawable
 import android.net.Uri
 import android.util.LruCache
 import android.view.View
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +44,43 @@ object AmbientBackdrop {
     private const val BLUR_RADIUS = 14
     private const val CROSSFADE_DURATION_MS = 250
     private const val FALLBACK_KEY = "\u0000fallback"
+    private const val GLOW_ALPHA = 0x30
+    private const val DEFAULT_GLOW_RADIUS_PX = 720
+    private const val GLOW_RADIUS_FACTOR = 0.9f
+
+    /**
+     * 从模糊位图提取主色作为光晕颜色：采样求均值后转 HSV，
+     * 提饱和并限制明度——光晕需要可感知的色相，但不允许过艳或发白。
+     */
+    private fun deriveGlowColor(bitmap: Bitmap): Int {
+        val w = bitmap.width
+        val h = bitmap.height
+        if (w == 0 || h == 0) return 0
+        var r = 0L
+        var g = 0L
+        var b = 0L
+        var n = 0
+        val step = maxOf(1, minOf(w, h) / 32)
+        var y = 0
+        while (y < h) {
+            var x = 0
+            while (x < w) {
+                val c = bitmap.getPixel(x, y)
+                r += Color.red(c)
+                g += Color.green(c)
+                b += Color.blue(c)
+                n++
+                x += step
+            }
+            y += step
+        }
+        if (n == 0) return 0
+        val hsv = FloatArray(3)
+        Color.RGBToHSV((r / n).toInt(), (g / n).toInt(), (b / n).toInt(), hsv)
+        hsv[1] = (hsv[1] * 1.25f).coerceIn(0.25f, 0.6f)
+        hsv[2] = hsv[2].coerceIn(0.35f, 0.55f)
+        return Color.HSVToColor(hsv)
+    }
 
     /** 小缓存：仅存模糊后的 160px 位图（RGB_565 每张约 50KB），按封面 URI 寻址。 */
     private val blurredCache = LruCache<String, Bitmap>(3)
@@ -98,7 +139,13 @@ object AmbientBackdrop {
 
         private fun apply(bitmap: Bitmap?) {
             val next: Drawable = if (bitmap != null) {
-                BitmapDrawable(view.resources, bitmap)
+                // 模糊封面 + 封面主色柔光：底色退后成"暗房"，颜色全部让给内容
+                LayerDrawable(
+                    arrayOf(
+                        BitmapDrawable(view.resources, bitmap),
+                        coverGlowDrawable(bitmap),
+                    )
+                )
             } else {
                 fallbackDrawable(view.context)
             }
@@ -112,6 +159,22 @@ object AmbientBackdrop {
                 startTransition(CROSSFADE_DURATION_MS)
             }
             view.setImageDrawable(transition)
+        }
+
+        /** 封面主色 radial 柔光（右上角），与兜底渐变的光晕位置一致。 */
+        private fun coverGlowDrawable(bitmap: Bitmap): GradientDrawable {
+            val glow = GradientDrawable()
+            glow.gradientType = GradientDrawable.RADIAL_GRADIENT
+            glow.setColors(
+                intArrayOf(
+                    ColorUtils.setAlphaComponent(deriveGlowColor(bitmap), GLOW_ALPHA),
+                    Color.TRANSPARENT,
+                )
+            )
+            glow.setGradientCenter(0.82f, 0.12f)
+            val radiusPx = view.width.takeIf { it > 0 } ?: DEFAULT_GLOW_RADIUS_PX
+            glow.gradientRadius = radiusPx * GLOW_RADIUS_FACTOR
+            return glow
         }
 
         private fun fallbackDrawable(context: Context): Drawable =

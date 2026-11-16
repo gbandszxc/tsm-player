@@ -2,19 +2,19 @@
 description: "Android TV SMB 音乐播放器的当前 UI/交互设计规范与 Android XML 样式 token 来源。"
 tokens:
   colors:
-    ui_bg_app: "#0F0F23"
-    ui_bg_app_deep: "#0B1220"
-    ui_bg_sidebar: "#0D1A2E"
-    ui_bg_tv_blue: "#172554"
-    ui_bg_artwork: "#25324A"
+    ui_bg_app: "#0D0E12"
+    ui_bg_app_deep: "#0A0B0F"
+    ui_bg_sidebar: "#101114"
+    ui_bg_tv_blue: "#16171D"
+    ui_bg_artwork: "#1E2129"
     ui_bg_black: "#000000"
-    ui_bg_panel: "#1B2437"
-    ui_bg_panel_deep: "#111827"
-    ui_bg_panel_muted: "#14233A"
-    ui_bg_item: "#2A2E39"
-    ui_bg_item_focus: "#2B3548"
-    ui_bg_overlay: "#DD0F172A"
-    ui_bg_track: "#334155"
+    ui_bg_panel: "#1A1C22"
+    ui_bg_panel_deep: "#121317"
+    ui_bg_panel_muted: "#15161B"
+    ui_bg_item: "#26282E"
+    ui_bg_item_focus: "#2E3138"
+    ui_bg_overlay: "#DD0F1114"
+    ui_bg_track: "#2C2F36"
     ui_transparent: "#00000000"
     ui_text_primary: "#EAF2FF"
     ui_text_on_accent: "#FFFFFF"
@@ -46,22 +46,22 @@ tokens:
     ui_press_overlay_dark: "#2E000000"
     ui_press_overlay_light: "#38FFFFFF"
     # 液态玻璃材质：半透明深色玻璃填充（浓度红线 ≥60%，保证暗光远距文字对比度）
-    ui_glass_panel: "#B31B2437"
-    ui_glass_panel_strong: "#CC111827"
-    ui_glass_panel_deep: "#99111827"
-    ui_glass_panel_muted: "#9914233A"
-    ui_glass_item: "#992A2E39"
-    ui_glass_item_focus: "#B32B3548"
-    ui_glass_sidebar: "#CC0D1A2E"
+    ui_glass_panel: "#B31A1C22"
+    ui_glass_panel_strong: "#CC121317"
+    ui_glass_panel_deep: "#99121317"
+    ui_glass_panel_muted: "#9915161B"
+    ui_glass_item: "#9926282E"
+    ui_glass_item_focus: "#B32E3138"
+    ui_glass_sidebar: "#CC101114"
     # 玻璃高光：仅面板级表面（panel/modal/浮层）使用，行/条目为纯半透明平铺
     ui_glass_rim_light: "#38FFFFFF"
     ui_glass_rim_soft: "#0DFFFFFF"
     ui_glass_gloss_top: "#14FFFFFF"
     ui_glass_gloss_bottom: "#0AFFFFFF"
     # 氛围底：模糊封面上的暗化遮罩，保证文字对比度
-    ui_ambient_scrim: "#990B1220"
-    ui_ambient_scrim_deep: "#D90B1220"
-    ui_ambient_glow: "#2E38BDF8"
+    ui_ambient_scrim: "#990A0B0F"
+    ui_ambient_scrim_deep: "#D90A0B0F"
+    ui_ambient_glow: "#22A9B2BD"
   spacing:
     ui_space_xs: "4dp"
     ui_space_sm: "6dp"
@@ -113,7 +113,7 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 
 ## Colors
 
-颜色以深色背景、蓝色焦点、绿色播放操作和黄色提醒操作组成。Android XML 使用 `@color/ui_*`，不得新增通用硬编码颜色。
+颜色以**中性深炭基底**（2026-11 起，原深蓝基底退役——底色退后当"暗房"，颜色让给封面氛围；`ui_bg_tv_blue` 为历史命名，值已中性化）、蓝色焦点、绿色播放操作和黄色提醒操作组成。Android XML 使用 `@color/ui_*`，不得新增通用硬编码颜色。
 
 - 背景层：`ui_bg_app` 用于主深色页面与窗口兜底背景，`ui_bg_app_deep` 用于更沉浸的全屏歌词，`ui_bg_sidebar` 保留为设置页左栏兜底色（当前已由 `ui_glass_sidebar` 玻璃材质取代），`ui_bg_panel*` 保留为玻璃面板的原始色基（`ui_glass_*` 为其半透明形态）。
 - 玻璃层：`ui_glass_*` 是液态玻璃材质的半透明填充与高光颜色，语义色（蓝/绿/黄/红）不玻璃化；`ui_ambient_scrim*` 用于氛围底暗化遮罩。
@@ -157,7 +157,7 @@ TSM Player 是面向 Android TV 的 SMB 本地音乐播放器。界面优先服�
 
 液态玻璃材质通过"氛围底 + 暗化遮罩 + 半透明面板 + 高光描边"四层表达深度，不用投影阴影。
 
-- **氛围底**：每个主页面根布局最底层铺 `iv_ambient`（封面缩样至 ≤160px → `BitmapBlur` 一次性 CPU 模糊 → 放大铺满），其上叠 `view_ambient_scrim`（`@color/ui_ambient_scrim`，60% 浓度）暗化保对比度；无封面时回落 `@drawable/bg_ambient_fallback`（深色渐变 + 右上径向光晕）。来源优先级：当前播放封面（播放页/浏览页经 MediaController）> 浏览页宫格模式当前目录封面（复用已解析位图，零额外 IO，无活跃播放时）> 兜底渐变。由 `AmbientBackdrop` 统一驱动，换源 250ms 交叉淡入。
+- **氛围底**：每个主页面根布局最底层铺 `iv_ambient`（封面缩样至 ≤160px → `BitmapBlur` 一次性 CPU 模糊 → 放大铺满），有封面时叠加**封面主色 radial 柔光**（`AmbientBackdrop.deriveGlowColor` 从模糊位图采样均值 → HSV 提饱和限明度，右上角 0x30 透明度），其上叠 `view_ambient_scrim`（`@color/ui_ambient_scrim`，60% 浓度）暗化保对比度；无封面时回落 `@drawable/bg_ambient_fallback`（中性深炭渐变 + 中性微光晕）。来源优先级：当前播放封面（播放页/浏览页/设置页经 MediaController，SMB URI 回退 `PlaybackArtworkCache` 内存位图）> 浏览页宫格模式当前目录封面（复用已解析位图，零额外 IO，无活跃播放时）> 兜底渐变。由 `AmbientBackdrop` 统一驱动，换源 250ms 交叉淡入。
 - **玻璃分层铁律——玻璃只给"chrome"，不给密集内容**：rim（白光渐变描边）与 gloss（顶部光泽）**仅用于面板级稀疏表面**（`bg_panel`、`bg_modal_panel`、排序下拉、播放轻提示、彩色语义按钮）；**列表行、宫格卡、modal 行、设置条目等密集条目一律纯半透明平铺（单层 shape），不叠 rim/gloss**——密集表面上每条的亮边与光泽会互相打架，形成"药丸群"噪点（首版 Demo 的核心教训）。
 - **玻璃面板**：面板级表面使用半透明深色玻璃 token（`ui_glass_*`），底下氛围模糊封面隐约透出；静置态边缘为白光渐变 rim（外层 `ui_glass_rim_light→rim_soft` 渐变 + 内层内缩 `ui_stroke_glass_rim` 形成"渐变描边"），表面顶部叠加 gloss 光泽（`ui_glass_gloss_top→bottom`）。
 - **玻璃浓度红线**：普通面板 ≥70%（`ui_glass_panel`）、modal/浮层 ≥80%（`ui_glass_panel_strong`）、列表条目 ≥60%（`ui_glass_item`）；任何新玻璃表面不得低于 60% 浓度，保证客厅暗光、2-3 米距离的正文对比度。

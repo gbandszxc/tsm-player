@@ -940,7 +940,13 @@ class TvBrowseFragment : Fragment() {
                 if (title.isBlank()) getString(R.string.browser_now_playing)
                 else getString(R.string.browser_now_playing_with_title, title)
             )
-            ambientBackdrop?.update(currentMediaItem.mediaMetadata.artworkUri?.toString())
+            // SMB 封面 URI 无法直接解码，回退封面缓存的内存位图（如刚从播放页返回）
+            val cacheKey = currentMediaItem.localConfiguration?.uri?.toString().orEmpty()
+                .ifBlank { currentMediaItem.mediaId }
+            ambientBackdrop?.update(
+                currentMediaItem.mediaMetadata.artworkUri?.toString(),
+                PlaybackArtworkCache.get(cacheKey),
+            )
             return
         }
 

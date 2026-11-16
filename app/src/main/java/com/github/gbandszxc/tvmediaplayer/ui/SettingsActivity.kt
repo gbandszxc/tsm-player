@@ -3,6 +3,7 @@ package com.github.gbandszxc.tvmediaplayer.ui
 import android.app.Activity
 import android.app.Dialog
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -30,11 +31,18 @@ import com.github.gbandszxc.tvmediaplayer.backup.WebDavClientMessages
 import com.github.gbandszxc.tvmediaplayer.backup.WebDavConfig
 import com.github.gbandszxc.tvmediaplayer.backup.WebDavConfigStore
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStore
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.favorites.FavoritesDbHelper
 import com.github.gbandszxc.tvmediaplayer.playback.LastPlaybackStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepDeviceController
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 import com.github.gbandszxc.tvmediaplayer.ui.modal.ConfirmModalSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpecType
@@ -75,6 +83,18 @@ class SettingsActivity : BaseActivity() {
     private val modalCoordinator by lazy { TsmModalCoordinator(this) }
     private var pendingImportUri: Uri? = null
     private var ambientBackdrop: AmbientBackdrop.Controller? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var mediaController: MediaController? = null
+
+    private val settingsPlayerListener = object : Player.Listener {
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            updateAmbientFromPlayback()
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            updateAmbientFromPlayback()
+        }
+    }
 
     private val categories by lazy {
         listOf(
@@ -358,6 +378,58 @@ class SettingsActivity : BaseActivity() {
         ambientBackdrop?.dispose()
         ambientBackdrop = null
         super.onDestroy()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        ensureController()
+    }
+
+    override fun onStop() {
+        releaseController()
+        super.onStop()
+    }
+
+    /** 氛围底跟随当前播放封面；SMB URI 不可直接解码，回退封面缓存的内存位图。 */
+    private fun updateAmbientFromPlayback() {
+        val item = mediaController?.currentMediaItem
+        if (item == null) {
+            ambientBackdrop?.update(null)
+            return
+        }
+        val cacheKey = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId }
+        ambientBackdrop?.update(
+            item.mediaMetadata.artworkUri?.toString(),
+            PlaybackArtworkCache.get(cacheKey),
+        )
+    }
+
+    private fun ensureController() {
+        if (mediaController != null || controllerFuture != null) return
+        val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
+        future.addListener(
+            {
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    return@addListener
+                }
+                if (controllerFuture !== future) return@addListener
+                mediaController = controller
+                controller.addListener(settingsPlayerListener)
+                updateAmbientFromPlayback()
+            },
+            MoreExecutors.directExecutor(),
+        )
+    }
+
+    private fun releaseController() {
+        mediaController?.removeListener(settingsPlayerListener)
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        mediaController = null
     }
 
     override fun onResume() {
