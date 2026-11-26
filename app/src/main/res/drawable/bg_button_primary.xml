@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 主操作按钮：语义蓝填充保持近实色（远距可辨），叠加顶部玻璃光泽 -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 主操作按钮（1B 染色玻璃 + 2A 胶囊）：静置低饱和烟熏蓝玻璃 + 同色折射边，聚焦充能高亮 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="120"
+    android:exitFadeDuration="100">
     <item android:state_focused="true">
         <layer-list>
             <item>
                 <shape>
                     <corners android:radius="@dimen/ui_radius_button" />
-                    <solid android:color="@color/ui_accent_blue_focus" />
+                    <solid android:color="@color/ui_glass_blue_focus" />
                 </shape>
             </item>
             <item
@@ -15,7 +17,7 @@
                 android:right="@dimen/ui_stroke_focus"
                 android:top="@dimen/ui_stroke_focus">
                 <shape>
-                    <corners android:radius="@dimen/ui_radius_item" />
+                    <corners android:radius="@dimen/ui_radius_button" />
                     <gradient
                         android:angle="270"
                         android:startColor="@color/ui_glass_gloss_top"
@@ -38,7 +40,10 @@
             <item>
                 <shape>
                     <corners android:radius="@dimen/ui_radius_button" />
-                    <solid android:color="@color/ui_accent_blue" />
+                    <solid android:color="@color/ui_glass_blue" />
+                    <stroke
+                        android:width="@dimen/ui_stroke_glass_rim"
+                        android:color="@color/ui_glass_blue_rim" />
                 </shape>
             </item>
             <item>

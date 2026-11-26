@@ -4,6 +4,7 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="r">always</item>
+        <item name="android:windowAnimationStyle">@style/TsmActivityWindowAnimation</item>
         <item name="defaultBrandColor">@color/ui_accent_green</item>
         <item name="defaultSearchColor">@color/ui_accent_blue_focus</item>
         <item name="android:fontFamily">@font/misans_family</item>

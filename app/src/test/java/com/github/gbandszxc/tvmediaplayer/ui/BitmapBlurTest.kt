@@ -46,4 +46,20 @@ class BitmapBlurTest {
         assertNotSame(source, result)
         assertEquals(Color.CYAN, result.getPixel(0, 0))
     }
+
+    @Test
+    fun `multi pass gaussian approximation smooths sharp step without artifacts`() {
+        val source = Bitmap.createBitmap(9, 1, Bitmap.Config.ARGB_8888)
+        for (x in 0 until 9) {
+            source.setPixel(x, 0, if (x < 4) Color.BLACK else Color.WHITE)
+        }
+
+        val result = BitmapBlur.blur(source, radius = 2)
+
+        assertEquals(9, result.width)
+        val left = Color.red(result.getPixel(1, 0))
+        val mid = Color.red(result.getPixel(4, 0))
+        val right = Color.red(result.getPixel(7, 0))
+        assert(left < mid && mid < right)
+    }
 }

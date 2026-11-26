@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 睡眠定时滚轮玻璃框：20dp 面板圆角 + 聚焦亮蓝折射边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="120"
+    android:exitFadeDuration="100">
+    <item android:state_focused="true">
+        <layer-list>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@color/ui_glass_item_focus" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/ui_glass_gloss_top"
+                        android:endColor="@color/ui_glass_gloss_bottom" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke
+                        android:width="@dimen/ui_stroke_focus"
+                        android:color="@color/ui_accent_blue_stroke" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <item>
+        <layer-list>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@color/ui_glass_panel_deep" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_panel" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke
+                        android:width="@dimen/ui_stroke_glass_rim"
+                        android:color="@color/ui_glass_rim_soft" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</selector>

@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modal 内容行焦点态：亮面填充 + 完整高亮描边 -->
+<!-- Modal 内容行焦点态：亮面玻璃填充（边框由 SlidingFocusHighlight 统一滑行绘制） -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <corners android:radius="@dimen/ui_radius_item" />
     <solid android:color="@color/ui_glass_item_focus" />
-    <stroke
-        android:width="@dimen/ui_stroke_focus"
-        android:color="@color/ui_text_primary" />
 </shape>

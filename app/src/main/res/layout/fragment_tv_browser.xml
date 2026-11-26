@@ -23,6 +23,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="56dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:fillViewport="true"
         android:scrollbars="none">
 
@@ -30,6 +32,8 @@
             android:id="@+id/root"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="vertical"
             android:padding="@dimen/ui_space_4xl">
 
@@ -37,6 +41,8 @@
                 android:id="@+id/panel_connection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
                 android:padding="@dimen/ui_space_3xl">
@@ -86,6 +92,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/ui_space_3xl"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
                 android:padding="@dimen/ui_space_3xl">
@@ -102,6 +110,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_lg"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:orientation="horizontal">
 
                     <Button
@@ -175,6 +185,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/ui_space_3xl"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
                 android:padding="@dimen/ui_space_3xl">
@@ -192,7 +204,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_md"
-                    android:background="@color/ui_bg_artwork"
+                    android:background="@drawable/bg_path_bar"
                     android:padding="@dimen/ui_space_lg"
                     android:textColor="@color/ui_text_primary"
                     android:textSize="@dimen/ui_text_title"
@@ -202,12 +214,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_xl"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:scrollbars="none"
                     android:fillViewport="false">
 
                     <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:clipChildren="false"
+                        android:clipToPadding="false"
                         android:orientation="horizontal">
 
                         <Button
@@ -264,12 +280,22 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_lg"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
                     android:columnCount="1"
                     android:orientation="horizontal" />
             </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
+
+    <!-- 顶部悬浮栏渐隐底衬：避免滚动内容在按钮下方被生硬裁切 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="76dp"
+        android:background="@drawable/bg_top_bar_scrim"
+        android:clickable="false"
+        android:focusable="false" />
 
     <Button
         android:id="@+id/btn_back_top"
@@ -321,7 +347,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="@dimen/ui_space_4xl"
         android:layout_marginBottom="@dimen/ui_space_4xl"
-        android:background="@color/ui_bg_overlay"
+        android:background="@drawable/bg_modal_panel"
         android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -358,17 +384,18 @@
 
         <FrameLayout
             android:id="@+id/view_fast_locate_track"
-            android:layout_width="18dp"
+            android:layout_width="14dp"
             android:layout_height="136dp"
             android:layout_marginStart="@dimen/ui_space_2xl"
-            android:background="@color/ui_bg_track">
+            android:padding="2dp"
+            android:background="@drawable/bg_fast_locate_track">
 
             <View
                 android:id="@+id/view_fast_locate_indicator"
                 android:layout_width="match_parent"
                 android:layout_height="18dp"
                 android:layout_gravity="top"
-                android:background="@color/ui_accent_cyan" />
+                android:background="@drawable/bg_fast_locate_indicator" />
         </FrameLayout>
     </LinearLayout>
 

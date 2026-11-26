@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 浏览页当前路径内嵌玻璃槽 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/ui_radius_item" />
+    <solid android:color="@color/ui_glass_panel_deep" />
+    <stroke
+        android:width="@dimen/ui_stroke_hairline"
+        android:color="@color/ui_divider" />
+</shape>

@@ -1,36 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
     <!-- 当前分类同时获得遥控器焦点：焦点框优先，左侧指示条由子 View 保留 -->
     <item android:state_focused="true" android:state_selected="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_accent_blue_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_blue_stroke" />
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_blue_focus" />
         </shape>
     </item>
     <!-- 遥控器焦点在此项 -->
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_accent_blue_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_blue_stroke" />
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_blue_focus" />
         </shape>
     </item>
-    <!-- 当前选中分类：半透明低亮底 -->
+    <!-- 当前选中分类：半透明低亮玻璃底 -->
     <item android:state_selected="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_item" />
             <solid android:color="@color/ui_glass_panel_muted" />
+            <stroke
+                android:width="@dimen/ui_stroke_hairline"
+                android:color="@color/ui_divider" />
         </shape>
     </item>
     <!-- 默认 -->
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_item" />
             <solid android:color="@color/ui_transparent" />
         </shape>
     </item>

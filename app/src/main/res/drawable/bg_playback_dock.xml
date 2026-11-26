@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 播放页悬浮玻璃胶囊控制坞 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="@dimen/ui_radius_dock" />
+    <solid android:color="@color/ui_glass_dock" />
+    <stroke
+        android:width="@dimen/ui_stroke_glass_rim"
+        android:color="@color/ui_glass_rim_light" />
+</shape>

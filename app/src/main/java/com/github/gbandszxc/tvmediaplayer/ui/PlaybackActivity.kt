@@ -1,6 +1,6 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
-import android.app.AlertDialog
+import android.animation.ObjectAnimator
 import android.app.Dialog
 import android.content.ComponentName
 import android.content.Intent
@@ -19,6 +19,7 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -107,6 +108,7 @@ class PlaybackActivity : BaseActivity() {
     private var progressJob: Job? = null
     private var seekIdleCommitJob: Job? = null
     private var playbackToastJob: Job? = null
+    private var lyricsScrollAnimator: ObjectAnimator? = null
     private var playerProgressHoldUntilMs: Long = 0L
     private val playbackSeekController = PlaybackSeekController()
     private val lyricsRepository = SmbLyricsRepository()
@@ -213,6 +215,9 @@ class PlaybackActivity : BaseActivity() {
     }
 
     override fun onStop() {
+        lyricsScrollAnimator?.cancel()
+        lyricsScrollAnimator = null
+        ambientBackdrop?.setBreathing(false)
         savePlaybackSnapshot()
         releaseController()
         super.onStop()
@@ -230,6 +235,9 @@ class PlaybackActivity : BaseActivity() {
             findViewById(R.id.view_ambient_scrim),
         )
         layoutArtworkFrame = findViewById(R.id.layout_artwork_frame)
+        LiquidGlassSurface.applyRoundedClip(layoutArtworkFrame, R.dimen.ui_radius_card)
+        layoutArtworkFrame.elevation = 14f * resources.displayMetrics.density
+        findViewById<View>(R.id.layout_playback_dock)?.let(LiquidGlassSurface::applyDock)
         ivArtwork = findViewById(R.id.iv_artwork)
         tvTitle = findViewById(R.id.tv_playback_title)
         tvArtist = findViewById(R.id.tv_playback_artist)
@@ -270,6 +278,9 @@ class PlaybackActivity : BaseActivity() {
 
     private fun bindActions() {
         layoutArtworkFrame.setOnClickListener { showArtworkFullscreen() }
+        layoutArtworkFrame.setOnFocusChangeListener { v, hasFocus ->
+            UiMotion.animateFocusScale(v, hasFocus)
+        }
         layoutArtworkFrame.setOnKeyListener { _, keyCode, event ->
             if (event.action == KeyEvent.ACTION_DOWN &&
                 (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)
@@ -320,6 +331,19 @@ class PlaybackActivity : BaseActivity() {
         }
         btnSleepTimer.setOnFocusChangeListener { _, _ -> renderSleepTimerButton(force = true) }
         bindTouchFeedback()
+
+        pbProgress.setOnFocusChangeListener { view, hasFocus ->
+            if (view.isInTouchMode || view.width <= 0) {
+                view.scaleY = 1f
+                return@setOnFocusChangeListener
+            }
+            view.animate().cancel()
+            view.animate()
+                .scaleY(if (hasFocus) 1.35f else 1f)
+                .setDuration(if (hasFocus) 190L else 140L)
+                .setInterpolator(UiMotion.springGlideInterpolator())
+                .start()
+        }
 
         pbProgress.setOnKeyListener { _, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
@@ -456,6 +480,7 @@ class PlaybackActivity : BaseActivity() {
         renderTrackInfo(player)
         refreshFavoriteState()
         renderPlayPauseButton(player.isPlaying)
+        ambientBackdrop?.setBreathing(player.isPlaying)
 
         maybeLoadLyrics(player)
         maybeLoadArtwork(player)
@@ -630,7 +655,7 @@ class PlaybackActivity : BaseActivity() {
             iconResId = R.drawable.ic_locate_crosshair,
             focused = focused,
             backgroundResId = R.drawable.bg_button_light_yellow,
-            iconColorResId = R.color.ui_text_warning_dark,
+            iconColorResId = R.color.ui_text_warning_glass,
             collapsedWidthResId = R.dimen.ui_playback_mode_button_collapsed_width,
             expandedMinWidthResId = R.dimen.ui_playback_locate_button_expanded_min_width,
         )
@@ -762,6 +787,7 @@ class PlaybackActivity : BaseActivity() {
         button.setSingleLine(true)
         button.ellipsize = TextUtils.TruncateAt.END
         button.setBackgroundResource(backgroundResId)
+        button.background?.jumpToCurrentState()
         button.minWidth = resources.getDimensionPixelSize(
             if (expanded) expandedMinWidthResId else collapsedWidthResId
         )
@@ -810,10 +836,10 @@ class PlaybackActivity : BaseActivity() {
     private fun showPlaybackToast(message: String) {
         playbackToastJob?.cancel()
         tvPlaybackToast.text = message
-        tvPlaybackToast.visibility = View.VISIBLE
+        UiMotion.animateToastEnter(tvPlaybackToast)
         playbackToastJob = lifecycleScope.launch {
             delay(PLAYBACK_TOAST_DURATION_MS)
-            tvPlaybackToast.visibility = View.GONE
+            UiMotion.animateToastExit(tvPlaybackToast)
         }
     }
 
@@ -1227,6 +1253,7 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun resetLyricsScrollToTop() {
+        lyricsScrollAnimator?.cancel()
         scrollLyrics.post { scrollLyrics.scrollTo(0, 0) }
     }
 
@@ -1249,8 +1276,10 @@ class PlaybackActivity : BaseActivity() {
         renderedLyricsTimeline = timeline
         renderedLyricsLineIndex = currentIndex
 
-        val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
-        val highlightColor = ContextCompat.getColor(this, android.R.color.white)
+        val activeColor = ContextCompat.getColor(this, R.color.ui_lyric_active)
+        val nearColor = ContextCompat.getColor(this, R.color.ui_lyric_near)
+        val midColor = ContextCompat.getColor(this, R.color.ui_lyric_mid)
+        val farColor = ContextCompat.getColor(this, R.color.ui_lyric_far)
         val builder = SpannableStringBuilder()
         var highlightStart = -1
 
@@ -1259,11 +1288,20 @@ class PlaybackActivity : BaseActivity() {
             builder.append(line.text.ifBlank { "..." })
             val end = builder.length
             if (index == currentIndex) {
-                builder.setSpan(ForegroundColorSpan(highlightColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                builder.setSpan(ForegroundColorSpan(activeColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 builder.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 highlightStart = start
             } else {
-                builder.setSpan(ForegroundColorSpan(normalColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val color = if (currentIndex < 0) {
+                    midColor
+                } else {
+                    when (kotlin.math.abs(index - currentIndex)) {
+                        1 -> nearColor
+                        2 -> midColor
+                        else -> farColor
+                    }
+                }
+                builder.setSpan(ForegroundColorSpan(color), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
             if (index != timeline.lines.lastIndex) builder.append('\n')
         }
@@ -1277,7 +1315,12 @@ class PlaybackActivity : BaseActivity() {
                 val lineIndex = layout.getLineForOffset(highlightStart)
                 val lineTop = layout.getLineTop(lineIndex)
                 val targetY = (lineTop - scrollLyrics.height / 3).coerceAtLeast(0)
-                scrollLyrics.smoothScrollTo(0, targetY)
+                lyricsScrollAnimator?.cancel()
+                lyricsScrollAnimator = ObjectAnimator.ofInt(scrollLyrics, "scrollY", targetY).apply {
+                    duration = 280L
+                    interpolator = DecelerateInterpolator()
+                    start()
+                }
             }
         }
     }
@@ -1343,9 +1386,36 @@ class PlaybackActivity : BaseActivity() {
     private fun showArtworkFullscreen() {
         val bitmap = currentArtworkBitmap ?: defaultArtworkBitmap()
         renderArtworkFullscreen(bitmap)
+        layoutArtworkFullscreen.animate().cancel()
+        ivArtworkFullscreen.animate().cancel()
         layoutArtworkFullscreen.visibility = View.VISIBLE
+        layoutArtworkFullscreen.alpha = 1f
+        ivArtworkFullscreen.scaleX = 1f
+        ivArtworkFullscreen.scaleY = 1f
         layoutArtworkFullscreen.bringToFront()
         layoutArtworkFullscreen.requestFocus()
+        layoutArtworkFullscreen.post {
+            if (!layoutArtworkFullscreen.isAttachedToWindow ||
+                layoutArtworkFullscreen.visibility != View.VISIBLE ||
+                layoutArtworkFullscreen.width <= 0
+            ) {
+                return@post
+            }
+            layoutArtworkFullscreen.alpha = 0f
+            ivArtworkFullscreen.scaleX = 0.94f
+            ivArtworkFullscreen.scaleY = 0.94f
+            layoutArtworkFullscreen.animate()
+                .alpha(1f)
+                .setDuration(220L)
+                .setInterpolator(UiMotion.springGlideInterpolator())
+                .start()
+            ivArtworkFullscreen.animate()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(240L)
+                .setInterpolator(UiMotion.springGlideInterpolator())
+                .start()
+        }
     }
 
     private fun renderArtworkFullscreen(bitmap: Bitmap) {
@@ -1359,7 +1429,24 @@ class PlaybackActivity : BaseActivity() {
     }
 
     private fun hideArtworkFullscreen() {
+        layoutArtworkFullscreen.animate().cancel()
+        ivArtworkFullscreen.animate().cancel()
+        if (layoutArtworkFullscreen.visibility == View.VISIBLE && layoutArtworkFullscreen.width > 0) {
+            layoutArtworkFullscreen.animate()
+                .alpha(0f)
+                .setDuration(150L)
+                .withEndAction {
+                    layoutArtworkFullscreen.visibility = View.GONE
+                    layoutArtworkFullscreen.alpha = 1f
+                    ivArtworkFullscreen.scaleX = 1f
+                    ivArtworkFullscreen.scaleY = 1f
+                    layoutArtworkFrame.requestFocus()
+                }
+                .start()
+            return
+        }
         layoutArtworkFullscreen.visibility = View.GONE
+        layoutArtworkFullscreen.alpha = 1f
         layoutArtworkFrame.requestFocus()
     }
 
@@ -1570,14 +1657,17 @@ class PlaybackActivity : BaseActivity() {
 
     private fun showLocateConfirmationDialog(target: PlaybackLocationResolver.Target) {
         val targetLabel = target.sourceConfig.rootUrl().ifBlank { getString(R.string.playback_target_smb_connection) }
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.playback_switch_smb_connection))
-            .setMessage(getString(R.string.playback_switch_smb_message, targetLabel))
-            .setPositiveButton(getString(R.string.playback_switch_and_locate)) { _, _ ->
-                openBrowserAtPlaybackDirectory(target)
-            }
-            .setNegativeButton(getString(R.string.common_cancel), null)
-            .show()
+        modalCoordinator.showConfirmModal(
+            ConfirmModalSpec(
+                sectionLabel = getString(R.string.playback_locate),
+                title = getString(R.string.playback_switch_smb_connection),
+                message = getString(R.string.playback_switch_smb_message, targetLabel),
+                confirmAction = ModalAction(getString(R.string.playback_switch_and_locate), isPrimary = true) {
+                    openBrowserAtPlaybackDirectory(target)
+                },
+                cancelAction = ModalAction(getString(R.string.common_cancel)),
+            )
+        )
     }
 
     private fun openBrowserAtPlaybackDirectory(target: PlaybackLocationResolver.Target) {

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 浏览页顶部悬浮操作栏渐隐底衬：避免页面滚动内容在顶部按钮后方被生硬截断 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="270"
+        android:startColor="#CC0B0D12"
+        android:centerColor="#550B0D12"
+        android:endColor="#000B0D12" />
+</shape>

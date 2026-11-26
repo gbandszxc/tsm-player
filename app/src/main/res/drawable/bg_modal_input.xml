@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modal 表单输入框背景：玻璃底，聚焦态蓝色描边，默认态发丝线描边 -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- Modal 表单输入框背景：烟熏玻璃槽，聚焦态蓝色描边，默认态细折射边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
     <item android:state_focused="true">
         <layer-list>
             <item>
@@ -9,13 +11,9 @@
                     <solid android:color="@color/ui_glass_panel_deep" />
                 </shape>
             </item>
-            <item
-                android:bottom="@dimen/ui_stroke_focus"
-                android:left="@dimen/ui_stroke_focus"
-                android:right="@dimen/ui_stroke_focus"
-                android:top="@dimen/ui_stroke_focus">
+            <item>
                 <shape>
-                    <corners android:radius="@dimen/ui_radius_indicator" />
+                    <corners android:radius="@dimen/ui_radius_item" />
                     <gradient
                         android:angle="270"
                         android:startColor="@color/ui_glass_gloss_top"

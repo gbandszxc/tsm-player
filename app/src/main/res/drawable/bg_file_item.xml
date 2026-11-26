@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 文件行/宫格卡选择器：静置纯半透明平铺（密集列表不做 rim/gloss 装饰），聚焦完整语义环 -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 文件行/宫格卡选择器：静置轻透烟熏玻璃，聚焦亮玻璃 + 绿色语义描边（配合滑动液态焦点框） -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
     <item android:state_focused="true">
         <shape>
             <corners android:radius="@dimen/ui_radius_item" />
             <solid android:color="@color/ui_glass_item_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_green_stroke" />
         </shape>
     </item>
     <item>

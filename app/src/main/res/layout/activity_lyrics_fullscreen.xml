@@ -1,51 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/ui_bg_app_deep"
-    android:padding="@dimen/ui_space_5xl">
+    android:background="@color/ui_bg_app_deep">
 
-    <TextView
-        android:id="@+id/tv_fullscreen_title"
+    <!-- 液态玻璃氛围底：模糊封面铺满 + 深暗遮罩，兼容全屏歌词高对比度 -->
+    <ImageView
+        android:id="@+id/iv_ambient"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/playback_lyrics_fullscreen"
-        android:textColor="@color/ui_text_primary"
-        android:textSize="@dimen/ui_text_hero"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:fontFamily="@font/misans_bold" />
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
 
-    <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
-        android:id="@+id/scroll_lyrics"
+    <View
+        android:id="@+id/view_ambient_scrim"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="@dimen/ui_space_3xl"
-        android:fadeScrollbars="false"
-        android:focusable="false"
-        android:focusableInTouchMode="false"
-        android:descendantFocusability="blocksDescendants">
+        android:layout_height="match_parent"
+        android:background="@color/ui_ambient_scrim_deep" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/ui_space_5xl">
 
         <TextView
-            android:id="@+id/tv_fullscreen_lyrics"
+            android:id="@+id/tv_fullscreen_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/ui_text_secondary"
+            android:text="@string/playback_lyrics_fullscreen"
+            android:textColor="@color/ui_text_primary"
             android:textSize="@dimen/ui_text_hero"
-            android:lineSpacingExtra="@dimen/ui_space_md"
-            android:fontFamily="@font/misans_regular"
-            android:focusable="false" />
-    </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:fontFamily="@font/misans_bold" />
 
-    <Button
-        android:id="@+id/btn_close_fullscreen_lyrics"
-        style="@style/TsmButtonPrimary"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_3xl"
-        android:text="@string/playback_back_to_fullscreen"
-        android:textAllCaps="false" />
+        <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
+            android:id="@+id/scroll_lyrics"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:fadeScrollbars="false"
+            android:fadingEdgeLength="40dp"
+            android:requiresFadingEdge="vertical"
+            android:focusable="false"
+            android:focusableInTouchMode="false"
+            android:descendantFocusability="blocksDescendants">
 
-</LinearLayout>
+            <TextView
+                android:id="@+id/tv_fullscreen_lyrics"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="@dimen/ui_text_hero"
+                android:lineSpacingExtra="@dimen/ui_space_md"
+                android:fontFamily="@font/misans_regular"
+                android:focusable="false" />
+        </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
+
+        <Button
+            android:id="@+id/btn_close_fullscreen_lyrics"
+            style="@style/TsmButtonPrimary"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:text="@string/playback_back_to_fullscreen"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -4,9 +4,29 @@
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="p">shortEdges</item>
+        <item name="android:windowAnimationStyle">@style/TsmActivityWindowAnimation</item>
         <item name="defaultBrandColor">@color/ui_accent_green</item>
         <item name="defaultSearchColor">@color/ui_accent_blue_focus</item>
         <item name="android:fontFamily">@font/misans_family</item>
         <item name="fontFamily">@font/misans_family</item>
+    </style>
+
+    <style name="TsmActivityWindowAnimation" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/activity_glass_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/activity_glass_exit</item>
+        <item name="android:activityCloseEnterAnimation">@anim/activity_glass_enter</item>
+        <item name="android:activityCloseExitAnimation">@anim/activity_glass_exit</item>
+    </style>
+
+    <style name="TsmModalWindowAnimation" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/modal_window_enter</item>
+        <item name="android:windowExitAnimation">@anim/modal_window_exit</item>
+    </style>
+
+    <style name="Theme.TsmModalDialog" parent="@android:style/Theme.Translucent.NoTitleBar.Fullscreen">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowAnimationStyle">@style/TsmModalWindowAnimation</item>
     </style>
 </resources>

@@ -1,5 +1,6 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.animation.ObjectAnimator
 import android.content.ComponentName
 import android.graphics.Typeface
 import android.os.Bundle
@@ -8,12 +9,14 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
 import android.util.TypedValue
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -22,6 +25,7 @@ import com.github.gbandszxc.tvmediaplayer.domain.model.SmbEntry
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcParser
 import com.github.gbandszxc.tvmediaplayer.lyrics.LrcTimeline
 import com.github.gbandszxc.tvmediaplayer.lyrics.SmbLyricsRepository
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackArtworkCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackConfigStore
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackLyricsCache
 import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
@@ -39,6 +43,8 @@ class LyricsFullscreenActivity : BaseActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private var refreshJob: Job? = null
+    private var lyricsScrollAnimator: ObjectAnimator? = null
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
     private val lyricsRepository = SmbLyricsRepository()
 
     private var currentTimeline: LrcTimeline? = null
@@ -57,23 +63,42 @@ class LyricsFullscreenActivity : BaseActivity() {
             if (
                 events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION) ||
                 events.contains(Player.EVENT_MEDIA_METADATA_CHANGED) ||
-                events.contains(Player.EVENT_POSITION_DISCONTINUITY)
+                events.contains(Player.EVENT_POSITION_DISCONTINUITY) ||
+                events.contains(Player.EVENT_PLAY_WHEN_READY_CHANGED) ||
+                events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)
             ) {
                 maybeLoadLyrics(player)
+                updateAmbientFromPlayback()
+                ambientBackdrop?.setBreathing(player.isPlaying)
                 renderLyrics(player.currentPosition)
             }
+        }
+
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            updateAmbientFromPlayback()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_lyrics_fullscreen)
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         tvTitle = findViewById(R.id.tv_fullscreen_title)
         scrollLyrics = findViewById(R.id.scroll_lyrics)
         tvLyrics = findViewById(R.id.tv_fullscreen_lyrics)
         btnClose = findViewById(R.id.btn_close_fullscreen_lyrics)
         btnClose.setOnClickListener { finish() }
+        UiMotion.applyPressFeedback(btnClose, R.color.ui_press_overlay_dark)
         applyUiSettings()
+    }
+
+    override fun onDestroy() {
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
     }
 
     override fun onResume() {
@@ -87,6 +112,9 @@ class LyricsFullscreenActivity : BaseActivity() {
     }
 
     override fun onStop() {
+        lyricsScrollAnimator?.cancel()
+        lyricsScrollAnimator = null
+        ambientBackdrop?.setBreathing(false)
         refreshJob?.cancel()
         refreshJob = null
         mediaController?.removeListener(playerListener)
@@ -94,6 +122,19 @@ class LyricsFullscreenActivity : BaseActivity() {
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         super.onStop()
+    }
+
+    private fun updateAmbientFromPlayback() {
+        val item = mediaController?.currentMediaItem
+        if (item == null) {
+            ambientBackdrop?.update(null)
+            return
+        }
+        val cacheKey = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId }
+        ambientBackdrop?.update(
+            item.mediaMetadata.artworkUri?.toString(),
+            PlaybackArtworkCache.get(cacheKey),
+        )
     }
 
     private fun ensureController() {
@@ -114,6 +155,8 @@ class LyricsFullscreenActivity : BaseActivity() {
                 mediaController = controller
                 controller.addListener(playerListener)
                 maybeLoadLyrics(controller)
+                updateAmbientFromPlayback()
+                ambientBackdrop?.setBreathing(controller.isPlaying)
                 renderLyrics(controller.currentPosition)
                 startTicker()
             },
@@ -223,6 +266,7 @@ class LyricsFullscreenActivity : BaseActivity() {
     }
 
     private fun resetLyricsScrollToTop() {
+        lyricsScrollAnimator?.cancel()
         scrollLyrics.post { scrollLyrics.scrollTo(0, 0) }
     }
 
@@ -245,8 +289,10 @@ class LyricsFullscreenActivity : BaseActivity() {
         renderedLyricsTimeline = timeline
         renderedLyricsLineIndex = currentIndex
 
-        val normalColor = ContextCompat.getColor(this, android.R.color.darker_gray)
-        val highlightColor = ContextCompat.getColor(this, android.R.color.white)
+        val activeColor = ContextCompat.getColor(this, R.color.ui_lyric_active)
+        val nearColor = ContextCompat.getColor(this, R.color.ui_lyric_near)
+        val midColor = ContextCompat.getColor(this, R.color.ui_lyric_mid)
+        val farColor = ContextCompat.getColor(this, R.color.ui_lyric_far)
         val builder = SpannableStringBuilder()
         var highlightStart = -1
 
@@ -255,11 +301,20 @@ class LyricsFullscreenActivity : BaseActivity() {
             builder.append(line.text.ifBlank { "..." })
             val end = builder.length
             if (index == currentIndex) {
-                builder.setSpan(ForegroundColorSpan(highlightColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                builder.setSpan(ForegroundColorSpan(activeColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 builder.setSpan(StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 highlightStart = start
             } else {
-                builder.setSpan(ForegroundColorSpan(normalColor), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val color = if (currentIndex < 0) {
+                    midColor
+                } else {
+                    when (kotlin.math.abs(index - currentIndex)) {
+                        1 -> nearColor
+                        2 -> midColor
+                        else -> farColor
+                    }
+                }
+                builder.setSpan(ForegroundColorSpan(color), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
             if (index != timeline.lines.lastIndex) builder.append('\n')
         }
@@ -273,7 +328,12 @@ class LyricsFullscreenActivity : BaseActivity() {
                 val lineIndex = layout.getLineForOffset(highlightStart)
                 val lineTop = layout.getLineTop(lineIndex)
                 val targetY = (lineTop - scrollLyrics.height / 3).coerceAtLeast(0)
-                scrollLyrics.smoothScrollTo(0, targetY)
+                lyricsScrollAnimator?.cancel()
+                lyricsScrollAnimator = ObjectAnimator.ofInt(scrollLyrics, "scrollY", targetY).apply {
+                    duration = 280L
+                    interpolator = DecelerateInterpolator()
+                    start()
+                }
             }
         }
     }

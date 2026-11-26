@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 播放页轻提示：玻璃浮层 + 蓝色描边 -->
+<!-- 播放页轻提示：胶囊液态玻璃浮层 + 独立底色填充 + 亮蓝折射边 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <gradient
-                android:angle="270"
-                android:startColor="@color/ui_glass_rim_light"
-                android:endColor="@color/ui_glass_rim_soft" />
-        </shape>
-    </item>
-    <item
-        android:bottom="@dimen/ui_stroke_focus"
-        android:left="@dimen/ui_stroke_focus"
-        android:right="@dimen/ui_stroke_focus"
-        android:top="@dimen/ui_stroke_focus">
-        <shape>
             <corners android:radius="@dimen/ui_radius_button" />
             <solid android:color="@color/ui_glass_panel_strong" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_button" />
             <gradient
                 android:angle="270"
                 android:startColor="@color/ui_glass_gloss_top"
@@ -26,10 +18,10 @@
     </item>
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_button" />
             <solid android:color="@android:color/transparent" />
             <stroke
-                android:width="@dimen/ui_stroke_focus"
+                android:width="@dimen/ui_stroke_glass_rim"
                 android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>

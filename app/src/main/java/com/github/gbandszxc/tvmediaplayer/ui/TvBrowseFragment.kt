@@ -94,6 +94,8 @@ class TvBrowseFragment : Fragment() {
     }
 
     private lateinit var panelConnection: View
+    private lateinit var panelPlayback: View
+    private lateinit var panelFiles: View
     private lateinit var rootScroll: ScrollView
     private lateinit var btnBackTop: Button
     private lateinit var btnBrowseMode: Button
@@ -182,6 +184,11 @@ class TvBrowseFragment : Fragment() {
 
     private fun bindViews(root: View) {
         panelConnection = root.findViewById(R.id.panel_connection)
+        panelPlayback = root.findViewById(R.id.panel_playback)
+        panelFiles = root.findViewById(R.id.panel_files)
+        LiquidGlassSurface.applyPanel(panelConnection)
+        LiquidGlassSurface.applyPanel(panelPlayback)
+        LiquidGlassSurface.applyPanel(panelFiles)
         rootScroll = root.findViewById(R.id.root_scroll)
         btnBackTop = root.findViewById(R.id.btn_back_top)
         btnBrowseMode = root.findViewById(R.id.btn_browse_mode)
@@ -205,6 +212,11 @@ class TvBrowseFragment : Fragment() {
         btnPlayShuffle = root.findViewById(R.id.btn_play_shuffle)
         btnNowPlaying = root.findViewById(R.id.btn_now_playing)
         filesContainer = root.findViewById(R.id.container_files)
+        SlidingFocusHighlight.attach(
+            container = filesContainer,
+            strokeColorRes = R.color.ui_accent_green_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
         filesContainer.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
             if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
             val state = viewModel.state.value
@@ -216,6 +228,7 @@ class TvBrowseFragment : Fragment() {
             }
         }
         panelFastLocate.bringToFront()
+        LiquidGlassSurface.applyModalPanel(panelFastLocate)
     }
 
     private fun bindActions(root: View) {
@@ -345,7 +358,7 @@ class TvBrowseFragment : Fragment() {
         applyBrowserButtonSpec(
             button = btnHistory,
             spec = PlaybackButtonPresentation.browserHistory(requireContext(), btnHistory.hasFocus()),
-            iconColorResId = R.color.ui_text_warning_dark,
+            iconColorResId = R.color.ui_text_warning_glass,
         )
         applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(requireContext(), btnPlayAll.hasFocus()))
         applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(requireContext(), btnPlayShuffle.hasFocus()))
@@ -480,6 +493,7 @@ class TvBrowseFragment : Fragment() {
             val isParentEntry = hasParentEntry && displayIndex == 0
             if (gridMode) {
                 val artwork: ImageView = itemView.findViewById(R.id.iv_artwork)
+                LiquidGlassSurface.applyRoundedClip(artwork, R.dimen.ui_radius_item)
                 showGridFallbackIcon(artwork, entry.isDirectory)
                 if (!entry.isDirectory) {
                     val key = entry.streamUri.orEmpty().ifBlank { entry.fullPath }
@@ -521,7 +535,14 @@ class TvBrowseFragment : Fragment() {
                 }
                 true
             }
-            itemView.setOnFocusChangeListener { _, hasFocus ->
+            itemView.setOnFocusChangeListener { v, hasFocus ->
+                if (gridMode) {
+                    v.findViewById<View>(R.id.iv_artwork)?.let { art ->
+                        UiMotion.animateFocusScale(art, hasFocus)
+                    }
+                } else {
+                    UiMotion.animateRowFocus(v, hasFocus)
+                }
                 if (!hasFocus || viewModel.state.value.isFastLocateMode) return@setOnFocusChangeListener
                 val stateIndex = mapDisplayIndexToStateIndex(displayIndex, hasParentEntry) ?: return@setOnFocusChangeListener
                 viewModel.onItemFocused(stateIndex, entry)
@@ -700,10 +721,13 @@ class TvBrowseFragment : Fragment() {
     private fun renderFastLocatePanel(state: TvBrowserState) {
         val locate = state.fastLocate
         val inMode = state.isFastLocateMode && locate != null
-        panelFastLocate.visibility = if (inMode) View.VISIBLE else View.GONE
         if (!inMode || locate == null) {
             fastLocateConfirmGuard.reset()
+            UiMotion.animateToastExit(panelFastLocate)
             return
+        }
+        if (panelFastLocate.visibility != View.VISIBLE) {
+            UiMotion.animateToastEnter(panelFastLocate)
         }
 
         tvFastLocateHint.text = getString(R.string.browser_fast_locate_hint, locate.progressPercent)
@@ -714,16 +738,21 @@ class TvBrowseFragment : Fragment() {
         )
 
         fastLocateTrack.post {
-            val trackHeight = fastLocateTrack.height
+            val trackHeight = fastLocateTrack.height - fastLocateTrack.paddingTop - fastLocateTrack.paddingBottom
             val indicatorHeight = fastLocateIndicator.height
             if (trackHeight <= 0 || indicatorHeight <= 0) return@post
             val usable = (trackHeight - indicatorHeight).coerceAtLeast(0)
-            val top = (usable * (locate.progressPercent / 100f)).roundToInt()
+            val targetY = usable * (locate.progressPercent / 100f)
 
-            val layoutParams = fastLocateIndicator.layoutParams as? FrameLayout.LayoutParams ?: return@post
-            if (layoutParams.topMargin != top) {
-                layoutParams.topMargin = top
-                fastLocateIndicator.layoutParams = layoutParams
+            fastLocateIndicator.animate().cancel()
+            if (fastLocateIndicator.width > 0) {
+                fastLocateIndicator.animate()
+                    .translationY(targetY)
+                    .setDuration(80L)
+                    .setInterpolator(UiMotion.springGlideInterpolator())
+                    .start()
+            } else {
+                fastLocateIndicator.translationY = targetY
             }
         }
     }
@@ -1287,7 +1316,13 @@ class TvBrowseFragment : Fragment() {
             setOnClickListener { dismissSortDropdown() }
         }
         val dropdown = layoutInflater.inflate(R.layout.view_browser_sort_dropdown, rootView, false)
+        LiquidGlassSurface.applyDropdown(dropdown)
         val optionsContainer = dropdown.findViewById<LinearLayout>(R.id.container_sort_options)
+        SlidingFocusHighlight.attach(
+            container = optionsContainer,
+            strokeColorRes = R.color.ui_accent_blue_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
         renderSortOptions(optionsContainer)
         keepSortOptionFocusInsideDropdown(optionsContainer)
         scrollToRevealSortDropdown(dropdown)
@@ -1305,6 +1340,7 @@ class TvBrowseFragment : Fragment() {
         rootView.addView(dropdown, params)
         sortOutsideDismissView = outsideDismissView
         sortDropdownView = dropdown
+        UiMotion.animateDropdownEnter(dropdown)
 
         optionsContainer.getChildAt(sortDropdownInitialFocusIndex(viewModel.state.value.sortOption))?.requestFocus()
     }

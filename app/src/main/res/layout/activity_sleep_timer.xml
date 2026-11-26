@@ -1,240 +1,266 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/ui_bg_app"
-    android:orientation="vertical"
-    android:padding="@dimen/ui_space_screen">
+    android:background="@color/ui_bg_app">
 
-    <TextView
-        style="@style/TsmTextPageTitle"
+    <ImageView
+        android:id="@+id/iv_ambient"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/sleep_timer_title" />
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
 
-    <TextView
-        android:id="@+id/tv_sleep_status"
-        style="@style/TsmTextSecondary"
+    <View
+        android:id="@+id/view_ambient_scrim"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_3xl"
-        android:text="@string/sleep_timer_status_off" />
-
-    <TextView
-        style="@style/TsmTextSectionTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_4xl"
-        android:text="@string/sleep_timer_section" />
+        android:layout_height="match_parent"
+        android:background="@color/ui_ambient_scrim" />
 
     <LinearLayout
-        android:id="@+id/layout_presets"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_lg"
-        android:orientation="horizontal">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:padding="@dimen/ui_space_screen">
 
-        <Button
-            android:id="@+id/btn_sleep_15"
-            style="@style/TsmButtonDark"
-            android:layout_width="wrap_content"
+        <TextView
+            style="@style/TsmTextPageTitle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minWidth="@dimen/ui_sleep_preset_min_width"
-            android:text="@string/sleep_timer_preset_15"
-            android:textAllCaps="false" />
+            android:text="@string/sleep_timer_title" />
 
-        <Button
-            android:id="@+id/btn_sleep_30"
-            style="@style/TsmButtonDark"
-            android:layout_width="wrap_content"
+        <TextView
+            android:id="@+id/tv_sleep_status"
+            style="@style/TsmTextSecondary"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_preset_min_width"
-            android:text="@string/sleep_timer_preset_30"
-            android:textAllCaps="false" />
+            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:text="@string/sleep_timer_status_off" />
 
-        <Button
-            android:id="@+id/btn_sleep_60"
-            style="@style/TsmButtonDark"
-            android:layout_width="wrap_content"
+        <TextView
+            style="@style/TsmTextSectionTitle"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_preset_min_width"
-            android:text="@string/sleep_timer_preset_60"
-            android:textAllCaps="false" />
+            android:layout_marginTop="@dimen/ui_space_4xl"
+            android:text="@string/sleep_timer_section" />
 
-        <Button
-            android:id="@+id/btn_sleep_120"
-            style="@style/TsmButtonDark"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_preset_wide_min_width"
-            android:text="@string/sleep_timer_preset_120"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/btn_sleep_custom"
-            style="@style/TsmButtonPrimary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_preset_min_width"
-            android:text="@string/sleep_timer_custom"
-            android:textAllCaps="false" />
-    </LinearLayout>
-
-    <!-- 时间选择滚轮区域 -->
-    <LinearLayout
-        android:id="@+id/layout_wheel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_3xl"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <!-- 小时滚轮 -->
         <LinearLayout
-            android:id="@+id/layout_wheel_hours"
+            android:id="@+id/layout_presets"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/bg_button_dark"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:nextFocusRight="@id/layout_wheel_minutes"
-            android:orientation="vertical"
-            android:padding="@dimen/ui_space_md">
+            android:layout_marginTop="@dimen/ui_space_lg"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tv_wheel_hours_prev"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:gravity="center"
-                android:text="23"
-                android:textColor="@color/ui_text_muted"
-                android:textSize="@dimen/ui_text_body" />
-
-            <TextView
-                android:id="@+id/tv_wheel_hours_current"
-                android:layout_width="88dp"
-                android:layout_height="44dp"
-                android:layout_marginTop="@dimen/ui_space_sm"
-                android:layout_marginBottom="@dimen/ui_space_sm"
-                android:background="@drawable/bg_wheel_selected"
-                android:gravity="center"
-                android:text="00"
-                android:textColor="@color/ui_text_on_accent"
-                android:textSize="@dimen/ui_text_title"
-                android:fontFamily="@font/misans_bold" />
-
-            <TextView
-                android:id="@+id/tv_wheel_hours_next"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:gravity="center"
-                android:text="01"
-                android:textColor="@color/ui_text_muted"
-                android:textSize="@dimen/ui_text_body" />
-
-            <TextView
-                android:layout_width="88dp"
+            <Button
+                android:id="@+id/btn_sleep_15"
+                style="@style/TsmButtonDark"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/ui_space_sm"
-                android:gravity="center"
-                android:text="@string/sleep_timer_hour_label"
-                android:textColor="@color/ui_text_secondary"
-                android:textSize="@dimen/ui_text_caption" />
+                android:minWidth="@dimen/ui_sleep_preset_min_width"
+                android:text="@string/sleep_timer_preset_15"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_30"
+                style="@style/TsmButtonDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_preset_min_width"
+                android:text="@string/sleep_timer_preset_30"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_60"
+                style="@style/TsmButtonDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_preset_min_width"
+                android:text="@string/sleep_timer_preset_60"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_120"
+                style="@style/TsmButtonDark"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_preset_wide_min_width"
+                android:text="@string/sleep_timer_preset_120"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_custom"
+                style="@style/TsmButtonPrimary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_preset_min_width"
+                android:text="@string/sleep_timer_custom"
+                android:textAllCaps="false" />
         </LinearLayout>
 
-        <!-- 分钟滚轮 -->
+        <!-- 时间选择滚轮区域 -->
         <LinearLayout
-            android:id="@+id/layout_wheel_minutes"
+            android:id="@+id/layout_wheel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_xl"
-            android:background="@drawable/bg_button_dark"
-            android:focusable="true"
-            android:focusableInTouchMode="true"
-            android:nextFocusLeft="@id/layout_wheel_hours"
-            android:nextFocusRight="@id/btn_sleep_start"
-            android:orientation="vertical"
-            android:padding="@dimen/ui_space_md">
+            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            android:visibility="gone">
 
-            <TextView
-                android:id="@+id/tv_wheel_minutes_prev"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:gravity="center"
-                android:text="59"
-                android:textColor="@color/ui_text_muted"
-                android:textSize="@dimen/ui_text_body" />
-
-            <TextView
-                android:id="@+id/tv_wheel_minutes_current"
-                android:layout_width="88dp"
-                android:layout_height="44dp"
-                android:layout_marginTop="@dimen/ui_space_sm"
-                android:layout_marginBottom="@dimen/ui_space_sm"
-                android:background="@drawable/bg_wheel_selected"
-                android:gravity="center"
-                android:text="00"
-                android:textColor="@color/ui_text_on_accent"
-                android:textSize="@dimen/ui_text_title"
-                android:fontFamily="@font/misans_bold" />
-
-            <TextView
-                android:id="@+id/tv_wheel_minutes_next"
-                android:layout_width="88dp"
-                android:layout_height="36dp"
-                android:gravity="center"
-                android:text="01"
-                android:textColor="@color/ui_text_muted"
-                android:textSize="@dimen/ui_text_body" />
-
-            <TextView
-                android:layout_width="88dp"
+            <!-- 小时滚轮 -->
+            <LinearLayout
+                android:id="@+id/layout_wheel_hours"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/ui_space_sm"
-                android:gravity="center"
-                android:text="@string/sleep_timer_minute_label"
-                android:textColor="@color/ui_text_secondary"
-                android:textSize="@dimen/ui_text_caption" />
+                android:background="@drawable/bg_wheel_panel"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusRight="@id/layout_wheel_minutes"
+                android:orientation="vertical"
+                android:padding="@dimen/ui_space_md">
+
+                <TextView
+                    android:id="@+id/tv_wheel_hours_prev"
+                    android:layout_width="88dp"
+                    android:layout_height="36dp"
+                    android:gravity="center"
+                    android:text="23"
+                    android:textColor="@color/ui_text_muted"
+                    android:textSize="@dimen/ui_text_body" />
+
+                <TextView
+                    android:id="@+id/tv_wheel_hours_current"
+                    android:layout_width="88dp"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="@dimen/ui_space_sm"
+                    android:layout_marginBottom="@dimen/ui_space_sm"
+                    android:background="@drawable/bg_wheel_selected"
+                    android:gravity="center"
+                    android:text="00"
+                    android:textColor="@color/ui_text_on_accent"
+                    android:textSize="@dimen/ui_text_title"
+                    android:fontFamily="@font/misans_bold" />
+
+                <TextView
+                    android:id="@+id/tv_wheel_hours_next"
+                    android:layout_width="88dp"
+                    android:layout_height="36dp"
+                    android:gravity="center"
+                    android:text="01"
+                    android:textColor="@color/ui_text_muted"
+                    android:textSize="@dimen/ui_text_body" />
+
+                <TextView
+                    android:layout_width="88dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:text="@string/sleep_timer_hour_label"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="@dimen/ui_text_caption" />
+            </LinearLayout>
+
+            <!-- 分钟滚轮 -->
+            <LinearLayout
+                android:id="@+id/layout_wheel_minutes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_xl"
+                android:background="@drawable/bg_wheel_panel"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:nextFocusLeft="@id/layout_wheel_hours"
+                android:nextFocusRight="@id/btn_sleep_start"
+                android:orientation="vertical"
+                android:padding="@dimen/ui_space_md">
+
+                <TextView
+                    android:id="@+id/tv_wheel_minutes_prev"
+                    android:layout_width="88dp"
+                    android:layout_height="36dp"
+                    android:gravity="center"
+                    android:text="59"
+                    android:textColor="@color/ui_text_muted"
+                    android:textSize="@dimen/ui_text_body" />
+
+                <TextView
+                    android:id="@+id/tv_wheel_minutes_current"
+                    android:layout_width="88dp"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="@dimen/ui_space_sm"
+                    android:layout_marginBottom="@dimen/ui_space_sm"
+                    android:background="@drawable/bg_wheel_selected"
+                    android:gravity="center"
+                    android:text="00"
+                    android:textColor="@color/ui_text_on_accent"
+                    android:textSize="@dimen/ui_text_title"
+                    android:fontFamily="@font/misans_bold" />
+
+                <TextView
+                    android:id="@+id/tv_wheel_minutes_next"
+                    android:layout_width="88dp"
+                    android:layout_height="36dp"
+                    android:gravity="center"
+                    android:text="01"
+                    android:textColor="@color/ui_text_muted"
+                    android:textSize="@dimen/ui_text_body" />
+
+                <TextView
+                    android:layout_width="88dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:text="@string/sleep_timer_minute_label"
+                    android:textColor="@color/ui_text_secondary"
+                    android:textSize="@dimen/ui_text_caption" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/ui_space_5xl"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btn_sleep_start"
+                style="@style/TsmButtonSuccess"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="@dimen/ui_sleep_action_min_width"
+                android:text="@string/sleep_timer_start"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_cancel"
+                style="@style/TsmButtonDanger"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_action_min_width"
+                android:text="@string/sleep_timer_cancel"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btn_sleep_back"
+                style="@style/TsmButtonPrimary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/ui_space_lg"
+                android:minWidth="@dimen/ui_sleep_back_min_width"
+                android:text="@string/sleep_timer_back"
+                android:textAllCaps="false" />
         </LinearLayout>
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/ui_space_5xl"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btn_sleep_start"
-            style="@style/TsmButtonSuccess"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="@dimen/ui_sleep_action_min_width"
-            android:text="@string/sleep_timer_start"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/btn_sleep_cancel"
-            style="@style/TsmButtonDanger"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_action_min_width"
-            android:text="@string/sleep_timer_cancel"
-            android:textAllCaps="false" />
-
-        <Button
-            android:id="@+id/btn_sleep_back"
-            style="@style/TsmButtonPrimary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ui_space_lg"
-            android:minWidth="@dimen/ui_sleep_back_min_width"
-            android:text="@string/sleep_timer_back"
-            android:textAllCaps="false" />
-    </LinearLayout>
-</LinearLayout>
+</FrameLayout>

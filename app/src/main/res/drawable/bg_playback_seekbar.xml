@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 播放页玻璃进度条：胶囊暗透轨槽 + 蓝青流光进度 -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ui_radius_indicator" />
+            <solid android:color="@color/ui_glass_item" />
+            <stroke
+                android:width="@dimen/ui_stroke_hairline"
+                android:color="@color/ui_glass_rim_mid" />
+        </shape>
+    </item>
+    <item android:id="@android:id/secondaryProgress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="@dimen/ui_radius_indicator" />
+                <solid android:color="@color/ui_glass_panel_muted" />
+            </shape>
+        </clip>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape android:shape="rectangle">
+                <corners android:radius="@dimen/ui_radius_indicator" />
+                <gradient
+                    android:angle="0"
+                    android:startColor="@color/ui_accent_blue"
+                    android:endColor="@color/ui_accent_cyan" />
+            </shape>
+        </clip>
+    </item>
+</layer-list>

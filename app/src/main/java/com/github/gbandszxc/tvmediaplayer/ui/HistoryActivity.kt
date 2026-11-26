@@ -57,6 +57,16 @@ class HistoryActivity : BaseActivity() {
     private lateinit var historyContainer: LinearLayout
     private var ambientBackdrop: AmbientBackdrop.Controller? = null
 
+    private val historyPlayerListener = object : Player.Listener {
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            ambientBackdrop?.updateFromMediaItem(mediaController?.currentMediaItem)
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            ambientBackdrop?.updateFromMediaItem(mediaController?.currentMediaItem)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_history)
@@ -101,6 +111,11 @@ class HistoryActivity : BaseActivity() {
         btnNext = findViewById(R.id.btn_history_next)
         tvStatus = findViewById(R.id.tv_history_status)
         historyContainer = findViewById(R.id.container_history)
+        SlidingFocusHighlight.attach(
+            container = historyContainer,
+            strokeColorRes = R.color.ui_accent_green_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
     }
 
     private fun bindActions() {
@@ -182,6 +197,7 @@ class HistoryActivity : BaseActivity() {
             val paddingV = dimenPx(R.dimen.ui_space_lg)
             setPadding(paddingH, paddingV, paddingH, paddingV)
             setOnClickListener { playFrom(index) }
+            setOnFocusChangeListener { v, hasFocus -> UiMotion.animateRowFocus(v, hasFocus) }
             layoutParams = LinearLayout.LayoutParams(matchParent(), wrapContent()).apply {
                 bottomMargin = dimenPx(R.dimen.ui_space_md)
             }
@@ -301,12 +317,15 @@ class HistoryActivity : BaseActivity() {
                 }
                 if (controllerFuture !== future) return@addListener
                 mediaController = controller
+                controller.addListener(historyPlayerListener)
+                ambientBackdrop?.updateFromMediaItem(controller.currentMediaItem)
             },
             MoreExecutors.directExecutor(),
         )
     }
 
     private fun releaseController() {
+        mediaController?.removeListener(historyPlayerListener)
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         mediaController = null

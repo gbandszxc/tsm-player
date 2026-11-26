@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 氛围底兜底：无封面时的深色渐变 + 右上角径向光晕（沿用既有背景/强调 token，不新增硬编码色值） -->
+<!-- 氛围底兜底：深炭对角渐变 + 右上/左下冷银灰双光斑（冷启动无封面时依然有层次可透） -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
@@ -13,11 +13,22 @@
     <item>
         <shape android:shape="rectangle">
             <gradient
-                android:centerX="0.82"
-                android:centerY="0.12"
+                android:centerX="0.80"
+                android:centerY="0.14"
                 android:centerColor="@color/ui_ambient_glow"
                 android:endColor="@color/ui_transparent"
-                android:gradientRadius="620dp"
+                android:gradientRadius="580dp"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:centerX="0.18"
+                android:centerY="0.86"
+                android:centerColor="@color/ui_ambient_glow_secondary"
+                android:endColor="@color/ui_transparent"
+                android:gradientRadius="520dp"
                 android:type="radial" />
         </shape>
     </item>

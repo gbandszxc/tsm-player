@@ -114,14 +114,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_md"
+                    android:minHeight="@dimen/ui_space_sm"
+                    android:maxHeight="@dimen/ui_space_sm"
+                    android:splitTrack="false"
+                    android:progressDrawable="@drawable/bg_playback_seekbar"
                     android:focusable="true"
                     android:focusableInTouchMode="true"
                     android:nextFocusUp="@id/layout_artwork_frame"
                     android:nextFocusDown="@id/btn_prev"
                     android:nextFocusLeft="@id/layout_artwork_frame"
                     android:max="10000"
-                    android:progressTint="@color/ui_accent_green_text"
-                    android:progressBackgroundTint="@color/ui_bg_track"
                     android:thumbTint="@color/ui_text_primary" />
 
                 <TextView
@@ -133,7 +135,7 @@
                     android:textSize="@dimen/ui_text_title"
                     android:fontFamily="@font/misans_bold" />
 
-                <!-- 歌词滚动区：与全屏逻辑一致，当前行高亮，自动滚动 -->
+                <!-- 歌词滚动区：与全屏逻辑一致，当前行高亮 + 景深渐变，自动平滑滚动 -->
                 <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
                     android:id="@+id/scroll_lyrics"
                     android:layout_width="match_parent"
@@ -141,6 +143,8 @@
                     android:layout_weight="1"
                     android:layout_marginTop="@dimen/ui_space_lg"
                     android:fadeScrollbars="false"
+                    android:fadingEdgeLength="32dp"
+                    android:requiresFadingEdge="vertical"
                     android:scrollbars="none"
                     android:focusable="false"
                     android:focusableInTouchMode="false"
@@ -159,17 +163,24 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 底部按钮栏：HorizontalScrollView 防止小屏溢出，支持方向键导航 -->
+        <!-- 底部按钮栏：悬浮液态玻璃胶囊控制坞，支持方向键导航 -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/ui_space_3xl"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:scrollbars="none"
             android:fillViewport="false">
 
             <LinearLayout
+                android:id="@+id/layout_playback_dock"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_playback_dock"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:padding="@dimen/ui_space_md"
                 android:orientation="horizontal">
 
                 <Button

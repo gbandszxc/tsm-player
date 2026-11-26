@@ -140,6 +140,11 @@ class FavoritesActivity : BaseActivity() {
         btnDeletePlaylist = findViewById(R.id.btn_favorites_delete_playlist)
         scrollPlaylists = findViewById(R.id.scroll_playlists)
         gridPlaylists = findViewById(R.id.grid_playlists)
+        SlidingFocusHighlight.attach(
+            container = gridPlaylists,
+            strokeColorRes = R.color.ui_accent_blue_stroke_soft,
+            cornerRadiusRes = R.dimen.ui_radius_card,
+        )
         scrollTracks = findViewById(R.id.scroll_tracks)
         tracksContainer = findViewById(R.id.container_tracks)
     }
@@ -241,6 +246,7 @@ class FavoritesActivity : BaseActivity() {
             setColorFilter(ContextCompat.getColor(this@FavoritesActivity, R.color.ui_accent_blue_stroke_soft))
             adjustViewBounds = true
         }
+        tile.setOnFocusChangeListener { _, hasFocus -> UiMotion.animateFocusScale(icon, hasFocus) }
         tile.addView(icon, LinearLayout.LayoutParams(matchParent(), 0, 1f))
         tile.addView(createTileTitle(getString(R.string.favorites_add_playlist)))
         return tile
@@ -255,8 +261,10 @@ class FavoritesActivity : BaseActivity() {
         val cover = ImageView(this).apply {
             scaleType = ImageView.ScaleType.CENTER_CROP
             setBackgroundColor(ContextCompat.getColor(this@FavoritesActivity, R.color.ui_bg_artwork))
+            LiquidGlassSurface.applyRoundedClip(this, R.dimen.ui_radius_item)
             loadPlaylistArtworkOrDefault(playlist)
         }
+        tile.setOnFocusChangeListener { _, hasFocus -> UiMotion.animateFocusScale(cover, hasFocus) }
         tile.addView(cover, LinearLayout.LayoutParams(matchParent(), 0, 1f))
         tile.addView(createTileTitle(playlistDisplayName(playlist)))
         tile.addView(createTileSubtitle(getString(R.string.favorites_track_count, playlist.trackCount)))

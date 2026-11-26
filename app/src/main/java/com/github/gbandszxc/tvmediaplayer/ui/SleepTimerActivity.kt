@@ -1,5 +1,6 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.content.ComponentName
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.GestureDetector
@@ -10,11 +11,18 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.playback.PlaybackService
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerCustomDurationStore
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerManager
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerState
 import com.github.gbandszxc.tvmediaplayer.sleep.SleepTimerStore
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.MoreExecutors
 
 class SleepTimerActivity : BaseActivity() {
     private lateinit var manager: SleepTimerManager
@@ -32,6 +40,18 @@ class SleepTimerActivity : BaseActivity() {
     private lateinit var tvMinutesNext: TextView
     private lateinit var btnStart: Button
     private lateinit var btnCancel: Button
+    private var ambientBackdrop: AmbientBackdrop.Controller? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
+    private var mediaController: MediaController? = null
+    private val sleepPlayerListener = object : Player.Listener {
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            ambientBackdrop?.updateFromMediaItem(mediaController?.currentMediaItem)
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            ambientBackdrop?.updateFromMediaItem(mediaController?.currentMediaItem)
+        }
+    }
     private val wheelController = SleepTimerWheelController()
     private var customMode = false
     private var lastKeyDownTime = 0L
@@ -64,6 +84,10 @@ class SleepTimerActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sleep_timer)
+        ambientBackdrop = AmbientBackdrop.bind(
+            findViewById(R.id.iv_ambient),
+            findViewById(R.id.view_ambient_scrim),
+        )
         UiSettingsApplier.applyAll(this)
         manager = SleepTimerManager(SleepTimerStore(this))
         customDurationStore = SleepTimerCustomDurationStore(this)
@@ -74,9 +98,26 @@ class SleepTimerActivity : BaseActivity() {
         findViewById<Button>(R.id.btn_sleep_30).requestFocus()
     }
 
+    override fun onStart() {
+        super.onStart()
+        ensureController()
+    }
+
     override fun onResume() {
         super.onResume()
         render()
+    }
+
+    override fun onStop() {
+        releaseController()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        releaseController()
+        ambientBackdrop?.dispose()
+        ambientBackdrop = null
+        super.onDestroy()
     }
 
     private fun bindViews() {
@@ -105,6 +146,11 @@ class SleepTimerActivity : BaseActivity() {
         }
         layoutWheelHours.setOnTouchListener(touchListener)
         layoutWheelMinutes.setOnTouchListener(touchListener)
+        val wheelFocusListener = View.OnFocusChangeListener { view, hasFocus ->
+            UiMotion.animateFocusScale(view, hasFocus)
+        }
+        layoutWheelHours.onFocusChangeListener = wheelFocusListener
+        layoutWheelMinutes.onFocusChangeListener = wheelFocusListener
     }
 
     private fun bindActions() {
@@ -164,6 +210,7 @@ class SleepTimerActivity : BaseActivity() {
             layoutPresets.visibility = View.GONE
             layoutWheel.visibility = View.VISIBLE
             renderWheel()
+            UiMotion.animateModalEnter(layoutWheel)
             layoutWheelHours.requestFocus()
         } else {
             layoutWheel.visibility = View.GONE
@@ -312,6 +359,37 @@ class SleepTimerActivity : BaseActivity() {
             return true
         }
         return super.onKeyUp(keyCode, event)
+    }
+
+    private fun ensureController() {
+        if (mediaController != null || controllerFuture != null) return
+        val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
+        val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
+        future.addListener(
+            {
+                val controller = runCatching { future.get() }.getOrNull()
+                if (controller == null) {
+                    if (controllerFuture === future) controllerFuture = null
+                    return@addListener
+                }
+                if (controllerFuture !== future) {
+                    controller.release()
+                    return@addListener
+                }
+                mediaController = controller
+                controller.addListener(sleepPlayerListener)
+                ambientBackdrop?.updateFromMediaItem(controller.currentMediaItem)
+            },
+            MoreExecutors.directExecutor(),
+        )
+    }
+
+    private fun releaseController() {
+        mediaController?.removeListener(sleepPlayerListener)
+        controllerFuture?.let { MediaController.releaseFuture(it) }
+        controllerFuture = null
+        mediaController = null
     }
 
     private companion object {

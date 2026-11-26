@@ -3,6 +3,7 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 import android.app.Activity
 import android.app.Dialog
 import android.content.Context
+import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.text.Editable
@@ -21,6 +22,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.github.gbandszxc.tvmediaplayer.R
+import com.github.gbandszxc.tvmediaplayer.ui.LiquidGlassSurface
+import com.github.gbandszxc.tvmediaplayer.ui.SlidingFocusHighlight
 import com.github.gbandszxc.tvmediaplayer.ui.UiMotion
 import com.github.gbandszxc.tvmediaplayer.ui.UiSettingsApplier
 import com.github.gbandszxc.tvmediaplayer.update.DownloadProgressFormatter
@@ -49,13 +52,7 @@ class TsmModalCoordinator(
      * 避免与深色遮罩叠加过黑。低版本或设备不支持时保持纯遮罩，自动降级。
      */
     private fun applyGlassWindowBackdrop(shell: View, window: Window?) {
-        window?.setBackgroundDrawable(null)
-        window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
-        if (window == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val wm = host.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        if (!wm.isCrossWindowBlurEnabled) return
-        window.setBackgroundBlurRadius(MODAL_BACKDROP_BLUR_RADIUS)
-        shell.background = ColorDrawable(ContextCompat.getColor(host, R.color.ui_ambient_scrim))
+        applyGlassWindowBackdrop(host, shell, window)
     }
 
     /**
@@ -116,7 +113,7 @@ class TsmModalCoordinator(
             container.addView(row)
         }
 
-        dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        dialog = Dialog(host, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
@@ -184,14 +181,23 @@ class TsmModalCoordinator(
                     fieldContainer.addView(fieldView)
                 }
                 FormFieldSpecType.CHECKBOX -> {
+                    val horizontalPad = host.resources.getDimensionPixelSize(R.dimen.ui_space_xl)
+                    val verticalPad = host.resources.getDimensionPixelSize(R.dimen.ui_space_lg)
                     val checkBox = CheckBox(host).apply {
                         tag = field.key
                         text = field.label
                         isChecked = field.initialValue.toBooleanStrictOrNull() ?: false
                         typeface = null
+                        setBackgroundResource(R.drawable.bg_modal_list_row)
                         setTextColor(ContextCompat.getColor(host, R.color.ui_text_primary))
                         textSize = 14f
-                        setPadding(0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm), 0, host.resources.getDimensionPixelSize(R.dimen.ui_space_sm))
+                        setPadding(horizontalPad, verticalPad, horizontalPad, verticalPad)
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                        ).apply {
+                            topMargin = host.resources.getDimensionPixelSize(R.dimen.ui_space_sm)
+                        }
                     }
                     UiMotion.applyPressFeedback(checkBox, R.color.ui_press_overlay_light)
                     fieldContainer.addView(checkBox)
@@ -222,7 +228,7 @@ class TsmModalCoordinator(
             actionsContainer.addView(secondaryBtn)
         }
 
-        return Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        return Dialog(host, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
@@ -297,7 +303,7 @@ class TsmModalCoordinator(
             actionsContainer.addView(cancelBtn)
         }
 
-        return Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        return Dialog(host, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
@@ -352,6 +358,11 @@ class TsmModalCoordinator(
 
         // 列表行
         val listContainer = content.findViewById<LinearLayout>(R.id.container_modal_content)
+        SlidingFocusHighlight.attach(
+            container = listContainer,
+            strokeColorRes = R.color.ui_text_primary,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
         lateinit var dialog: Dialog
         renderListRows(listContainer, spec.rows) { row ->
             row.onClick?.invoke()
@@ -361,7 +372,7 @@ class TsmModalCoordinator(
         // 隐藏 actions 容器
         content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
 
-        dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        dialog = Dialog(host, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(spec.cancelable)
             setCanceledOnTouchOutside(spec.cancelable)
@@ -438,7 +449,7 @@ class TsmModalCoordinator(
         // 隐藏 actions 容器
         content.findViewById<LinearLayout>(R.id.container_modal_actions).visibility = View.GONE
 
-        val dialog = Dialog(host, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        val dialog = Dialog(host, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(false)
             setCanceledOnTouchOutside(false)
@@ -605,6 +616,9 @@ class TsmModalCoordinator(
             rowView.setOnClickListener {
                 if (row.enabled) onRowClick(row)
             }
+            rowView.setOnFocusChangeListener { v, hasFocus ->
+                UiMotion.animateRowFocus(v, hasFocus)
+            }
             UiMotion.applyPressFeedback(rowView, R.color.ui_press_overlay_light)
 
             container.addView(rowView)
@@ -696,6 +710,28 @@ class TsmModalCoordinator(
         internal const val TAG_ACTION_LEADING = "action_leading"
 
         /** Modal 窗口背景模糊半径（API 31+，不支持跨窗口模糊的设备自动降级为纯遮罩）。 */
-        private const val MODAL_BACKDROP_BLUR_RADIUS = 24
+        private const val MODAL_BACKDROP_BLUR_RADIUS = 36
+
+        /**
+         * 统一配置液态玻璃 Modal 外壳与跨窗口背景模糊（API 31+）：
+         * 透明窗口 + FLAG_BLUR_BEHIND + 背景模糊 + 光学面板材质 + 弹簧入场动效。
+         */
+        internal fun applyGlassWindowBackdrop(host: Activity, shell: View, window: Window?) {
+            shell.findViewById<View>(R.id.panel_modal)?.let { panel ->
+                LiquidGlassSurface.applyModalPanel(panel)
+                UiMotion.animateModalEnter(panel)
+            }
+            window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            if (window == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+            val wm = host.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            if (!wm.isCrossWindowBlurEnabled) return
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            val attrs = window.attributes
+            attrs.blurBehindRadius = MODAL_BACKDROP_BLUR_RADIUS
+            window.attributes = attrs
+            window.setBackgroundBlurRadius(MODAL_BACKDROP_BLUR_RADIUS)
+            shell.background = ColorDrawable(ContextCompat.getColor(host, R.color.ui_modal_scrim_blur))
+        }
     }
 }

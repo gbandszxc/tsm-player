@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="ui_radius_none">0dp</dimen>
-    <dimen name="ui_radius_indicator">2dp</dimen>
-    <dimen name="ui_radius_item">4dp</dimen>
-    <dimen name="ui_radius_button">6dp</dimen>
-    <dimen name="ui_radius_panel">8dp</dimen>
+    <dimen name="ui_radius_indicator">999dp</dimen>
+    <dimen name="ui_radius_item">12dp</dimen>
+    <dimen name="ui_radius_card">16dp</dimen>
+    <dimen name="ui_radius_button">24dp</dimen>
+    <dimen name="ui_radius_panel">20dp</dimen>
+    <dimen name="ui_radius_modal">24dp</dimen>
+    <dimen name="ui_radius_dock">28dp</dimen>
 
     <dimen name="ui_stroke_focus">2dp</dimen>
     <dimen name="ui_stroke_artwork_focus">3dp</dimen>
-    <dimen name="ui_stroke_glass_rim">1.5dp</dimen>
+    <dimen name="ui_stroke_glass_rim">1dp</dimen>
     <dimen name="ui_stroke_hairline">1dp</dimen>
     <dimen name="ui_indicator_width">4dp</dimen>
     <dimen name="ui_playback_mode_button_collapsed_width">64dp</dimen>

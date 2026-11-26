@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 歌单 tile 选择器：静置半透明玻璃平铺 + 发丝线边界，聚焦保留蓝色柔和高亮描边 -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 歌单 tile 选择器：静置轻透玻璃卡片 + 细折射边，聚焦亮面玻璃 + 柔蓝描边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <solid android:color="@color/ui_glass_item_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_blue_stroke_soft" />
         </shape>
     </item>
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_glass_panel" />
+            <corners android:radius="@dimen/ui_radius_card" />
+            <solid android:color="@color/ui_glass_panel_deep" />
             <stroke
                 android:width="@dimen/ui_stroke_hairline"
                 android:color="@color/ui_divider" />

@@ -365,6 +365,16 @@ class SettingsActivity : BaseActivity() {
 
         containerCategories = findViewById(R.id.container_categories)
         containerDetail = findViewById(R.id.container_detail)
+        SlidingFocusHighlight.attach(
+            container = containerCategories,
+            strokeColorRes = R.color.ui_accent_blue_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
+        SlidingFocusHighlight.attach(
+            container = containerDetail,
+            strokeColorRes = R.color.ui_accent_blue_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
 
         buildCategoryList()
         selectCategory(0, moveFocusToDetail = false)
@@ -463,6 +473,9 @@ class SettingsActivity : BaseActivity() {
             )
             itemView.findViewById<TextView>(R.id.tv_category_title).text = category.title
             itemView.setOnClickListener { selectCategory(index, moveFocusToDetail = true) }
+            itemView.setOnFocusChangeListener { v, hasFocus ->
+                UiMotion.animateRowFocus(v, hasFocus)
+            }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerCategories.addView(itemView)
             categoryViews.add(itemView)
@@ -556,6 +569,9 @@ class SettingsActivity : BaseActivity() {
                 } else {
                     Toast.makeText(this, R.string.common_not_supported_display_only, Toast.LENGTH_SHORT).show()
                 }
+            }
+            itemView.setOnFocusChangeListener { v, hasFocus ->
+                UiMotion.animateRowFocus(v, hasFocus)
             }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             containerDetail.addView(itemView)
@@ -740,12 +756,11 @@ class SettingsActivity : BaseActivity() {
         actionsContainer.addView(confirmButton)
         actionsContainer.addView(cancelButton)
 
-        dialog = Dialog(this, android.R.style.Theme_NoTitleBar_Fullscreen).apply {
+        dialog = Dialog(this, R.style.Theme_TsmModalDialog).apply {
             setContentView(content)
             setCancelable(true)
             setCanceledOnTouchOutside(true)
-            window?.setBackgroundDrawable(null)
-            window?.let(UiSettingsApplier::applyFullscreenWindowLayout)
+            TsmModalCoordinator.applyGlassWindowBackdrop(this@SettingsActivity, content, window)
             setOnDismissListener {
                 if (!confirmed && UiSettingsStore.globalScalePercent(this@SettingsActivity) != originalScale) {
                     UiSettingsStore.setGlobalScalePercent(this@SettingsActivity, originalScale)

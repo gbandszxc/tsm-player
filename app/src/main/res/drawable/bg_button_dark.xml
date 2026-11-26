@@ -1,19 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 暗色按钮：半透明玻璃平铺，聚焦白色完整描边 -->
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- 暗色玻璃胶囊按钮：烟熏深灰玻璃 + 银灰折射边，聚焦亮面玻璃 + 锐利白边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="120"
+    android:exitFadeDuration="100">
     <item android:state_focused="true">
-        <shape>
-            <corners android:radius="@dimen/ui_radius_button" />
-            <solid android:color="@color/ui_glass_item_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_text_primary" />
-        </shape>
+        <layer-list>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <solid android:color="@color/ui_glass_item_focus" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <gradient
+                        android:angle="270"
+                        android:startColor="@color/ui_glass_gloss_top"
+                        android:endColor="@color/ui_glass_gloss_bottom" />
+                </shape>
+            </item>
+            <item>
+                <shape>
+                    <corners android:radius="@dimen/ui_radius_button" />
+                    <solid android:color="@android:color/transparent" />
+                    <stroke
+                        android:width="@dimen/ui_stroke_focus"
+                        android:color="@color/ui_text_primary" />
+                </shape>
+            </item>
+        </layer-list>
     </item>
     <item>
         <shape>
             <corners android:radius="@dimen/ui_radius_button" />
-            <solid android:color="@color/ui_glass_item" />
+            <solid android:color="@color/ui_glass_panel_deep" />
+            <stroke
+                android:width="@dimen/ui_stroke_glass_rim"
+                android:color="@color/ui_glass_dark_rim" />
         </shape>
     </item>
 </selector>

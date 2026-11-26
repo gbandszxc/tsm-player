@@ -2,8 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/ui_bg_tv_blue"
-    android:padding="@dimen/ui_space_screen">
+    android:background="@color/ui_bg_tv_blue">
 
     <!-- 液态玻璃氛围底：模糊封面铺满 + 暗化遮罩，内容层位于其上 -->
     <ImageView
@@ -22,7 +21,10 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="vertical"
+        android:padding="@dimen/ui_space_screen">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -62,6 +64,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/ui_space_5xl"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:fillViewport="false">
 
             <GridLayout
@@ -69,6 +73,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:alignmentMode="alignBounds"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:columnCount="4"
                 android:orientation="horizontal" />
         </ScrollView>

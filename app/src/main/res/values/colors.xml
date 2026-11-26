@@ -6,7 +6,7 @@
     <color name="ui_bg_app">#0D0E12</color>
     <color name="ui_bg_app_deep">#0A0B0F</color>
     <color name="ui_bg_sidebar">#101114</color>
-    <color name="ui_bg_tv_blue">#16171D</color>
+    <color name="ui_bg_tv_blue">#141821</color>
     <color name="ui_bg_artwork">#1E2129</color>
     <color name="ui_bg_black">#000000</color>
     <color name="ui_bg_panel">#1A1C22</color>
@@ -14,7 +14,7 @@
     <color name="ui_bg_panel_muted">#15161B</color>
     <color name="ui_bg_item">#26282E</color>
     <color name="ui_bg_item_focus">#2E3138</color>
-    <color name="ui_bg_overlay">#DD0F1114</color>
+    <color name="ui_bg_overlay">#99080A0E</color>
     <color name="ui_bg_track">#2C2F36</color>
     <color name="ui_transparent">#00000000</color>
 
@@ -23,6 +23,7 @@
     <color name="ui_text_secondary">#CBD5E1</color>
     <color name="ui_text_muted">#94A3B8</color>
     <color name="ui_text_warning_dark">#3A2A00</color>
+    <color name="ui_text_warning_glass">#FEF3C7</color>
     <color name="ui_text_error">#FCA5A5</color>
 
     <!-- 触屏点按反馈 overlay：仅用于触屏涟漪/加深，遥控器焦点态不触发 -->
@@ -49,23 +50,53 @@
     <color name="ui_accent_red_focus">#B91C1C</color>
     <color name="ui_accent_red_text">#FEE2E2</color>
 
-    <color name="ui_divider">#262930</color>
+    <color name="ui_divider">#24FFFFFF</color>
 
-    <!-- 液态玻璃材质：半透明中性深灰玻璃填充（内容透出氛围底，文字对比度由浓度红线保证） -->
-    <color name="ui_glass_panel">#B31A1C22</color>
-    <color name="ui_glass_panel_strong">#CC121317</color>
-    <color name="ui_glass_panel_deep">#99121317</color>
-    <color name="ui_glass_panel_muted">#9915161B</color>
-    <color name="ui_glass_item">#9926282E</color>
-    <color name="ui_glass_item_focus">#B32E3138</color>
-    <color name="ui_glass_sidebar">#CC101114</color>
-    <!-- 玻璃高光：仅面板级表面（panel/modal/浮层）使用，行/条目为纯半透明平铺 -->
-    <color name="ui_glass_rim_light">#38FFFFFF</color>
-    <color name="ui_glass_rim_soft">#0DFFFFFF</color>
-    <color name="ui_glass_gloss_top">#14FFFFFF</color>
-    <color name="ui_glass_gloss_bottom">#0AFFFFFF</color>
-    <!-- 氛围底：模糊封面上的暗化遮罩，保证远距离暗光下的文字对比度 -->
-    <color name="ui_ambient_scrim">#990A0B0F</color>
-    <color name="ui_ambient_scrim_deep">#D90A0B0F</color>
-    <color name="ui_ambient_glow">#22A9B2BD</color>
+    <!-- 液态玻璃材质：烟熏深灰玻璃填充（透过氛围底光影，边缘靠锐利镜面折射立住） -->
+    <color name="ui_glass_panel">#73181B22</color>
+    <color name="ui_glass_panel_strong">#A6161920</color>
+    <color name="ui_glass_panel_deep">#5914171E</color>
+    <color name="ui_glass_panel_muted">#4D222733</color>
+    <color name="ui_glass_item">#381E222B</color>
+    <color name="ui_glass_item_focus">#7A2D3340</color>
+    <color name="ui_glass_sidebar">#7A12151C</color>
+    <color name="ui_glass_dock">#8014171F</color>
+
+    <!-- 玻璃镜面高光：3段对角折射边 + 顶部局部内光泽（下半部完全清透） -->
+    <color name="ui_glass_rim_light">#52FFFFFF</color>
+    <color name="ui_glass_rim_mid">#14FFFFFF</color>
+    <color name="ui_glass_rim_soft">#26FFFFFF</color>
+    <color name="ui_glass_gloss_top">#1CFFFFFF</color>
+    <color name="ui_glass_gloss_bottom">#00FFFFFF</color>
+    <color name="ui_glass_dark_rim">#33FFFFFF</color>
+
+    <!-- 1B 染色玻璃按钮：静置低饱和半透明烟熏染色 + 同色折射边；聚焦充能提亮 -->
+    <color name="ui_glass_blue">#3D2563EB</color>
+    <color name="ui_glass_blue_focus">#BF2563EB</color>
+    <color name="ui_glass_blue_rim">#5560A5FA</color>
+    <color name="ui_glass_green">#3D16A34A</color>
+    <color name="ui_glass_green_focus">#BF15803D</color>
+    <color name="ui_glass_green_rim">#554ADE80</color>
+    <color name="ui_glass_red">#40DC2626</color>
+    <color name="ui_glass_red_focus">#C4DC2626</color>
+    <color name="ui_glass_red_rim">#55F87171</color>
+    <color name="ui_glass_yellow">#3DF59E0B</color>
+    <color name="ui_glass_yellow_focus">#CC9A5204</color>
+    <color name="ui_glass_yellow_rim">#55FBBF24</color>
+    <color name="ui_glass_amber">#40F59E0B</color>
+    <color name="ui_glass_amber_focus">#CC9A5204</color>
+    <color name="ui_glass_amber_rim">#55FBBF24</color>
+
+    <!-- 氛围底：适度暗化遮罩 + 冷银灰双光斑，保证有光可透且远距可读 -->
+    <color name="ui_ambient_scrim">#660B0D12</color>
+    <color name="ui_ambient_scrim_deep">#A6090B10</color>
+    <color name="ui_ambient_glow">#3894A3B8</color>
+    <color name="ui_ambient_glow_secondary">#2864748B</color>
+    <color name="ui_modal_scrim_blur">#52080A0E</color>
+
+    <!-- 歌词景深渐变色阶 -->
+    <color name="ui_lyric_active">#FFFFFF</color>
+    <color name="ui_lyric_near">#B8E2E8F0</color>
+    <color name="ui_lyric_mid">#8ACBD5E1</color>
+    <color name="ui_lyric_far">#8A94A3B8</color>
 </resources>

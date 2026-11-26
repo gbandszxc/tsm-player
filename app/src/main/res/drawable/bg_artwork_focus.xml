@@ -1,23 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_none" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <solid android:color="@color/ui_transparent" />
-            <stroke android:width="@dimen/ui_stroke_artwork_focus" android:color="@color/ui_accent_blue_stroke" />
+            <stroke
+                android:width="@dimen/ui_stroke_artwork_focus"
+                android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>
     <item android:state_pressed="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_none" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <solid android:color="@color/ui_transparent" />
-            <stroke android:width="@dimen/ui_stroke_artwork_focus" android:color="@color/ui_accent_blue_stroke_soft" />
+            <stroke
+                android:width="@dimen/ui_stroke_artwork_focus"
+                android:color="@color/ui_accent_blue_stroke_soft" />
         </shape>
     </item>
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_none" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <solid android:color="@color/ui_transparent" />
+            <stroke
+                android:width="@dimen/ui_stroke_glass_rim"
+                android:color="@color/ui_glass_rim_soft" />
         </shape>
     </item>
 </selector>

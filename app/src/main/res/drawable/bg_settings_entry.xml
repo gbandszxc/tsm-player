@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 遥控器焦点在此项：语义蓝填充 + 完整描边 -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
+    <!-- 遥控器焦点在此项：染色蓝亮玻璃（边框由 SlidingFocusHighlight 统一绘制） -->
     <item android:state_focused="true">
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <solid android:color="@color/ui_accent_blue_focus" />
-            <stroke
-                android:width="@dimen/ui_stroke_focus"
-                android:color="@color/ui_accent_blue_stroke" />
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_blue_focus" />
         </shape>
     </item>
-    <!-- 默认：半透明玻璃条目平铺 -->
+    <!-- 默认：轻透烟熏玻璃条目 + 细折射边 -->
     <item>
         <shape>
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_item" />
             <solid android:color="@color/ui_glass_panel_deep" />
+            <stroke
+                android:width="@dimen/ui_stroke_hairline"
+                android:color="@color/ui_divider" />
         </shape>
     </item>
 </selector>

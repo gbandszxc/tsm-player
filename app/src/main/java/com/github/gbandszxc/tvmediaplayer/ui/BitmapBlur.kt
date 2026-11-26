@@ -4,6 +4,13 @@ import android.graphics.Bitmap
 import android.graphics.Color
 
 object BitmapBlur {
+
+    private const val PASSES = 3
+
+    /**
+     * 3-pass 滑动窗口均值模糊（近似高斯模糊），时间复杂度 O(W·H)，
+     * 消除单次盒模糊放大后的块状边缘与暗部色带。
+     */
     fun blur(source: Bitmap, radius: Int): Bitmap {
         val safeRadius = radius.coerceAtLeast(0)
         val input = source.copy(Bitmap.Config.ARGB_8888, false)
@@ -11,15 +18,17 @@ object BitmapBlur {
 
         val width = input.width
         val height = input.height
-        val sourcePixels = IntArray(width * height)
-        val horizontalPixels = IntArray(width * height)
-        val outputPixels = IntArray(width * height)
-        input.getPixels(sourcePixels, 0, width, 0, 0, width, height)
+        val size = width * height
+        var current = IntArray(size)
+        var scratch = IntArray(size)
+        input.getPixels(current, 0, width, 0, 0, width, height)
 
-        boxBlurHorizontal(sourcePixels, horizontalPixels, width, height, safeRadius)
-        boxBlurVertical(horizontalPixels, outputPixels, width, height, safeRadius)
+        repeat(PASSES) {
+            boxBlurHorizontal(current, scratch, width, height, safeRadius)
+            boxBlurVertical(scratch, current, width, height, safeRadius)
+        }
 
-        return Bitmap.createBitmap(outputPixels, width, height, Bitmap.Config.ARGB_8888)
+        return Bitmap.createBitmap(current, width, height, Bitmap.Config.ARGB_8888)
     }
 
     private fun boxBlurHorizontal(
@@ -27,30 +36,44 @@ object BitmapBlur {
         outputPixels: IntArray,
         width: Int,
         height: Int,
-        radius: Int
+        radius: Int,
     ) {
+        val windowSize = radius * 2 + 1
+        val lastX = width - 1
         for (y in 0 until height) {
+            val rowOffset = y * width
+            var alpha = 0
+            var red = 0
+            var green = 0
+            var blue = 0
+
+            val firstColor = sourcePixels[rowOffset]
+            alpha += Color.alpha(firstColor) * (radius + 1)
+            red += Color.red(firstColor) * (radius + 1)
+            green += Color.green(firstColor) * (radius + 1)
+            blue += Color.blue(firstColor) * (radius + 1)
+
+            for (dx in 1..radius) {
+                val sampleColor = sourcePixels[rowOffset + dx.coerceAtMost(lastX)]
+                alpha += Color.alpha(sampleColor)
+                red += Color.red(sampleColor)
+                green += Color.green(sampleColor)
+                blue += Color.blue(sampleColor)
+            }
+
             for (x in 0 until width) {
-                var alpha = 0
-                var red = 0
-                var green = 0
-                var blue = 0
-                var count = 0
-                for (dx in -radius..radius) {
-                    val sampleX = (x + dx).coerceIn(0, width - 1)
-                    val color = sourcePixels[y * width + sampleX]
-                    alpha += Color.alpha(color)
-                    red += Color.red(color)
-                    green += Color.green(color)
-                    blue += Color.blue(color)
-                    count++
-                }
-                outputPixels[y * width + x] = Color.argb(
-                    alpha / count,
-                    red / count,
-                    green / count,
-                    blue / count
+                outputPixels[rowOffset + x] = Color.argb(
+                    alpha / windowSize,
+                    red / windowSize,
+                    green / windowSize,
+                    blue / windowSize,
                 )
+                val addColor = sourcePixels[rowOffset + (x + 1 + radius).coerceAtMost(lastX)]
+                val subColor = sourcePixels[rowOffset + (x - radius).coerceAtLeast(0)]
+                alpha += Color.alpha(addColor) - Color.alpha(subColor)
+                red += Color.red(addColor) - Color.red(subColor)
+                green += Color.green(addColor) - Color.green(subColor)
+                blue += Color.blue(addColor) - Color.blue(subColor)
             }
         }
     }
@@ -60,30 +83,43 @@ object BitmapBlur {
         outputPixels: IntArray,
         width: Int,
         height: Int,
-        radius: Int
+        radius: Int,
     ) {
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                var alpha = 0
-                var red = 0
-                var green = 0
-                var blue = 0
-                var count = 0
-                for (dy in -radius..radius) {
-                    val sampleY = (y + dy).coerceIn(0, height - 1)
-                    val color = sourcePixels[sampleY * width + x]
-                    alpha += Color.alpha(color)
-                    red += Color.red(color)
-                    green += Color.green(color)
-                    blue += Color.blue(color)
-                    count++
-                }
+        val windowSize = radius * 2 + 1
+        val lastY = height - 1
+        for (x in 0 until width) {
+            var alpha = 0
+            var red = 0
+            var green = 0
+            var blue = 0
+
+            val firstColor = sourcePixels[x]
+            alpha += Color.alpha(firstColor) * (radius + 1)
+            red += Color.red(firstColor) * (radius + 1)
+            green += Color.green(firstColor) * (radius + 1)
+            blue += Color.blue(firstColor) * (radius + 1)
+
+            for (dy in 1..radius) {
+                val sampleColor = sourcePixels[dy.coerceAtMost(lastY) * width + x]
+                alpha += Color.alpha(sampleColor)
+                red += Color.red(sampleColor)
+                green += Color.green(sampleColor)
+                blue += Color.blue(sampleColor)
+            }
+
+            for (y in 0 until height) {
                 outputPixels[y * width + x] = Color.argb(
-                    alpha / count,
-                    red / count,
-                    green / count,
-                    blue / count
+                    alpha / windowSize,
+                    red / windowSize,
+                    green / windowSize,
+                    blue / windowSize,
                 )
+                val addColor = sourcePixels[(y + 1 + radius).coerceAtMost(lastY) * width + x]
+                val subColor = sourcePixels[(y - radius).coerceAtLeast(0) * width + x]
+                alpha += Color.alpha(addColor) - Color.alpha(subColor)
+                red += Color.red(addColor) - Color.red(subColor)
+                green += Color.green(addColor) - Color.green(subColor)
+                blue += Color.blue(addColor) - Color.blue(subColor)
             }
         }
     }

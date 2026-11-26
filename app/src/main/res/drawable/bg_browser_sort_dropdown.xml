@@ -1,23 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 排序下拉浮层：玻璃面板 + 保留蓝色描边表达"当前浮层"边界 -->
+<!-- 排序下拉浮层：修复 solid+gradient 互相覆盖问题，使用独立填充层 + 顶部光泽 + 蓝色折射边 -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="@dimen/ui_radius_panel" />
-            <gradient
-                android:angle="270"
-                android:startColor="@color/ui_glass_rim_light"
-                android:endColor="@color/ui_glass_rim_soft" />
+            <corners android:radius="@dimen/ui_radius_card" />
+            <solid android:color="@color/ui_glass_panel_strong" />
         </shape>
     </item>
-    <item
-        android:bottom="@dimen/ui_stroke_focus"
-        android:left="@dimen/ui_stroke_focus"
-        android:right="@dimen/ui_stroke_focus"
-        android:top="@dimen/ui_stroke_focus">
+    <item>
         <shape android:shape="rectangle">
-            <corners android:radius="@dimen/ui_radius_button" />
-            <solid android:color="@color/ui_glass_panel_strong" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <gradient
                 android:angle="270"
                 android:startColor="@color/ui_glass_gloss_top"
@@ -26,10 +18,10 @@
     </item>
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="@dimen/ui_radius_panel" />
+            <corners android:radius="@dimen/ui_radius_card" />
             <solid android:color="@android:color/transparent" />
             <stroke
-                android:width="@dimen/ui_stroke_focus"
+                android:width="@dimen/ui_stroke_glass_rim"
                 android:color="@color/ui_accent_blue_stroke" />
         </shape>
     </item>

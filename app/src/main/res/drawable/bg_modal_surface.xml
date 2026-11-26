@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Modal 内容行默认背景：纯半透明平铺（密集行不叠加高光装饰） -->
+<!-- Modal 内容行默认背景：轻透烟熏玻璃平铺 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
     <corners android:radius="@dimen/ui_radius_item" />
     <solid android:color="@color/ui_glass_item" />

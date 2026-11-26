@@ -344,3 +344,34 @@ docs/icon/icon_final_preview.png
 4. 构建注意：JDK 目录已迁移（`jdk-17.0.16+8` 不存在），现用 `D:\Develop\Java\zulu17.58.21` 作为 Gradle JAVA_HOME。
 
 v3 已在 MuMu 走查：根目录（中性底）、Apple 目录列表、播放页（封面光晕）、设置页（跟随播放封面 + 玻璃侧栏）全部通过。
+
+### 19.3 v4——液态玻璃深度重构（1B 染色玻璃 + 2A 胶囊同心圆角 + 流畅弹簧动效）
+
+2026-11-26 针对“材质闷灰不透、圆角不协调、动画缺乏液态感”三项痛点完成全套深度重构（P0+P1+P2）：
+
+1. **光学层重构（去灰雾 + 真透视）**：
+   - 氛围遮罩降为 40%（`ui_ambient_scrim`），`BitmapBlur` 升级为 O(W·H) 3-pass 滑动窗口近似高斯模糊，`AmbientBackdrop` 改用 160px ARGB_8888 缓存消除暗部色带并提取上下双区柔光（兜底渐变同步升级为冷银灰双光斑）。
+   - 新增 `LiquidGlassDrawable` / `LiquidGlassSurface`（API 21+ 可用，实现 `ConstantState` 兼容 `RippleDrawable` mask）：45%–65% 烟熏填充 + 顶部 28% 局部内光泽 + 3 段对角镜面折射描边（仅 `STROKE` 不铺底层透穿）+ 一次性焦点掠光 `triggerSheen()`。
+   - 修复 `bg_browser_sort_dropdown.xml` / `bg_playback_toast.xml` 同 `<shape>` 内 `<solid>` 被 `<gradient>` 覆盖导致透穿文字的 Bug；修复 `activity_favorites.xml` / `activity_history.xml` 根布局 padding 导致氛围底缩边的问题；为 `activity_sleep_timer.xml` 与 `activity_lyrics_fullscreen.xml` 接入氛围底；浏览页顶部增加 `bg_top_bar_scrim.xml` 渐隐底衬、路径槽改为 `bg_path_bar.xml`。
+   - 修复 `TsmModalCoordinator` 弹窗主题：从不透明主题切换为自定义透明主题 `Theme.TsmModalDialog` 并启用 `FLAG_BLUR_BEHIND` + `blurBehindRadius=36` + `setBackgroundBlurRadius(36)`，在 MuMu Android 15 实测确认真跨窗口毛玻璃生效。
+2. **1B 染色玻璃按钮 + 2A 胶囊与同心圆角**：
+   - 所有操作按钮改用 24dp 全圆角胶囊（`ui_radius_button`），静置为 24%–25% 低饱和染色玻璃 + 1dp 同色折射边（警告系文本/图标切 `ui_text_warning_glass`），聚焦充能至 75%–77% 亮玻璃 + 2dp 语义亮边。
+   - 圆角重排为同心阶梯：条目/输入槽 `12dp`、卡片/封面/下拉 `16dp`、面板 `20dp`、按钮/Modal `24dp`、播放坞 `28dp`、指示条 `999dp`。
+3. **流畅液态动效体系**：
+   - `UiMotion` 引入阻尼弹簧插值器 `SpringInterpolator`，升级胶囊展开动画（240ms）、卡片/封面弹性抬升（`1.045x` + `8dp` 阴影 + 掠光），新增下拉/Modal/轻提示入退场动画，并在 `themes.xml` 挂载统一 Activity/Modal 淡入微缩放转场。
+   - 新增 `SlidingFocusHighlight`（基于 `ViewGroupOverlay`）：在文件列表/宫格、排序下拉、设置分类/详情、收藏宫格、历史列表、List Modal 上实现弹簧滑行玻璃焦点框（外发光 + 斜向掠光），同步移除受管条目 selector 的静态聚焦描边与水平偏移以避免双边框重影。
+4. **播放页与全屏歌词沉浸升级**：
+   - 播放页底部 9 枚胶囊按钮收纳入悬浮玻璃控制坞 `bg_playback_dock`，封面图 16dp 圆角裁剪 + 阴影 + 聚焦抬升，播放中启用 `AmbientBackdrop.setBreathing(true)` GPU 慢呼吸；播放页与全屏歌词采用 4 档景深色阶（`ui_lyric_active/near/mid/far`）、垂直渐隐边缘与可取消 `ObjectAnimator` 平滑滚动。
+
+验证结果：全量单测 `.\gradlew.bat testDebugUnitTest` 通过，双 ABI Debug APK `.\gradlew.bat assembleDebug` 打包成功，并在 MuMu Android 15（`127.0.0.1:16448`）完成浏览列表/宫格、连接管理弹窗、排序下拉、设置、收藏、历史、播放页、睡眠定时与全屏歌词全页面实装截图验收。
+
+### 19.4 v4 可读性加固与隐蔽交互面液态玻璃统一
+
+1. **WCAG 2.1 可读性定量审计与自适应压暗**：
+   - `AmbientBackdrop` 新增封面相对亮度计算与 `computeAdaptiveScrimAlpha()`：默认保持 40%/65% 氛围遮罩，遇到浅粉/纯白等亮色封面时平滑提高遮罩浓度（最高 97%，锁定有效背景亮度 `≤ 0.034`），保证 `ui_text_primary/secondary/muted` 在裸字和半透明玻璃面板上均满足 WCAG AA `≥ 4.5:1`。
+   - 警告染色玻璃聚焦态（`ui_glass_yellow_focus` / `ui_glass_amber_focus`）加深为 `#CC9A5204`、绿色染色玻璃聚焦态（`ui_glass_green_focus`）加深为 `#BF15803D`（对比度提升至 ≥ 4.5:1）；歌词中远景色阶（`ui_lyric_mid` `#8ACBD5E1`、`ui_lyric_far` `#8A94A3B8`）同步提亮。新增 `ContrastReadabilityTest.kt` 校验深炭、浅粉与纯白封面场景下的对比度指标。
+2. **遗漏深层页面与隐蔽状态补齐**：
+   - 浏览页长按确认快速定位浮层：面板装配 `LiquidGlassSurface.applyModalPanel`、`UiMotion.animateToastEnter/Exit` 进退场，滑轨与指示块升级为 `999dp` 胶囊玻璃（`bg_fast_locate_track` / `bg_fast_locate_indicator`）及平滑 `translationY` 位移。
+   - 播放页：`PlaybackActivity.showLocateConfirmationDialog` 从原生 `AlertDialog` 迁移至 `TsmModalCoordinator.showConfirmModal`（至此全应用零残留业务弹窗）；`pb_playback` 升级为 `bg_playback_seekbar` 蓝青流光玻璃槽并接入聚焦 `1.35x` 纵向弹簧缩放；全屏封面预览新增淡入 + `0.94x → 1.0x` 弹簧展开与退场淡出。
+   - 睡眠定时与历史页：睡眠定时自定义滚轮切换为 `bg_wheel_panel`、`UiMotion.animateFocusScale` 焦点缩放与 `animateModalEnter` 展开动画，并接入 `MediaController` 监听与历史页一并通过 `AmbientBackdrop.Controller.updateFromMediaItem()` 实时同步播放封面氛围底。
+   - 公共 Form Modal：`CHECKBOX` 字段接入 `bg_modal_list_row` 玻璃条目背景与遥控器聚焦高光框。

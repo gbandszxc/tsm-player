@@ -58,6 +58,35 @@ class UiMotionTest {
         assertNotNull(ripple.findDrawableByLayerId(android.R.id.mask))
     }
 
+    @Test
+    fun `liquid glass drawable constant state produces valid ripple mask`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val button = laidOutButton(activity, width = 160)
+        LiquidGlassSurface.applyPanel(button)
+
+        UiMotion.applyPressFeedback(button, R.color.ui_press_overlay_light)
+
+        MotionEvent.obtain(0, 0, MotionEvent.ACTION_DOWN, 20f, 20f, 0).run {
+            button.dispatchTouchEvent(this)
+            recycle()
+        }
+
+        val ripple = button.foreground as RippleDrawable
+        assertNotNull(ripple.findDrawableByLayerId(android.R.id.mask))
+    }
+
+    @Test
+    fun `row focus and focus scale guard touch mode cleanly`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        val button = laidOutButton(activity, width = 160)
+
+        UiMotion.animateFocusScale(button, focused = true)
+        UiMotion.animateRowFocus(button, focused = true)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(300))
+
+        assertTrue(button.scaleX >= 1f)
+    }
+
     private fun laidOutButton(activity: Activity, width: Int): Button {
         val root = FrameLayout(activity)
         val button = Button(activity).apply {
