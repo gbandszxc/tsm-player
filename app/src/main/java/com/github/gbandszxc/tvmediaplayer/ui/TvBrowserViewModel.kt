@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -69,6 +70,7 @@ class TvBrowserViewModel(
     private val localRepository: LocalFileRepository? = null,
     private val modeStore: BrowserModeStore? = null,
     private val appContext: Context? = null,
+    private val localStorageAccessChecker: (() -> Boolean)? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(TvBrowserState())
@@ -737,12 +739,14 @@ class TvBrowserViewModel(
         }
     }
 
-    private fun hasLocalStorageAccess(): Boolean {
+    fun hasLocalStorageAccess(): Boolean {
+        localStorageAccessChecker?.let { return it() }
         val context = appContext ?: return false
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
-            context.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED
         }
     }
 

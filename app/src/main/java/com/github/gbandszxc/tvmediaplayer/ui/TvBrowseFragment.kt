@@ -282,7 +282,9 @@ class TvBrowseFragment : Fragment() {
         btnBrowseMode.setOnClickListener {
             val isEnteringLocal = viewModel.state.value.mode == BrowseMode.NAS
             viewModel.toggleMode()
-            if (isEnteringLocal) requestLocalStorageAccess()
+            if (isEnteringLocal && viewModel.state.value.localPermissionRequired) {
+                requestLocalStorageAccess()
+            }
         }
         btnNavConnection.setOnClickListener {
             if (viewModel.state.value.mode == BrowseMode.NAS) showConnectionManagerDialog()
@@ -657,6 +659,10 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun requestLocalStorageAccess() {
+        if (viewModel.hasLocalStorageAccess()) {
+            viewModel.onLocalStoragePermissionChanged()
+            return
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val packageUri = Uri.parse("package:${requireContext().packageName}")
             runCatching {

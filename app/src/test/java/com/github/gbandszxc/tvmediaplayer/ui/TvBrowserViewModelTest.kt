@@ -1,6 +1,8 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import com.github.gbandszxc.tvmediaplayer.data.repo.BrowseMode
 import com.github.gbandszxc.tvmediaplayer.data.repo.BrowserConfigStore
+import com.github.gbandszxc.tvmediaplayer.data.repo.LocalFileRepository
 import com.github.gbandszxc.tvmediaplayer.data.repo.SmbConfigStoreState
 import com.github.gbandszxc.tvmediaplayer.domain.model.BrowseFocusAnchor
 import com.github.gbandszxc.tvmediaplayer.domain.model.SavedSmbConnection
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -627,6 +630,44 @@ class TvBrowserViewModelTest {
         viewModel.selectSortOption(BrowserSortOption.SIZE_DESC)
 
         assertEquals("Music/a.mp3", viewModel.state.value.entries[viewModel.state.value.restoredFocusIndex!!].fullPath)
+    }
+
+    @Test
+    fun `toggleMode to local only requires permission while access is not granted`() = runTest(dispatcher) {
+        var granted = false
+        val config = sampleConfig(path = "Music")
+        val store = FakeBrowserConfigStore(
+            state = SmbConfigStoreState(
+                activeConfig = config,
+                activeConnectionId = "conn-1",
+                savedConnections = listOf(SavedSmbConnection("conn-1", "NAS", config)),
+                activeBrowsePath = "Music",
+            )
+        )
+        val viewModel = TvBrowserViewModel(
+            repository = FakeSmbRepository(entriesByPath = mapOf("Music" to emptyList())),
+            configStore = store,
+            localRepository = LocalFileRepository(),
+            localStorageAccessChecker = { granted },
+        )
+        advanceUntilIdle()
+
+        viewModel.toggleMode()
+        assertEquals(BrowseMode.LOCAL, viewModel.state.value.mode)
+        assertTrue(viewModel.state.value.localPermissionRequired)
+
+        granted = true
+        viewModel.onLocalStoragePermissionChanged()
+        advanceUntilIdle()
+        assertFalse(viewModel.state.value.localPermissionRequired)
+
+        viewModel.toggleMode()
+        assertEquals(BrowseMode.NAS, viewModel.state.value.mode)
+        advanceUntilIdle()
+
+        viewModel.toggleMode()
+        assertEquals(BrowseMode.LOCAL, viewModel.state.value.mode)
+        assertFalse(viewModel.state.value.localPermissionRequired)
     }
 
     private fun sampleConfig(
