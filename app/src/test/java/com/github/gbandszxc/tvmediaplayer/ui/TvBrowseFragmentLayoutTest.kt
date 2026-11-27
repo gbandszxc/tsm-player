@@ -32,6 +32,21 @@ import org.robolectric.annotation.Config
 class TvBrowseFragmentLayoutTest {
 
     @Test
+    @Config(sdk = [28], qualifiers = "w960dp-h540dp-land-mdpi")
+    fun `browser grid fits five cards at default scale and reduces columns at 120 percent`() {
+        val root = attachBrowser()
+        val grid = root.findViewById<View>(R.id.container_files)
+        val minWidth = root.resources.getDimensionPixelSize(R.dimen.ui_browser_grid_min_item_width)
+        val gap = root.resources.getDimensionPixelSize(R.dimen.ui_space_md)
+
+        layoutBrowser(root, 960, 540)
+        assertEquals(5, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
+
+        layoutBrowser(root, 800, 450)
+        assertEquals(4, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
+    }
+
+    @Test
     @Config(sdk = [28], qualifiers = "w960dp-h540dp-land")
     fun `up from file toolbar reveals the playback header in a subdirectory`() {
         val root = attachBrowser()
