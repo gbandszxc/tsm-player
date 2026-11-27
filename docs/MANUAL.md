@@ -392,7 +392,8 @@ v3 已在 MuMu 走查：根目录（中性底）、Apple 目录列表、播放�
 ### 19.6 v6——首页左侧可折叠液态玻璃导轨
 
 1. **左导轨 + 右滚动双区布局**：
-   - `fragment_tv_browser.xml` 新增左侧独立悬浮玻璃导轨 `panel_nav_rail`（静置 `64dp`、展开 `176dp`，装配 `LiquidGlassSurface.applyPanel` + `applyRoundedClip` + `SlidingFocusHighlight`），集中收纳 `返回`、`切换本地/网络`、`收藏`、`历史`、`连接管理` 与底部常驻 `设置`；右侧 `root_scroll` 预留 `100dp` 左通道（取消顶部操作栏），消除长列表向上滚动时与顶栏的割裂，展开导轨作为浮层覆盖右侧轻量遮罩 `view_nav_rail_scrim` 上，不触发右侧列表/宫格重排闪烁。
+   - `fragment_tv_browser.xml` 新增左侧独立悬浮玻璃导轨 `panel_nav_rail`（静置 `64dp`、按可见文案动态对称展开，兜底 `148dp`，装配 `LiquidGlassSurface.applyPanel` + `applyRoundedClip` + `SlidingFocusHighlight`），集中收纳 `返回`、`切换本地/网络`、`收藏`、`历史`、`连接管理` 与底部常驻 `设置`；右侧 `root_scroll` 预留 `100dp` 左通道（取消顶部操作栏），消除长列表向上滚动时与顶栏的割裂，展开导轨作为浮层覆盖右侧轻量遮罩 `view_nav_rail_scrim` 上，不触发右侧列表/宫格重排闪烁。
+   - 导轨内 6 枚矢量图标（`ic_nav_back`、`ic_switch_source`、`ic_favorite_outline`、`ic_history`、`ic_nav_connection`、`ic_settings`，同步保持 `ic_favorite_filled` 同源轮廓）已统一为 Lucide `24x24` `2dp` 圆角描边风格，图标与文本间距及左右留白保持对称。
 2. **全场景确定性遥控器导航与焦点记忆**：
    - `SlidingFocusHighlight` 新增容器 `OnLayoutChangeListener`，在导轨宽度弹簧动画期间实时同步聚焦蓝框尺寸。
    - `TvBrowseFragment` 为左导轨配置严格上下闭环（跨底部留白从历史/连接管理直达设置、不串入右侧内容区），并为右侧功能区、列表行和宫格全方向建立确定性聚焦链路（消除了空列表/末行按 `↓` 跳入设置、末列按 `→` 越界等异常轨迹）；左侧入口按 `DPAD_LEFT` 唤起左导轨，导轨内按 `DPAD_RIGHT` 或 `Back` 原地恢复进入前焦点位置。

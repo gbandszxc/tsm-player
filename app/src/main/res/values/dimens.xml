@@ -57,6 +57,6 @@
     <dimen name="ui_artwork_fullscreen_padding_top">16dp</dimen>
     <dimen name="ui_artwork_fullscreen_padding_bottom">26dp</dimen>
     <dimen name="ui_nav_rail_collapsed_width">64dp</dimen>
-    <dimen name="ui_nav_rail_expanded_width">176dp</dimen>
+    <dimen name="ui_nav_rail_expanded_width">148dp</dimen>
     <dimen name="ui_nav_rail_content_start_margin">100dp</dimen>
 </resources>

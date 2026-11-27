@@ -281,7 +281,7 @@
         android:focusable="false"
         android:visibility="gone" />
 
-    <!-- 左侧可折叠液态玻璃导轨：静置 64dp 胶囊图标栏，按 ← 平滑展开至 212dp -->
+    <!-- 左侧可折叠液态玻璃导轨：静置 64dp 胶囊图标栏，按 ← 按可见文案动态对称展开（兜底 148dp） -->
     <FrameLayout
         android:id="@+id/panel_nav_rail"
         android:layout_width="@dimen/ui_nav_rail_collapsed_width"
@@ -327,7 +327,7 @@
                     android:id="@+id/tv_nav_back_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -364,7 +364,7 @@
                     android:id="@+id/tv_nav_mode_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -394,14 +394,14 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:importantForAccessibility="no"
-                    android:src="@drawable/ic_favorite_filled"
+                    android:src="@drawable/ic_favorite_outline"
                     android:tint="@color/ui_accent_red_text" />
 
                 <TextView
                     android:id="@+id/tv_nav_favorites_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -438,7 +438,7 @@
                     android:id="@+id/tv_nav_history_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -475,7 +475,7 @@
                     android:id="@+id/tv_nav_connection_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -516,7 +516,7 @@
                     android:id="@+id/tv_nav_settings_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:layout_marginStart="@dimen/ui_space_xl"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"

@@ -64,11 +64,73 @@ class TvBrowseFragmentLayoutTest {
         assertTrue(isDescendantOf(history.parent, navRail))
         assertTrue(isDescendantOf(navConnection.parent, navRail))
         assertTrue(isDescendantOf(settings.parent, navRail))
+        assertEquals(backTop.paddingStart, backTop.paddingEnd)
+        assertEquals(favorites.paddingStart, favorites.paddingEnd)
         assertTrue(
-            context.resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width) <
-                (200 * context.resources.displayMetrics.density).toInt(),
+            context.resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width) <=
+                (160 * context.resources.displayMetrics.density).toInt(),
         )
         assertTrue(context.getString(R.string.browser_nav_back).length <= 4)
+    }
+
+    @Test
+    fun `nav rail expanded width adapts symmetrically to short and long labels`() {
+        val shortWidth = TvBrowseFragment.computeNavRailExpandedWidthForTest(
+            panelPaddingHorizontalPx = 16,
+            itemPaddingStartPx = 12,
+            itemPaddingEndPx = 12,
+            iconWidthPx = 24,
+            labelMarginStartPx = 12,
+            maxLabelWidthPx = 32,
+            opticalRightBalancePx = 2,
+            collapsedWidthPx = 64,
+            fallbackExpandedWidthPx = 148,
+            maxExpandedWidthPx = 240,
+        )
+        assertEquals(110, shortWidth)
+        assertTrue(shortWidth < 148)
+
+        val nasWidth = TvBrowseFragment.computeNavRailExpandedWidthForTest(
+            panelPaddingHorizontalPx = 16,
+            itemPaddingStartPx = 12,
+            itemPaddingEndPx = 12,
+            iconWidthPx = 24,
+            labelMarginStartPx = 12,
+            maxLabelWidthPx = 64,
+            opticalRightBalancePx = 2,
+            collapsedWidthPx = 64,
+            fallbackExpandedWidthPx = 148,
+            maxExpandedWidthPx = 240,
+        )
+        assertEquals(142, nasWidth)
+
+        val englishWidth = TvBrowseFragment.computeNavRailExpandedWidthForTest(
+            panelPaddingHorizontalPx = 16,
+            itemPaddingStartPx = 12,
+            itemPaddingEndPx = 12,
+            iconWidthPx = 24,
+            labelMarginStartPx = 12,
+            maxLabelWidthPx = 86,
+            opticalRightBalancePx = 2,
+            collapsedWidthPx = 64,
+            fallbackExpandedWidthPx = 148,
+            maxExpandedWidthPx = 240,
+        )
+        assertEquals(164, englishWidth)
+
+        val fallbackWidth = TvBrowseFragment.computeNavRailExpandedWidthForTest(
+            panelPaddingHorizontalPx = 16,
+            itemPaddingStartPx = 12,
+            itemPaddingEndPx = 12,
+            iconWidthPx = 24,
+            labelMarginStartPx = 12,
+            maxLabelWidthPx = 0,
+            opticalRightBalancePx = 2,
+            collapsedWidthPx = 64,
+            fallbackExpandedWidthPx = 148,
+            maxExpandedWidthPx = 240,
+        )
+        assertEquals(148, fallbackWidth)
     }
 
     @Test

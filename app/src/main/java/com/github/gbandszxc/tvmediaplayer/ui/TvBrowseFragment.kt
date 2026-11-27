@@ -74,6 +74,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -113,10 +114,12 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnNavConnection: View
     private lateinit var btnSettings: View
     private lateinit var tvNavModeLabel: TextView
+    private lateinit var navRailItemsWithLabels: List<Pair<View, TextView>>
     private lateinit var navRailLabels: List<TextView>
     private var lastContentFocusedView: WeakReference<View>? = null
     private var lastNavRailFocusedId: Int = R.id.btn_favorites
     private var navRailExpanded: Boolean = false
+    private var navRailTargetWidth: Int = 0
     private var navRailWidthAnimator: ValueAnimator? = null
     private var globalFocusListener: ViewTreeObserver.OnGlobalFocusChangeListener? = null
     private lateinit var tvConnection: TextView
@@ -231,14 +234,15 @@ class TvBrowseFragment : Fragment() {
         btnNavConnection = root.findViewById(R.id.btn_nav_connection)
         btnSettings = root.findViewById(R.id.btn_settings)
         tvNavModeLabel = root.findViewById(R.id.tv_nav_mode_label)
-        navRailLabels = listOf(
-            root.findViewById(R.id.tv_nav_back_label),
-            tvNavModeLabel,
-            root.findViewById(R.id.tv_nav_favorites_label),
-            root.findViewById(R.id.tv_nav_history_label),
-            root.findViewById(R.id.tv_nav_connection_label),
-            root.findViewById(R.id.tv_nav_settings_label),
+        navRailItemsWithLabels = listOf(
+            btnBackTop to root.findViewById(R.id.tv_nav_back_label),
+            btnBrowseMode to tvNavModeLabel,
+            root.findViewById<View>(R.id.btn_favorites) to root.findViewById(R.id.tv_nav_favorites_label),
+            root.findViewById<View>(R.id.btn_history) to root.findViewById(R.id.tv_nav_history_label),
+            btnNavConnection to root.findViewById(R.id.tv_nav_connection_label),
+            btnSettings to root.findViewById(R.id.tv_nav_settings_label),
         )
+        navRailLabels = navRailItemsWithLabels.map { it.second }
         tvConnection = root.findViewById(R.id.tv_connection)
         tvSavedCount = root.findViewById(R.id.tv_saved_count)
         btnManage = root.findViewById(R.id.btn_manage)
@@ -564,13 +568,10 @@ class TvBrowseFragment : Fragment() {
     private fun setNavRailExpanded(expanded: Boolean) {
         if (navRailExpanded == expanded) return
         navRailExpanded = expanded
-        navRailWidthAnimator?.cancel()
-        navRailWidthAnimator = null
         val density = resources.displayMetrics.density
         panelNavRail.elevation = if (expanded) 16f * density else 0f
         val collapsedWidth = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_collapsed_width)
-        val expandedWidth = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width)
-        val targetWidth = if (expanded) expandedWidth else collapsedWidth
+        val targetWidth = if (expanded) computeNavRailExpandedWidth() else collapsedWidth
         val targetLabelAlpha = if (expanded) 1f else 0f
 
         viewNavRailScrim.animate().cancel()
@@ -590,15 +591,14 @@ class TvBrowseFragment : Fragment() {
         }
 
         if (panelNavRail.isInTouchMode || panelNavRail.width <= 0) {
-            panelNavRail.layoutParams = panelNavRail.layoutParams.apply { width = targetWidth }
             navRailLabels.forEach { label ->
                 label.animate().cancel()
                 label.alpha = targetLabelAlpha
             }
+            animateNavRailWidth(targetWidth, expanding = expanded)
             return
         }
 
-        val fromWidth = panelNavRail.width
         navRailLabels.forEach { label ->
             label.animate().cancel()
             label.animate()
@@ -607,9 +607,57 @@ class TvBrowseFragment : Fragment() {
                 .setStartDelay(if (expanded) 40L else 0L)
                 .start()
         }
+        animateNavRailWidth(targetWidth, expanding = expanded)
+    }
+
+    private fun computeNavRailExpandedWidth(): Int {
+        val density = resources.displayMetrics.density
+        val visibleLabels = navRailItemsWithLabels
+            .filter { (item, _) -> item.visibility == View.VISIBLE }
+            .map { (_, label) -> label }
+        val maxLabelWidthPx = visibleLabels.maxOfOrNull { label ->
+            val text = label.text?.toString().orEmpty()
+            if (text.isEmpty()) 0 else ceil(label.paint.measureText(text).toDouble()).toInt()
+        } ?: 0
+        val sampleItem = navRailItemsWithLabels.first().first
+        val sampleLabel = navRailItemsWithLabels.first().second
+        val labelMarginStart = (sampleLabel.layoutParams as? ViewGroup.MarginLayoutParams)?.marginStart
+            ?: resources.getDimensionPixelSize(R.dimen.ui_space_xl)
+        return computeNavRailExpandedWidthPx(
+            panelPaddingHorizontalPx = panelNavRail.paddingStart + panelNavRail.paddingEnd,
+            itemPaddingStartPx = sampleItem.paddingStart,
+            itemPaddingEndPx = sampleItem.paddingEnd,
+            iconWidthPx = resources.getDimensionPixelSize(R.dimen.ui_space_5xl),
+            labelMarginStartPx = labelMarginStart,
+            maxLabelWidthPx = maxLabelWidthPx,
+            opticalRightBalancePx = (2f * density).roundToInt(),
+            collapsedWidthPx = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_collapsed_width),
+            fallbackExpandedWidthPx = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width),
+            maxExpandedWidthPx = (240f * density).roundToInt(),
+        )
+    }
+
+    private fun syncExpandedNavRailWidth() {
+        if (!navRailExpanded) return
+        val targetWidth = computeNavRailExpandedWidth()
+        if (targetWidth != navRailTargetWidth) {
+            animateNavRailWidth(targetWidth, expanding = true)
+        }
+    }
+
+    private fun animateNavRailWidth(targetWidth: Int, expanding: Boolean) {
+        navRailTargetWidth = targetWidth
+        navRailWidthAnimator?.cancel()
+        navRailWidthAnimator = null
+        if (panelNavRail.isInTouchMode || panelNavRail.width <= 0) {
+            panelNavRail.layoutParams = panelNavRail.layoutParams.apply { width = targetWidth }
+            return
+        }
+        val fromWidth = panelNavRail.width
+        if (fromWidth == targetWidth) return
         navRailWidthAnimator = ValueAnimator.ofInt(fromWidth, targetWidth).apply {
-            duration = if (expanded) 220L else 170L
-            interpolator = if (expanded) UiMotion.springGlideInterpolator() else PathInterpolator(0.4f, 0f, 1f, 1f)
+            duration = if (expanding) 220L else 170L
+            interpolator = if (expanding) UiMotion.springGlideInterpolator() else PathInterpolator(0.4f, 0f, 1f, 1f)
             addUpdateListener { anim ->
                 val w = anim.animatedValue as Int
                 if (panelNavRail.layoutParams.width != w) {
@@ -787,6 +835,7 @@ class TvBrowseFragment : Fragment() {
         }
         btnNavConnection.visibility = if (state.mode == BrowseMode.NAS) View.VISIBLE else View.GONE
         updateBrowserPlaybackButtonPresentation()
+        syncExpandedNavRailWidth()
 
         val canGoBack = state.currentPath.isNotBlank()
         if (!canGoBack && btnBackTop.hasFocus()) {
@@ -1721,6 +1770,54 @@ class TvBrowseFragment : Fragment() {
         @VisibleForTesting
         fun sortDropdownInitialFocusIndexForTest(option: BrowserSortOption): Int =
             sortDropdownInitialFocusIndex(option)
+
+        @VisibleForTesting
+        fun computeNavRailExpandedWidthForTest(
+            panelPaddingHorizontalPx: Int,
+            itemPaddingStartPx: Int,
+            itemPaddingEndPx: Int,
+            iconWidthPx: Int,
+            labelMarginStartPx: Int,
+            maxLabelWidthPx: Int,
+            opticalRightBalancePx: Int,
+            collapsedWidthPx: Int,
+            fallbackExpandedWidthPx: Int,
+            maxExpandedWidthPx: Int,
+        ): Int = computeNavRailExpandedWidthPx(
+            panelPaddingHorizontalPx = panelPaddingHorizontalPx,
+            itemPaddingStartPx = itemPaddingStartPx,
+            itemPaddingEndPx = itemPaddingEndPx,
+            iconWidthPx = iconWidthPx,
+            labelMarginStartPx = labelMarginStartPx,
+            maxLabelWidthPx = maxLabelWidthPx,
+            opticalRightBalancePx = opticalRightBalancePx,
+            collapsedWidthPx = collapsedWidthPx,
+            fallbackExpandedWidthPx = fallbackExpandedWidthPx,
+            maxExpandedWidthPx = maxExpandedWidthPx,
+        )
+
+        private fun computeNavRailExpandedWidthPx(
+            panelPaddingHorizontalPx: Int,
+            itemPaddingStartPx: Int,
+            itemPaddingEndPx: Int,
+            iconWidthPx: Int,
+            labelMarginStartPx: Int,
+            maxLabelWidthPx: Int,
+            opticalRightBalancePx: Int,
+            collapsedWidthPx: Int,
+            fallbackExpandedWidthPx: Int,
+            maxExpandedWidthPx: Int,
+        ): Int {
+            if (maxLabelWidthPx <= 0) return fallbackExpandedWidthPx
+            val contentWidth = panelPaddingHorizontalPx +
+                itemPaddingStartPx +
+                iconWidthPx +
+                labelMarginStartPx +
+                maxLabelWidthPx +
+                itemPaddingEndPx +
+                opticalRightBalancePx
+            return contentWidth.coerceIn(collapsedWidthPx, maxExpandedWidthPx)
+        }
 
         private fun sortDropdownInitialFocusIndex(option: BrowserSortOption): Int =
             BrowserSortOption.entries.indexOf(option).coerceAtLeast(0)
