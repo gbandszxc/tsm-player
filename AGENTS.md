@@ -5,3 +5,4 @@
 5. 设计样式时必须优先使用 @DESIGN.md YAML front matter 和正文中注明的公共样式 token：颜色使用 @color/ui_*，尺寸/圆角/描边/字号使用 @dimen/ui_*，可复用文本和按钮样式使用 @style/Tsm*，背景优先复用 @drawable/bg_*。除图标、launcher、一次性插画或确有说明的特殊尺寸外，不要在 XML 中新增通用硬编码颜色、圆角、描边、字号。
 6. 需要引用设计规范时统一使用 @DESIGN.md。
 7. Git 提交信息格式：`<类型>([<范围>]): <中文改动说明>`。英文前缀（如 `feat`、`fix`、`refactor`、`docs`、`style`、`chore`、`perf`、`test`）表示改动大类，范围可选，中文部分写明改动内容和原因，避免过于简略。示例：`feat: 增加图片全屏预览`。
+8. 正式发布和同版本覆盖统一使用 GitHub Actions 的「发布 Android APK」工作流，操作见 @docs/MANUAL.md。
