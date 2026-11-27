@@ -120,7 +120,7 @@
             android:layout_marginTop="@dimen/ui_space_lg"
             android:visibility="gone" />
 
-        <ScrollView
+        <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
             android:id="@+id/scroll_history"
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -133,6 +133,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
-        </ScrollView>
+        </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
     </LinearLayout>
 </FrameLayout>

@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.children
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
@@ -38,6 +39,7 @@ class SleepTimerActivity : BaseActivity() {
     private lateinit var tvMinutesPrev: TextView
     private lateinit var tvMinutesCurrent: TextView
     private lateinit var tvMinutesNext: TextView
+    private lateinit var btnCustom: Button
     private lateinit var btnStart: Button
     private lateinit var btnCancel: Button
     private var ambientBackdrop: AmbientBackdrop.Controller? = null
@@ -95,7 +97,8 @@ class SleepTimerActivity : BaseActivity() {
         bindActions()
         restoreFromCurrentTimer()
         render()
-        findViewById<Button>(R.id.btn_sleep_30).requestFocus()
+        val defaultPreset = findViewById<Button>(R.id.btn_sleep_30)
+        defaultPreset.post { defaultPreset.requestFocus() }
     }
 
     override fun onStart() {
@@ -132,6 +135,7 @@ class SleepTimerActivity : BaseActivity() {
         tvMinutesPrev = findViewById(R.id.tv_wheel_minutes_prev)
         tvMinutesCurrent = findViewById(R.id.tv_wheel_minutes_current)
         tvMinutesNext = findViewById(R.id.tv_wheel_minutes_next)
+        btnCustom = findViewById(R.id.btn_sleep_custom)
         btnStart = findViewById(R.id.btn_sleep_start)
         btnCancel = findViewById(R.id.btn_sleep_cancel)
 
@@ -170,10 +174,8 @@ class SleepTimerActivity : BaseActivity() {
             b.setOnClickListener { setDurationAndStart(120) }
             UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_light)
         }
-        findViewById<Button>(R.id.btn_sleep_custom).also { b ->
-            b.setOnClickListener { toggleCustomMode() }
-            UiMotion.applyPressFeedback(b, R.color.ui_press_overlay_dark)
-        }
+        btnCustom.setOnClickListener { toggleCustomMode() }
+        UiMotion.applyPressFeedback(btnCustom, R.color.ui_press_overlay_dark)
         btnStart.setOnClickListener {
             if (customMode) {
                 val duration = wheelController.durationMinutes()
@@ -205,17 +207,20 @@ class SleepTimerActivity : BaseActivity() {
 
     private fun toggleCustomMode() {
         customMode = !customMode
+        layoutPresets.children.filter { it !== btnCustom }.forEach {
+            it.visibility = if (customMode) View.GONE else View.VISIBLE
+        }
+        btnCustom.isSelected = customMode
+        btnStart.nextFocusUpId = if (customMode) btnCustom.id else View.NO_ID
         if (customMode) {
             restoreCustomDuration()
-            layoutPresets.visibility = View.GONE
             layoutWheel.visibility = View.VISIBLE
             renderWheel()
             UiMotion.animateModalEnter(layoutWheel)
             layoutWheelHours.requestFocus()
         } else {
             layoutWheel.visibility = View.GONE
-            layoutPresets.visibility = View.VISIBLE
-            findViewById<Button>(R.id.btn_sleep_custom).requestFocus()
+            btnCustom.requestFocus()
         }
         render()
     }
@@ -250,7 +255,9 @@ class SleepTimerActivity : BaseActivity() {
             else -> getString(R.string.sleep_timer_status_off)
         }
         btnStart.text = if (remaining != null) getString(R.string.sleep_timer_update) else getString(R.string.sleep_timer_start)
+        if (remaining == null && btnCancel.hasFocus()) btnStart.requestFocus()
         btnCancel.isEnabled = remaining != null
+        btnCancel.isFocusable = remaining != null
         if (customMode) {
             renderWheel()
         }

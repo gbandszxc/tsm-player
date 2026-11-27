@@ -2,6 +2,7 @@ package com.github.gbandszxc.tvmediaplayer.ui.modal
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.graphics.Rect
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -10,6 +11,7 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -319,32 +321,6 @@ class TsmModalCoordinatorTest {
     }
 
     @Test
-    fun `computeFormPanelLayout constrains tall content into scroll area`() {
-        val result = TsmModalCoordinator.computeFormPanelLayoutForTest(
-            panelMeasuredHeight = 980,
-            viewportHeight = 720,
-            verticalMargin = 28,
-        )
-
-        assertTrue("Tall form panel should be constrained", result.shouldConstrainPanel)
-        assertEquals("Panel height should keep top and bottom safe margins", 664, result.panelHeight)
-        assertEquals("Scroll area should switch to weighted fill mode", 1f, result.scrollWeight)
-    }
-
-    @Test
-    fun `computeFormPanelLayout keeps wrap content when content already fits`() {
-        val result = TsmModalCoordinator.computeFormPanelLayoutForTest(
-            panelMeasuredHeight = 520,
-            viewportHeight = 720,
-            verticalMargin = 28,
-        )
-
-        assertFalse("Fitting form panel should keep natural height", result.shouldConstrainPanel)
-        assertEquals("Unconstrained panel should stay wrap content", LinearLayout.LayoutParams.WRAP_CONTENT, result.panelHeight)
-        assertEquals("Scroll area should not consume extra space", 0f, result.scrollWeight)
-    }
-
-    @Test
     @Config(sdk = [28], qualifiers = "w640dp-h360dp-xhdpi")
     fun `showFormModal keeps footer visible on 720p tv layout`() {
         val activity = Robolectric.buildActivity(FakeModalHostActivity::class.java)
@@ -372,7 +348,7 @@ class TsmModalCoordinatorTest {
             )
         )
 
-        val contentView = dialog.findViewById<View>(android.R.id.content)
+        val contentView = dialog.findViewById<FrameLayout>(android.R.id.content)
         val width = activity.resources.displayMetrics.widthPixels
         val height = activity.resources.displayMetrics.heightPixels
         contentView.measure(
@@ -383,13 +359,29 @@ class TsmModalCoordinatorTest {
 
         val scrollView = dialog.findViewById<ScrollView>(R.id.scroll_modal_content)
         val actionsContainer = dialog.findViewById<LinearLayout>(R.id.container_modal_actions)
+        val panel = dialog.findViewById<View>(R.id.panel_modal)
+        val margin = activity.resources.getDimensionPixelSize(R.dimen.ui_space_screen)
+        val footerBounds = Rect(0, 0, actionsContainer.width, actionsContainer.height)
+        contentView.offsetDescendantRectToMyCoords(actionsContainer, footerBounds)
 
-        assertNotNull(scrollView)
-        assertNotNull(actionsContainer)
+        assertTrue("The form panel should fit horizontally", panel.width <= width - 2 * margin)
+        assertTrue("The field list should have a visible viewport", scrollView.height > 0)
+        assertTrue("Long forms should scroll", scrollView.canScrollVertically(1))
+        assertTrue("The footer should have visible buttons", actionsContainer.height > 0)
         assertTrue(
             "Footer actions should stay visible within the dialog viewport",
-            actionsContainer!!.bottom <= contentView.height,
+            footerBounds.bottom <= height - margin && footerBounds.left >= margin &&
+                footerBounds.right <= width - margin,
         )
+        val fields = dialog.findViewById<LinearLayout>(R.id.container_modal_content)
+        val firstInput = fields.getChildAt(0).findViewById<EditText>(R.id.et_modal_field_input)
+        assertEquals(firstInput, dialog.currentFocus)
+        repeat(fields.childCount) {
+            assertTrue(dialog.currentFocus!!.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_DOWN)))
+        }
+        assertEquals(actionsContainer.getChildAt(0), dialog.currentFocus)
+        assertTrue(dialog.currentFocus!!.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP)))
+        assertEquals(fields.getChildAt(fields.childCount - 1), dialog.currentFocus)
     }
 
     @Test

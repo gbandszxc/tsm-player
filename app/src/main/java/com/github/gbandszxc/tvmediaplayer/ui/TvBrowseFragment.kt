@@ -140,6 +140,7 @@ class TvBrowseFragment : Fragment() {
     private lateinit var btnNowPlaying: Button
     private lateinit var filesContainer: GridLayout
     private var renderedGridLayout: BrowserGridLayout? = null
+    private var renderedFocusRestoreVersion: Int? = null
     private var gridArtworkJob: Job? = null
     private var sortDropdownView: View? = null
     private var sortOutsideDismissView: View? = null
@@ -205,6 +206,7 @@ class TvBrowseFragment : Fragment() {
         }
         fastLocateConfirmGuard.reset()
         browseListRenderGate.reset()
+        renderedFocusRestoreVersion = null
         gridArtworkJob?.cancel()
         ambientBackdrop?.dispose()
         ambientBackdrop = null
@@ -399,7 +401,11 @@ class TvBrowseFragment : Fragment() {
                     focusNavRail()
                     true
                 }
-                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    rootScroll.scrollTo(0, 0)
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> true
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
                     btnPlayAll.requestFocus()
                     true
@@ -420,7 +426,7 @@ class TvBrowseFragment : Fragment() {
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_UP -> {
-                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    navigateAbovePlayback()
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -443,7 +449,7 @@ class TvBrowseFragment : Fragment() {
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_UP -> {
-                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    navigateAbovePlayback()
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -463,7 +469,7 @@ class TvBrowseFragment : Fragment() {
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> true
                 KeyEvent.KEYCODE_DPAD_UP -> {
-                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    navigateAbovePlayback()
                     true
                 }
                 KeyEvent.KEYCODE_DPAD_DOWN -> {
@@ -536,7 +542,7 @@ class TvBrowseFragment : Fragment() {
         }
 
         val observer = root.viewTreeObserver
-        val listener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+        val listener = ViewTreeObserver.OnGlobalFocusChangeListener { oldFocus, newFocus ->
             if (newFocus == null) return@OnGlobalFocusChangeListener
             when {
                 isDescendantOf(newFocus, panelNavRail) -> {
@@ -548,12 +554,32 @@ class TvBrowseFragment : Fragment() {
                 isDescendantOf(newFocus, rootScroll) -> {
                     lastContentFocusedView = WeakReference(newFocus)
                     setNavRailExpanded(false)
+                    if (newFocus === btnManage) {
+                        rootScroll.scrollTo(0, 0)
+                    } else if (isDescendantOf(newFocus, panelPlayback) &&
+                        !isDescendantOf(oldFocus, panelPlayback)
+                    ) {
+                        val top = if (panelConnection.visibility == View.VISIBLE) {
+                            panelPlayback.top - (panelPlayback.layoutParams as ViewGroup.MarginLayoutParams).topMargin
+                        } else {
+                            0
+                        }
+                        if (rootScroll.scrollY > top) rootScroll.scrollTo(0, top)
+                    }
                 }
             }
         }
         globalFocusListener = listener
         if (observer.isAlive) {
             observer.addOnGlobalFocusChangeListener(listener)
+        }
+    }
+
+    private fun navigateAbovePlayback() {
+        if (panelConnection.visibility == View.VISIBLE) {
+            btnManage.requestFocus()
+        } else {
+            rootScroll.scrollTo(0, 0)
         }
     }
 
@@ -891,10 +917,13 @@ class TvBrowseFragment : Fragment() {
             calculateGridLayout(filesContainer.width)
         }
         val renderKey = "${state.currentPath}|${state.sortOption.name}|${state.viewMode}|$gridLayout"
-        if (browseListRenderGate.shouldRebuild(renderKey, displayEntries, state.entries)) {
+        val rebuilt = browseListRenderGate.shouldRebuild(renderKey, displayEntries, state.entries)
+        if (rebuilt) {
             renderFileItems(state, displayEntries)
         }
-        ensureBrowseFocus(state, displayEntries)
+        val restoreAnchor = rebuilt || renderedFocusRestoreVersion != state.focusRestoreVersion
+        renderedFocusRestoreVersion = state.focusRestoreVersion
+        ensureBrowseFocus(state, restoreAnchor)
     }
 
     private fun renderFileItems(state: TvBrowserState, entries: List<SmbEntry>) {
@@ -1164,14 +1193,24 @@ class TvBrowseFragment : Fragment() {
         }
     }.getOrNull()
 
-    private fun ensureBrowseFocus(state: TvBrowserState, entries: List<SmbEntry>) {
+    private fun ensureBrowseFocus(state: TvBrowserState, restoreAnchor: Boolean) {
+        val root = view ?: return
+        val focusAtRender = root.findFocus()
+        if (!restoreAnchor && !state.isFastLocateMode && focusAtRender != null && focusAtRender !== root) return
         filesContainer.post {
-            val root = view ?: return@post
+            if (view !== root) return@post
+            val latest = viewModel.state.value
+            if (state.currentPath != latest.currentPath || state.mode != latest.mode ||
+                state.focusRestoreVersion != latest.focusRestoreVersion || state.fastLocate != latest.fastLocate
+            ) return@post
             val currentFocused = root.findFocus()
             if (navRailExpanded && isDescendantOf(currentFocused, panelNavRail)) {
                 return@post
             }
-            if (entries.isEmpty()) {
+            if (!state.isFastLocateMode && currentFocused != null && currentFocused !== root &&
+                currentFocused !== focusAtRender
+            ) return@post
+            if (filesContainer.childCount == 0) {
                 when {
                     panelConnection.visibility == View.VISIBLE -> btnManage.requestFocus()
                     else -> btnRefresh.requestFocus()
@@ -1184,7 +1223,8 @@ class TvBrowseFragment : Fragment() {
                 state.isFastLocateMode -> state.fastLocate?.currentIndex?.let {
                     mapStateIndexToDisplayIndex(it, hasParentEntry)
                 }
-                state.restoredFocusIndex != null -> mapStateIndexToDisplayIndex(state.restoredFocusIndex, hasParentEntry)
+                restoreAnchor && state.restoredFocusIndex != null ->
+                    mapStateIndexToDisplayIndex(state.restoredFocusIndex, hasParentEntry)
                 else -> null
             }?.coerceIn(0, filesContainer.childCount - 1)
 
@@ -1857,16 +1897,34 @@ class TvBrowseFragment : Fragment() {
         )
         renderSortOptions(optionsContainer)
         keepSortOptionFocusInsideDropdown(optionsContainer)
-        scrollToRevealSortDropdown(dropdown)
-
-        val location = IntArray(2)
-        btnSort.getLocationOnScreen(location)
-        val params = FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT,
-            FrameLayout.LayoutParams.WRAP_CONTENT
+        val margin = sortDropdownSafetyMarginPx
+        dropdown.measure(
+            View.MeasureSpec.makeMeasureSpec((rootView.width - 2 * margin).coerceAtLeast(1), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec((rootView.height - 2 * margin).coerceAtLeast(1), View.MeasureSpec.AT_MOST),
         )
-        params.leftMargin = location[0]
-        params.topMargin = location[1] + btnSort.height
+        val anchor = Rect(0, 0, btnSort.width, btnSort.height)
+        rootView.offsetDescendantRectToMyCoords(btnSort, anchor)
+        val scrollBefore = rootScroll.scrollY
+        val scrollDelta = calculateSortDropdownScrollDelta(
+            dropdownBottom = anchor.bottom + dropdown.measuredHeight,
+            visibleBottom = rootView.height,
+            safetyMargin = margin,
+        )
+        rootScroll.scrollBy(0, scrollDelta)
+        anchor.offset(0, scrollBefore - rootScroll.scrollY)
+        val maxTop = (rootView.height - margin - dropdown.measuredHeight).coerceAtLeast(margin)
+        val aboveAnchor = anchor.top - dropdown.measuredHeight
+        val params = FrameLayout.LayoutParams(
+            dropdown.measuredWidth,
+            dropdown.measuredHeight,
+        ).apply {
+            leftMargin = anchor.left.coerceIn(margin, (rootView.width - margin - width).coerceAtLeast(margin))
+            topMargin = if (anchor.bottom > maxTop && aboveAnchor >= margin) {
+                aboveAnchor
+            } else {
+                anchor.bottom.coerceIn(margin, maxTop)
+            }
+        }
 
         rootView.addView(outsideDismissView)
         rootView.addView(dropdown, params)
@@ -1877,27 +1935,6 @@ class TvBrowseFragment : Fragment() {
         optionsContainer.getChildAt(sortDropdownInitialFocusIndex(viewModel.state.value.sortOption))?.requestFocus()
     }
 
-    private fun scrollToRevealSortDropdown(dropdown: View) {
-        val visibleRect = Rect()
-        if (!rootScroll.getGlobalVisibleRect(visibleRect)) return
-
-        dropdown.measure(
-            View.MeasureSpec.makeMeasureSpec(rootScroll.width, View.MeasureSpec.AT_MOST),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-        )
-        val location = IntArray(2)
-        btnSort.getLocationOnScreen(location)
-        val dropdownBottom = location[1] + btnSort.height + dropdown.measuredHeight
-        val scrollDelta = calculateSortDropdownScrollDelta(
-            dropdownBottom = dropdownBottom,
-            visibleBottom = visibleRect.bottom,
-            safetyMargin = sortDropdownSafetyMarginPx,
-        )
-        if (scrollDelta > 0) {
-            rootScroll.scrollBy(0, scrollDelta)
-        }
-    }
-
     private fun keepSortOptionFocusInsideDropdown(container: LinearLayout) {
         val childCount = container.childCount
         if (childCount == 0) return
@@ -1905,6 +1942,9 @@ class TvBrowseFragment : Fragment() {
             val child = container.getChildAt(index)
             child.nextFocusUpId = if (index == 0) child.id else container.getChildAt(index - 1).id
             child.nextFocusDownId = if (index == childCount - 1) child.id else container.getChildAt(index + 1).id
+            child.setOnKeyListener { _, keyCode, _ ->
+                keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
+            }
         }
     }
 

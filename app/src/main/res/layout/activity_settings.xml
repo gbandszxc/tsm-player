@@ -44,7 +44,7 @@
                 android:text="@string/settings_title" />
 
             <!-- 分类列表（动态填充）：小屏触摸设备可纵向滑动 -->
-            <ScrollView
+            <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1"
@@ -62,7 +62,7 @@
                     android:clipToPadding="false"
                     android:orientation="vertical" />
 
-            </ScrollView>
+            </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
         </LinearLayout>
 
@@ -86,7 +86,7 @@
                 android:paddingEnd="@dimen/ui_space_xs"
                 android:paddingBottom="@dimen/ui_space_3xl" />
 
-            <ScrollView
+            <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
                 android:id="@+id/scroll_settings_detail"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -105,7 +105,7 @@
                     android:clipToPadding="false"
                     android:orientation="vertical" />
 
-            </ScrollView>
+            </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
         </LinearLayout>
 

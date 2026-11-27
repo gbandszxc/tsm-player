@@ -56,6 +56,7 @@ data class TvBrowserState(
     val error: String? = null,
     val toast: String? = null,
     val restoredFocusIndex: Int? = null,
+    val focusRestoreVersion: Int = 0,
     val inlineMessage: String? = null,
     val fastLocate: BrowseFastLocateState? = null,
     val isFastLocateMode: Boolean = false,
@@ -280,6 +281,7 @@ class TvBrowserViewModel(
                         entries = sorted,
                         loading = false,
                         restoredFocusIndex = restore.index,
+                        focusRestoreVersion = it.focusRestoreVersion + 1,
                         inlineMessage = restore.message,
                         fastLocate = null,
                         isFastLocateMode = false
@@ -341,6 +343,7 @@ class TvBrowserViewModel(
                             entries = sorted,
                             loading = false,
                             restoredFocusIndex = restore.index,
+                            focusRestoreVersion = it.focusRestoreVersion + 1,
                             inlineMessage = restore.message,
                             fastLocate = null,
                             isFastLocateMode = false,
@@ -472,6 +475,7 @@ class TvBrowserViewModel(
         _state.update {
             it.copy(
                 restoredFocusIndex = targetIndex,
+                focusRestoreVersion = it.focusRestoreVersion + 1,
                 isFastLocateMode = false,
                 fastLocate = null,
                 inlineMessage = null
@@ -483,7 +487,7 @@ class TvBrowserViewModel(
     fun cancelFastLocate() {
         _state.update {
             if (!it.isFastLocateMode) return@update it
-            it.copy(isFastLocateMode = false, fastLocate = null)
+            it.copy(isFastLocateMode = false, fastLocate = null, focusRestoreVersion = it.focusRestoreVersion + 1)
         }
     }
 

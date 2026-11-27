@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.view.View
 import android.view.ViewGroup
@@ -121,6 +122,19 @@ class HistoryActivity : BaseActivity() {
     private fun bindActions() {
         btnBack.setOnClickListener { finish() }
         btnSearch.setOnClickListener { submitSearch() }
+        searchInput.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN || !event.hasNoModifiers()) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> btnBack.requestFocus()
+                KeyEvent.KEYCODE_DPAD_DOWN -> searchInput.focusSearch(View.FOCUS_DOWN)?.requestFocus() == true
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    val end = searchInput.length()
+                    (end == 0 || searchInput.selectionStart == end && searchInput.selectionEnd == end) &&
+                        btnSearch.requestFocus()
+                }
+                else -> false
+            }
+        }
         searchInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 submitSearch()
@@ -143,6 +157,7 @@ class HistoryActivity : BaseActivity() {
     }
 
     private fun loadPage(page: Int) {
+        val focusAtRequest = currentFocus
         lifecycleScope.launch {
             // LIKE 全表扫描移出主线程，查询完成后再回主线程渲染
             val result = withContext(Dispatchers.IO) {
@@ -151,16 +166,19 @@ class HistoryActivity : BaseActivity() {
             currentPage = result.page
             currentTracks = result.items
             totalCount = result.totalCount
-            render()
+            val focused = currentFocus
+            render(moveFocus = focused == null || focused === focusAtRequest || focused.parent === historyContainer)
         }
     }
 
-    private fun render() {
+    private fun render(moveFocus: Boolean) {
         historyContainer.removeAllViews()
         val totalPages = maxOf(1, (totalCount + PlayHistoryRepository.PAGE_SIZE - 1) / PlayHistoryRepository.PAGE_SIZE)
         tvPage.text = getString(R.string.history_page_status, currentPage + 1, totalPages, totalCount)
         btnPrev.isEnabled = currentPage > 0
         btnNext.isEnabled = currentPage + 1 < totalPages
+        btnPrev.isFocusable = btnPrev.isEnabled
+        btnNext.isFocusable = btnNext.isEnabled
         btnPrev.alpha = if (btnPrev.isEnabled) 1f else 0.55f
         btnNext.alpha = if (btnNext.isEnabled) 1f else 0.55f
 
@@ -171,8 +189,10 @@ class HistoryActivity : BaseActivity() {
             } else {
                 getString(R.string.history_empty_search)
             }
-            historyContainer.post {
-                if (currentQuery.isBlank()) btnBack.requestFocus() else searchInput.requestFocus()
+            if (moveFocus) {
+                historyContainer.post {
+                    if (currentQuery.isBlank()) btnBack.requestFocus() else searchInput.requestFocus()
+                }
             }
             return
         }
@@ -181,8 +201,10 @@ class HistoryActivity : BaseActivity() {
         currentTracks.forEachIndexed { index, track ->
             historyContainer.addView(createHistoryRow(track, index))
         }
-        historyContainer.post {
-            historyContainer.getChildAt(0)?.requestFocus() ?: btnBack.requestFocus()
+        if (moveFocus) {
+            historyContainer.post {
+                historyContainer.getChildAt(0)?.requestFocus() ?: btnBack.requestFocus()
+            }
         }
     }
 

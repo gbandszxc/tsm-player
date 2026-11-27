@@ -410,10 +410,12 @@ class TvBrowserViewModelTest {
         val loadedNamespace = store.loadedAnchors.lastOrNull()?.first
         assertNotNull(loadedNamespace)
         assertTrue(loadedNamespace!!.isNotBlank())
+        val restoreVersion = firstViewModel.state.value.focusRestoreVersion
 
         firstViewModel.onItemFocused(index = 1, entry = entries[1])
         advanceUntilIdle()
 
+        assertEquals(restoreVersion, firstViewModel.state.value.focusRestoreVersion)
         val savedNamespace = store.savedAnchors.lastOrNull()?.first?.first
         assertEquals(loadedNamespace, savedNamespace)
         assertTrue(savedNamespace!!.isNotBlank())

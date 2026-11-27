@@ -22,6 +22,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import com.github.gbandszxc.tvmediaplayer.BuildConfig
 import com.github.gbandszxc.tvmediaplayer.R
@@ -471,6 +472,25 @@ class SettingsActivity : BaseActivity() {
             )
             itemView.findViewById<TextView>(R.id.tv_category_title).text = category.title
             itemView.setOnClickListener { selectCategory(index, moveFocusToDetail = true) }
+            itemView.setOnKeyListener { _, keyCode, event ->
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        categoryViews.getOrNull(index - 1)?.requestFocus()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        categoryViews.getOrNull(index + 1)?.requestFocus()
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_LEFT -> true
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        containerDetail.children.firstOrNull { it.isFocusable }
+                            ?.requestFocus() == true
+                    }
+                    else -> false
+                }
+            }
             itemView.setOnFocusChangeListener { v, hasFocus ->
                 UiMotion.animateRowFocus(v, hasFocus)
             }
@@ -598,6 +618,10 @@ class SettingsActivity : BaseActivity() {
                 } else {
                     Toast.makeText(this, R.string.common_not_supported_display_only, Toast.LENGTH_SHORT).show()
                 }
+            }
+            itemView.setOnKeyListener { _, keyCode, event ->
+                event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_LEFT &&
+                    categoryViews.getOrNull(selectedCategoryIndex)?.requestFocus() == true
             }
             itemView.setOnFocusChangeListener { v, hasFocus ->
                 UiMotion.animateRowFocus(v, hasFocus)

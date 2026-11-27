@@ -1,5 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.graphics.Rect
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import androidx.fragment.app.FragmentActivity
 import com.github.gbandszxc.tvmediaplayer.R
 import com.github.gbandszxc.tvmediaplayer.domain.model.SmbConfig
 import com.github.gbandszxc.tvmediaplayer.ui.modal.FormFieldSpec
@@ -20,11 +23,88 @@ import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class TvBrowseFragmentLayoutTest {
+
+    @Test
+    @Config(sdk = [28], qualifiers = "w960dp-h540dp-land")
+    fun `up from file toolbar reveals the playback header in a subdirectory`() {
+        val root = attachBrowser()
+        val scroll = root.findViewById<ScrollView>(R.id.root_scroll)
+        val toolbar = root.findViewById<View>(R.id.btn_refresh)
+        val playback = root.findViewById<View>(R.id.btn_play_all)
+        val scrollContent = scroll.getChildAt(0)
+        root.findViewById<View>(R.id.panel_connection).visibility = View.GONE
+        scrollContent.minimumHeight = 1200
+        layoutBrowser(root, 960, 540)
+        assertTrue(toolbar.requestFocus())
+        scroll.scrollTo(0, 180)
+        assertTrue(scroll.scrollY > 0)
+
+        assertTrue(toolbar.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_UP)))
+
+        assertTrue(playback.hasFocus())
+        assertEquals(0, scroll.scrollY)
+    }
+
+    @Test
+    @Config(sdk = [28], qualifiers = "w640dp-h360dp-land")
+    fun `sort dropdown stays within a short viewport and holds side arrow focus`() {
+        val root = attachBrowser()
+        layoutBrowser(root, 640, 320)
+        val sort = root.findViewById<View>(R.id.btn_sort)
+        assertTrue(sort.requestFocus())
+        sort.performClick()
+        layoutBrowser(root, 640, 320)
+        val dropdown = root.findViewById<View>(R.id.container_sort_dropdown)
+        val option = root.findFocus()
+        val margin = root.resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+
+        assertTrue(dropdown.width > 0 && dropdown.height > 0)
+        assertTrue(dropdown.left >= margin && dropdown.right <= root.width - margin)
+        assertTrue(dropdown.top >= margin && dropdown.bottom <= root.height - margin)
+        assertTrue(isDescendantOf(option.parent, dropdown))
+        for (key in listOf(KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT)) {
+            assertTrue(option.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, key)))
+            assertSame(option, root.findFocus())
+        }
+    }
+
+    @Test
+    @Config(sdk = [28], qualifiers = "w640dp-h360dp-land")
+    fun `settings entry scrolls clear of the rail bottom padding`() {
+        val root = attachBrowser()
+        layoutBrowser(root, 640, 320)
+        val rail = root.findViewById<ScrollView>(R.id.panel_nav_rail)
+        val settings = root.findViewById<View>(R.id.btn_settings)
+        assertTrue(rail.canScrollVertically(1))
+
+        assertTrue(settings.requestFocus())
+
+        val bounds = Rect(0, 0, settings.width, settings.height)
+        rail.offsetDescendantRectToMyCoords(settings, bounds)
+        assertTrue(bounds.bottom <= rail.scrollY + rail.height - rail.paddingBottom)
+    }
+
+    private fun attachBrowser(): View {
+        val activity = Robolectric.buildActivity(FragmentActivity::class.java).setup().get()
+        val fragment = TvBrowseFragment()
+        activity.supportFragmentManager.beginTransaction().add(android.R.id.content, fragment).commitNow()
+        return fragment.requireView()
+    }
+
+    private fun layoutBrowser(root: View, width: Int, height: Int) {
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
+        )
+        root.layout(0, 0, width, height)
+    }
 
     @Test
     fun `fast locate panel is attached outside scroll container so it stays visible during long list jumps`() {

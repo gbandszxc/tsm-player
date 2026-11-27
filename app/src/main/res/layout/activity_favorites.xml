@@ -59,7 +59,7 @@
                 android:textAllCaps="false" />
         </LinearLayout>
 
-        <ScrollView
+        <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
             android:id="@+id/scroll_playlists"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -77,9 +77,9 @@
                 android:clipToPadding="false"
                 android:columnCount="4"
                 android:orientation="horizontal" />
-        </ScrollView>
+        </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
-        <ScrollView
+        <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
             android:id="@+id/scroll_tracks"
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -93,6 +93,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
-        </ScrollView>
+        </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
     </LinearLayout>
 </FrameLayout>

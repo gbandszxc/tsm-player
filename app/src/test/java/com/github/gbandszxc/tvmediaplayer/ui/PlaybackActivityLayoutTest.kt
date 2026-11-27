@@ -1,5 +1,7 @@
 package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.app.Activity
+import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.FrameLayout
@@ -11,11 +13,34 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class PlaybackActivityLayoutTest {
+
+    @Test
+    fun `focused playback button remains fully visible after expanding at the right edge`() {
+        val activity = Robolectric.buildActivity(Activity::class.java).setup().get()
+        activity.setContentView(R.layout.activity_playback)
+        val locateButton = activity.findViewById<View>(R.id.btn_locate)
+        val dock = locateButton.parent.parent as TvHorizontalScrollView
+        val widthSpec = View.MeasureSpec.makeMeasureSpec(400, View.MeasureSpec.EXACTLY)
+        val heightSpec = View.MeasureSpec.makeMeasureSpec(200, View.MeasureSpec.AT_MOST)
+        dock.measure(widthSpec, heightSpec)
+        dock.layout(0, 0, dock.measuredWidth, dock.measuredHeight)
+        assertTrue(locateButton.requestFocus())
+
+        locateButton.layoutParams = locateButton.layoutParams.apply { width = 180 }
+        dock.measure(widthSpec, heightSpec)
+        dock.layout(0, 0, dock.measuredWidth, dock.measuredHeight)
+
+        val buttonBounds = Rect(0, 0, locateButton.width, locateButton.height)
+        dock.offsetDescendantRectToMyCoords(locateButton, buttonBounds)
+        assertTrue(buttonBounds.left >= dock.scrollX)
+        assertTrue(buttonBounds.right <= dock.scrollX + dock.width)
+    }
 
     @Test
     fun `favorite button sits between play mode and sleep timer`() {

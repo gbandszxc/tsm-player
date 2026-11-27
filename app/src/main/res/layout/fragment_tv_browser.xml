@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -18,7 +18,7 @@
         android:layout_height="match_parent"
         android:background="@color/ui_ambient_scrim" />
 
-    <ScrollView
+    <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
         android:id="@+id/root_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -191,7 +191,7 @@
                     android:textSize="@dimen/ui_text_title"
                     android:fontFamily="@font/misans_medium" />
 
-                <HorizontalScrollView
+                <com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/ui_space_xl"
@@ -244,7 +244,7 @@
                             android:text=""
                             android:textAllCaps="false" />
                     </LinearLayout>
-                </HorizontalScrollView>
+                </com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView>
 
                 <TextView
                     android:id="@+id/tv_status"
@@ -268,7 +268,7 @@
             </LinearLayout>
 
         </LinearLayout>
-    </ScrollView>
+    </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
     <!-- 左侧导轨展开时的右半区轻遮罩：点击可收起导轨 -->
     <View
@@ -282,7 +282,7 @@
         android:visibility="gone" />
 
     <!-- 左侧可折叠液态玻璃导轨：静置 64dp 胶囊图标栏，按 ← 按可见文案动态对称展开（兜底 148dp） -->
-    <FrameLayout
+    <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
         android:id="@+id/panel_nav_rail"
         android:layout_width="@dimen/ui_nav_rail_collapsed_width"
         android:layout_height="match_parent"
@@ -291,12 +291,14 @@
         android:layout_marginTop="@dimen/ui_space_4xl"
         android:layout_marginBottom="@dimen/ui_space_4xl"
         android:background="@drawable/bg_panel"
-        android:padding="@dimen/ui_space_md">
+        android:fillViewport="true"
+        android:padding="@dimen/ui_space_md"
+        android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/container_nav_rail"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical">
@@ -527,7 +529,7 @@
                     android:textSize="@dimen/ui_text_body_large" />
             </LinearLayout>
         </LinearLayout>
-    </FrameLayout>
+    </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
 
     <LinearLayout
         android:id="@+id/panel_fast_locate"

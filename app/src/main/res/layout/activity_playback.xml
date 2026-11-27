@@ -164,7 +164,7 @@
         </LinearLayout>
 
         <!-- 底部按钮栏：悬浮液态玻璃胶囊控制坞，支持方向键导航 -->
-        <HorizontalScrollView
+        <com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/ui_space_3xl"
@@ -296,7 +296,7 @@
                     android:text=""
                     android:textAllCaps="false" />
             </LinearLayout>
-        </HorizontalScrollView>
+        </com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView>
     </LinearLayout>
 
     <FrameLayout
