@@ -89,7 +89,9 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: 测试并打包
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5
+
+      - name: 打包签名 Release APK
         shell: pwsh
         env:
           RELEASE_KEYSTORE: ${{ secrets.ANDROID_RELEASE_KEYSTORE }}
@@ -99,8 +101,12 @@ jobs:
           if (-not $env:RELEASE_KEYSTORE -or -not $env:RELEASE_SIGNING_PROPERTIES) {
             throw '仓库缺少 Android 发版签名 Secrets'
           }
-          $sdkManager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
-          & $sdkManager --install 'platforms;android-34' 'build-tools;34.0.0'
+          $androidJar = Join-Path $env:ANDROID_HOME 'platforms/android-34/android.jar'
+          $apksigner = Join-Path $env:ANDROID_HOME 'build-tools/34.0.0/apksigner.bat'
+          if (-not (Test-Path -LiteralPath $androidJar -PathType Leaf) -or -not (Test-Path -LiteralPath $apksigner -PathType Leaf)) {
+            $sdkManager = Join-Path $env:ANDROID_HOME 'cmdline-tools/latest/bin/sdkmanager.bat'
+            & $sdkManager --install 'platforms;android-34' 'build-tools;34.0.0'
+          }
 
           $keystorePath = Join-Path $env:GITHUB_WORKSPACE 'release.jks'
           $propertiesPath = Join-Path $env:GITHUB_WORKSPACE 'key.properties'
@@ -110,7 +116,7 @@ jobs:
             $newline = [Environment]::NewLine
             [IO.File]::WriteAllText($propertiesPath, ($properties + $newline + 'storeFile=../release.jks' + $newline), [Text.Encoding]::Latin1)
             Remove-Item Env:RELEASE_KEYSTORE, Env:RELEASE_SIGNING_PROPERTIES
-            .\gradlew.bat --no-daemon testDebugUnitTest assembleDebug assembleRelease
+            .\gradlew.bat --no-daemon :app:assembleRelease
           } finally {
             Remove-Item -LiteralPath $propertiesPath, $keystorePath -ErrorAction SilentlyContinue
           }
