@@ -1,5 +1,8 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -15,6 +18,8 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import android.view.animation.PathInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.GridLayout
@@ -23,6 +28,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.lang.ref.WeakReference
 import androidx.activity.OnBackPressedCallback
 import androidx.annotation.VisibleForTesting
 import androidx.core.content.ContextCompat
@@ -97,9 +103,22 @@ class TvBrowseFragment : Fragment() {
     private lateinit var panelPlayback: View
     private lateinit var panelFiles: View
     private lateinit var rootScroll: ScrollView
-    private lateinit var btnBackTop: Button
-    private lateinit var btnBrowseMode: Button
-    private lateinit var btnSettings: Button
+    private lateinit var panelNavRail: View
+    private lateinit var containerNavRail: ViewGroup
+    private lateinit var viewNavRailScrim: View
+    private lateinit var btnBackTop: View
+    private lateinit var btnBrowseMode: View
+    private lateinit var btnFavorites: View
+    private lateinit var btnHistory: View
+    private lateinit var btnNavConnection: View
+    private lateinit var btnSettings: View
+    private lateinit var tvNavModeLabel: TextView
+    private lateinit var navRailLabels: List<TextView>
+    private var lastContentFocusedView: WeakReference<View>? = null
+    private var lastNavRailFocusedId: Int = R.id.btn_favorites
+    private var navRailExpanded: Boolean = false
+    private var navRailWidthAnimator: ValueAnimator? = null
+    private var globalFocusListener: ViewTreeObserver.OnGlobalFocusChangeListener? = null
     private lateinit var tvConnection: TextView
     private lateinit var tvSavedCount: TextView
     private lateinit var btnManage: Button
@@ -113,8 +132,6 @@ class TvBrowseFragment : Fragment() {
     private lateinit var tvFastLocateTarget: TextView
     private lateinit var fastLocateTrack: View
     private lateinit var fastLocateIndicator: View
-    private lateinit var btnFavorites: Button
-    private lateinit var btnHistory: Button
     private lateinit var btnPlayAll: Button
     private lateinit var btnPlayShuffle: Button
     private lateinit var btnNowPlaying: Button
@@ -171,7 +188,16 @@ class TvBrowseFragment : Fragment() {
 
     override fun onDestroyView() {
         dismissSortDropdown()
+        navRailWidthAnimator?.cancel()
+        navRailWidthAnimator = null
         view?.let { root ->
+            globalFocusListener?.let { listener ->
+                val observer = root.viewTreeObserver
+                if (observer.isAlive) {
+                    observer.removeOnGlobalFocusChangeListener(listener)
+                }
+            }
+            globalFocusListener = null
             ViewCompat.removeOnUnhandledKeyEventListener(root, globalMenuKeyListener)
         }
         fastLocateConfirmGuard.reset()
@@ -190,9 +216,29 @@ class TvBrowseFragment : Fragment() {
         LiquidGlassSurface.applyPanel(panelPlayback)
         LiquidGlassSurface.applyPanel(panelFiles)
         rootScroll = root.findViewById(R.id.root_scroll)
+        panelNavRail = root.findViewById(R.id.panel_nav_rail)
+        containerNavRail = root.findViewById(R.id.container_nav_rail)
+        viewNavRailScrim = root.findViewById(R.id.view_nav_rail_scrim)
+        LiquidGlassSurface.applyPanel(panelNavRail, strongFill = true)
+        LiquidGlassSurface.applyRoundedClip(panelNavRail, R.dimen.ui_radius_panel)
+        SlidingFocusHighlight.attach(
+            container = containerNavRail,
+            strokeColorRes = R.color.ui_accent_blue_stroke,
+            cornerRadiusRes = R.dimen.ui_radius_item,
+        )
         btnBackTop = root.findViewById(R.id.btn_back_top)
         btnBrowseMode = root.findViewById(R.id.btn_browse_mode)
+        btnNavConnection = root.findViewById(R.id.btn_nav_connection)
         btnSettings = root.findViewById(R.id.btn_settings)
+        tvNavModeLabel = root.findViewById(R.id.tv_nav_mode_label)
+        navRailLabels = listOf(
+            root.findViewById(R.id.tv_nav_back_label),
+            tvNavModeLabel,
+            root.findViewById(R.id.tv_nav_favorites_label),
+            root.findViewById(R.id.tv_nav_history_label),
+            root.findViewById(R.id.tv_nav_connection_label),
+            root.findViewById(R.id.tv_nav_settings_label),
+        )
         tvConnection = root.findViewById(R.id.tv_connection)
         tvSavedCount = root.findViewById(R.id.tv_saved_count)
         btnManage = root.findViewById(R.id.btn_manage)
@@ -238,9 +284,13 @@ class TvBrowseFragment : Fragment() {
             viewModel.toggleMode()
             if (isEnteringLocal) requestLocalStorageAccess()
         }
+        btnNavConnection.setOnClickListener {
+            if (viewModel.state.value.mode == BrowseMode.NAS) showConnectionManagerDialog()
+        }
         btnSettings.setOnClickListener {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
+        viewNavRailScrim.setOnClickListener { restoreFocusToContent() }
         btnManage.setOnClickListener { showConnectionManagerDialog() }
         btnRefresh.setOnClickListener {
             if (viewModel.state.value.localPermissionRequired) requestLocalStorageAccess() else viewModel.refreshCurrentPath()
@@ -263,10 +313,8 @@ class TvBrowseFragment : Fragment() {
             }
         }
         bindTouchFeedback()
-        btnBrowseMode.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
+        bindNavRailNavigation(root)
         btnViewMode.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
-        btnFavorites.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
-        btnHistory.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayAll.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
         btnPlayShuffle.setOnFocusChangeListener { _, _ -> updateBrowserPlaybackButtonPresentation() }
 
@@ -281,19 +329,331 @@ class TvBrowseFragment : Fragment() {
     }
 
     private fun bindTouchFeedback() {
-        // 深色按钮（返回/设置/刷新/排序）用提亮 overlay；彩色按钮（管理/收藏/历史/顺序/随机/当前播放）用加深 overlay。
+        // 深色面/导轨项用提亮 overlay；彩色按钮（管理/顺序/随机/当前播放）用加深 overlay。
         UiMotion.applyPressFeedback(btnBackTop, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnBrowseMode, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnFavorites, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnHistory, R.color.ui_press_overlay_light)
+        UiMotion.applyPressFeedback(btnNavConnection, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnSettings, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnRefresh, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnSort, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnViewMode, R.color.ui_press_overlay_light)
         UiMotion.applyPressFeedback(btnManage, R.color.ui_press_overlay_dark)
-        UiMotion.applyPressFeedback(btnFavorites, R.color.ui_press_overlay_dark)
-        UiMotion.applyPressFeedback(btnHistory, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnPlayAll, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnPlayShuffle, R.color.ui_press_overlay_dark)
         UiMotion.applyPressFeedback(btnNowPlaying, R.color.ui_press_overlay_dark)
+    }
+
+    private fun activeNavRailItems(): List<View> =
+        listOf(btnBackTop, btnBrowseMode, btnFavorites, btnHistory, btnNavConnection, btnSettings)
+            .filter { it.visibility == View.VISIBLE && it.isFocusable && it.isEnabled }
+
+    private fun updateNavRailFocusChain() {
+        val active = activeNavRailItems()
+        active.forEachIndexed { index, item ->
+            item.nextFocusLeftId = item.id
+            item.nextFocusUpId = if (index > 0) active[index - 1].id else item.id
+            item.nextFocusDownId = if (index < active.lastIndex) active[index + 1].id else item.id
+        }
+    }
+
+    private fun bindNavRailNavigation(root: View) {
+        val allRailItems = listOf(btnBackTop, btnBrowseMode, btnFavorites, btnHistory, btnNavConnection, btnSettings)
+        val railKeyListener = View.OnKeyListener { v, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@OnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    val active = activeNavRailItems()
+                    val idx = active.indexOf(v)
+                    if (idx > 0) active[idx - 1].requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    val active = activeNavRailItems()
+                    val idx = active.indexOf(v)
+                    if (idx in 0 until active.lastIndex) active[idx + 1].requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> true
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    restoreFocusToContent()
+                    true
+                }
+                else -> false
+            }
+        }
+        allRailItems.forEach { it.setOnKeyListener(railKeyListener) }
+        updateNavRailFocusChain()
+
+        btnManage.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    focusNavRail()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    btnPlayAll.requestFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        btnPlayAll.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    focusNavRail()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    btnPlayShuffle.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    btnRefresh.requestFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        btnPlayShuffle.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    btnPlayAll.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (btnNowPlaying.visibility == View.VISIBLE) btnNowPlaying.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    btnSort.requestFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        btnNowPlaying.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    btnPlayShuffle.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (panelConnection.visibility == View.VISIBLE) btnManage.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    btnViewMode.requestFocus()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        btnRefresh.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    focusNavRail()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    btnSort.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    btnPlayAll.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> focusFileItemAtColumn(0)
+                else -> false
+            }
+        }
+
+        btnSort.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    btnRefresh.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    btnViewMode.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    btnPlayShuffle.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> focusFileItemAtColumn(1)
+                else -> false
+            }
+        }
+
+        btnViewMode.setOnKeyListener { _, keyCode, event ->
+            if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+            when (keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    btnSort.requestFocus()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> true
+                KeyEvent.KEYCODE_DPAD_UP -> {
+                    if (btnNowPlaying.visibility == View.VISIBLE) {
+                        btnNowPlaying.requestFocus()
+                    } else {
+                        btnPlayShuffle.requestFocus()
+                    }
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_DOWN -> focusFileItemAtColumn(2)
+                else -> false
+            }
+        }
+
+        val observer = root.viewTreeObserver
+        val listener = ViewTreeObserver.OnGlobalFocusChangeListener { _, newFocus ->
+            if (newFocus == null) return@OnGlobalFocusChangeListener
+            when {
+                isDescendantOf(newFocus, panelNavRail) -> {
+                    if (newFocus.id != View.NO_ID) {
+                        lastNavRailFocusedId = newFocus.id
+                    }
+                    setNavRailExpanded(true)
+                }
+                isDescendantOf(newFocus, rootScroll) -> {
+                    lastContentFocusedView = WeakReference(newFocus)
+                    setNavRailExpanded(false)
+                }
+            }
+        }
+        globalFocusListener = listener
+        if (observer.isAlive) {
+            observer.addOnGlobalFocusChangeListener(listener)
+        }
+    }
+
+    private fun focusFileItemAtColumn(preferredColumn: Int): Boolean {
+        if (filesContainer.childCount == 0) return true
+        val cols = (renderedGridLayout?.columns ?: 1).coerceAtLeast(1)
+        val index = preferredColumn.coerceIn(0, cols - 1).coerceAtMost(filesContainer.childCount - 1)
+        filesContainer.getChildAt(index)?.requestFocus()
+        return true
+    }
+
+    private fun setNavRailExpanded(expanded: Boolean) {
+        if (navRailExpanded == expanded) return
+        navRailExpanded = expanded
+        navRailWidthAnimator?.cancel()
+        navRailWidthAnimator = null
+        val density = resources.displayMetrics.density
+        panelNavRail.elevation = if (expanded) 16f * density else 0f
+        val collapsedWidth = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_collapsed_width)
+        val expandedWidth = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width)
+        val targetWidth = if (expanded) expandedWidth else collapsedWidth
+        val targetLabelAlpha = if (expanded) 1f else 0f
+
+        viewNavRailScrim.animate().cancel()
+        if (expanded) {
+            viewNavRailScrim.visibility = View.VISIBLE
+            viewNavRailScrim.animate().alpha(0.72f).setDuration(200L).start()
+        } else {
+            viewNavRailScrim.animate()
+                .alpha(0f)
+                .setDuration(160L)
+                .withEndAction {
+                    if (!navRailExpanded) {
+                        viewNavRailScrim.visibility = View.GONE
+                    }
+                }
+                .start()
+        }
+
+        if (panelNavRail.isInTouchMode || panelNavRail.width <= 0) {
+            panelNavRail.layoutParams = panelNavRail.layoutParams.apply { width = targetWidth }
+            navRailLabels.forEach { label ->
+                label.animate().cancel()
+                label.alpha = targetLabelAlpha
+            }
+            return
+        }
+
+        val fromWidth = panelNavRail.width
+        navRailLabels.forEach { label ->
+            label.animate().cancel()
+            label.animate()
+                .alpha(targetLabelAlpha)
+                .setDuration(if (expanded) 180L else 110L)
+                .setStartDelay(if (expanded) 40L else 0L)
+                .start()
+        }
+        navRailWidthAnimator = ValueAnimator.ofInt(fromWidth, targetWidth).apply {
+            duration = if (expanded) 220L else 170L
+            interpolator = if (expanded) UiMotion.springGlideInterpolator() else PathInterpolator(0.4f, 0f, 1f, 1f)
+            addUpdateListener { anim ->
+                val w = anim.animatedValue as Int
+                if (panelNavRail.layoutParams.width != w) {
+                    panelNavRail.layoutParams = panelNavRail.layoutParams.apply { width = w }
+                }
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    if (navRailWidthAnimator === animation) {
+                        navRailWidthAnimator = null
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    private fun focusNavRail(): Boolean {
+        val candidates = listOfNotNull(
+            view?.findViewById<View>(lastNavRailFocusedId),
+            btnFavorites,
+            btnBrowseMode,
+            btnSettings,
+        )
+        val target = candidates.firstOrNull { it.visibility == View.VISIBLE && it.isFocusable && it.isEnabled }
+            ?: return false
+        return target.requestFocus()
+    }
+
+    private fun restoreFocusToContent(): Boolean {
+        setNavRailExpanded(false)
+        val saved = lastContentFocusedView?.get()
+        if (saved != null && saved.isAttachedToWindow && saved.isShown && saved.isFocusable) {
+            return saved.requestFocus()
+        }
+        val fallback = filesContainer.getChildAt(0) ?: btnRefresh
+        return fallback.requestFocus()
+    }
+
+    private fun isDescendantOf(view: View?, ancestor: View): Boolean {
+        var current: View? = view
+        while (current != null) {
+            if (current === ancestor) return true
+            current = current.parent as? View
+        }
+        return false
     }
 
     private fun requestLocalStorageAccess() {
@@ -323,15 +683,18 @@ class TvBrowseFragment : Fragment() {
 
     private fun updateBrowserPlaybackButtonPresentation() {
         val stateValue = viewModel.state.value
+        val nextSourceLabel = getString(
+            if (stateValue.mode == BrowseMode.LOCAL) R.string.browser_mode_nas else R.string.browser_mode_local
+        )
+        tvNavModeLabel.text = nextSourceLabel
+        btnBrowseMode.contentDescription = nextSourceLabel
+
         val key = buildString {
             append(stateValue.mode.name)
             append('|')
             append(stateValue.viewMode.name)
             append('|')
-            append(btnBrowseMode.hasFocus())
             append(btnViewMode.hasFocus())
-            append(btnFavorites.hasFocus())
-            append(btnHistory.hasFocus())
             append(btnPlayAll.hasFocus())
             append(btnPlayShuffle.hasFocus())
         }
@@ -339,26 +702,12 @@ class TvBrowseFragment : Fragment() {
         renderedBrowserButtonsKey = key
 
         applyBrowserButtonSpec(
-            btnBrowseMode,
-            PlaybackButtonPresentation.browserBrowseMode(
-                requireContext(),
-                local = stateValue.mode == BrowseMode.LOCAL,
-                focused = btnBrowseMode.hasFocus(),
-            ),
-        )
-        applyBrowserButtonSpec(
             btnViewMode,
             PlaybackButtonPresentation.browserViewMode(
                 requireContext(),
                 grid = stateValue.viewMode == BrowserViewMode.GRID,
                 focused = btnViewMode.hasFocus(),
             ),
-        )
-        applyBrowserButtonSpec(btnFavorites, PlaybackButtonPresentation.browserFavorites(requireContext(), btnFavorites.hasFocus()))
-        applyBrowserButtonSpec(
-            button = btnHistory,
-            spec = PlaybackButtonPresentation.browserHistory(requireContext(), btnHistory.hasFocus()),
-            iconColorResId = R.color.ui_text_warning_glass,
         )
         applyBrowserButtonSpec(btnPlayAll, PlaybackButtonPresentation.browserPlayOrder(requireContext(), btnPlayAll.hasFocus()))
         applyBrowserButtonSpec(btnPlayShuffle, PlaybackButtonPresentation.browserPlayShuffle(requireContext(), btnPlayShuffle.hasFocus()))
@@ -391,6 +740,10 @@ class TvBrowseFragment : Fragment() {
                         viewModel.cancelFastLocate()
                         return
                     }
+                    if (navRailExpanded) {
+                        restoreFocusToContent()
+                        return
+                    }
                     if (navigateUpDirectory()) return
                     isEnabled = false
                     requireActivity().onBackPressedDispatcher.onBackPressed()
@@ -416,10 +769,27 @@ class TvBrowseFragment : Fragment() {
     private fun render(state: TvBrowserState) {
         val showConnectionSection = state.mode == BrowseMode.NAS && state.currentPath.isBlank()
         panelConnection.visibility = if (showConnectionSection) View.VISIBLE else View.GONE
+        val playbackParams = panelPlayback.layoutParams as ViewGroup.MarginLayoutParams
+        val targetPlaybackTop = if (showConnectionSection) {
+            resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        } else {
+            0
+        }
+        if (playbackParams.topMargin != targetPlaybackTop) {
+            playbackParams.topMargin = targetPlaybackTop
+            panelPlayback.layoutParams = playbackParams
+        }
+        btnNavConnection.visibility = if (state.mode == BrowseMode.NAS) View.VISIBLE else View.GONE
         updateBrowserPlaybackButtonPresentation()
 
-        btnBackTop.isEnabled = state.currentPath.isNotBlank()
-        btnBackTop.alpha = if (btnBackTop.isEnabled) 1f else 0.55f
+        val canGoBack = state.currentPath.isNotBlank()
+        if (!canGoBack && btnBackTop.hasFocus()) {
+            btnBrowseMode.requestFocus()
+        }
+        btnBackTop.isEnabled = canGoBack
+        btnBackTop.isFocusable = canGoBack
+        btnBackTop.alpha = if (canGoBack) 1f else 0.35f
+        updateNavRailFocusChain()
 
         tvConnection.text = getString(R.string.browser_connection_current, configText(state.config))
         tvSavedCount.text = getString(R.string.browser_saved_count, state.savedConnections.size)
@@ -548,7 +918,59 @@ class TvBrowseFragment : Fragment() {
                 viewModel.onItemFocused(stateIndex, entry)
             }
             itemView.setOnKeyListener { _, keyCode, event ->
-                handleFastLocateKey(keyCode, event)
+                if (handleFastLocateKey(keyCode, event)) return@setOnKeyListener true
+                if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+                val cols = if (gridMode) (gridLayout?.columns ?: 1).coerceAtLeast(1) else 1
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        if (!gridMode || displayIndex % cols == 0) {
+                            focusNavRail()
+                        } else {
+                            filesContainer.getChildAt(displayIndex - 1)?.requestFocus()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        val isRightEdge = !gridMode ||
+                            displayIndex == entries.lastIndex ||
+                            (displayIndex + 1) % cols == 0
+                        if (!isRightEdge) {
+                            filesContainer.getChildAt(displayIndex + 1)?.requestFocus()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_UP -> {
+                        val targetIndex = displayIndex - cols
+                        if (targetIndex >= 0) {
+                            filesContainer.getChildAt(targetIndex)?.requestFocus()
+                        } else {
+                            val upButton = if (!gridMode) {
+                                btnRefresh
+                            } else {
+                                when (displayIndex % cols) {
+                                    0 -> btnRefresh
+                                    1 -> btnSort
+                                    else -> btnViewMode
+                                }
+                            }
+                            upButton.requestFocus()
+                        }
+                        true
+                    }
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        val downIndex = displayIndex + cols
+                        when {
+                            downIndex < entries.size -> {
+                                filesContainer.getChildAt(downIndex)?.requestFocus()
+                            }
+                            gridMode && (displayIndex / cols) < (entries.lastIndex / cols) -> {
+                                filesContainer.getChildAt(entries.lastIndex)?.requestFocus()
+                            }
+                        }
+                        true
+                    }
+                    else -> false
+                }
             }
             UiMotion.applyPressFeedback(itemView, R.color.ui_press_overlay_light)
             filesContainer.addView(itemView)
@@ -690,8 +1112,15 @@ class TvBrowseFragment : Fragment() {
     private fun ensureBrowseFocus(state: TvBrowserState, entries: List<SmbEntry>) {
         filesContainer.post {
             val root = view ?: return@post
+            val currentFocused = root.findFocus()
+            if (navRailExpanded && isDescendantOf(currentFocused, panelNavRail)) {
+                return@post
+            }
             if (entries.isEmpty()) {
-                btnBackTop.requestFocus()
+                when {
+                    panelConnection.visibility == View.VISIBLE -> btnManage.requestFocus()
+                    else -> btnRefresh.requestFocus()
+                }
                 return@post
             }
 
@@ -714,7 +1143,7 @@ class TvBrowseFragment : Fragment() {
             }
 
             if (focused != null && focused !== root) return@post
-            filesContainer.getChildAt(0)?.requestFocus() ?: btnBackTop.requestFocus()
+            filesContainer.getChildAt(0)?.requestFocus() ?: btnRefresh.requestFocus()
         }
     }
 

@@ -303,7 +303,7 @@
         android:id="@+id/layout_artwork_fullscreen"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/ui_bg_black"
+        android:background="@color/ui_bg_app_deep"
         android:clickable="true"
         android:focusable="true"
         android:focusableInTouchMode="true"
@@ -313,15 +313,60 @@
             android:id="@+id/iv_artwork_fullscreen_blur"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:alpha="0.78"
+            android:alpha="0.92"
+            android:importantForAccessibility="no"
             android:scaleType="centerCrop" />
 
-        <ImageView
-            android:id="@+id/iv_artwork_fullscreen"
+        <View
+            android:id="@+id/view_artwork_fullscreen_vignette"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter" />
+            android:background="@drawable/bg_artwork_fullscreen_vignette" />
+
+        <FrameLayout
+            android:id="@+id/layout_artwork_fullscreen_host"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingStart="@dimen/ui_artwork_fullscreen_padding_h"
+            android:paddingTop="@dimen/ui_artwork_fullscreen_padding_top"
+            android:paddingEnd="@dimen/ui_artwork_fullscreen_padding_h"
+            android:paddingBottom="@dimen/ui_artwork_fullscreen_padding_bottom">
+
+            <FrameLayout
+                android:id="@+id/layout_artwork_fullscreen_stage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@color/ui_bg_artwork">
+
+                <ImageView
+                    android:id="@+id/iv_artwork_fullscreen"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="fitCenter" />
+
+                <View
+                    android:id="@+id/view_artwork_fullscreen_rim"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </FrameLayout>
+        </FrameLayout>
+
+        <ProgressBar
+            android:id="@+id/pb_artwork_fullscreen_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="@dimen/ui_artwork_fullscreen_padding_h"
+            android:layout_marginEnd="@dimen/ui_artwork_fullscreen_padding_h"
+            android:layout_marginBottom="@dimen/ui_space_lg"
+            android:clickable="false"
+            android:focusable="false"
+            android:max="10000"
+            android:progressDrawable="@drawable/bg_playback_seekbar" />
     </FrameLayout>
 
     <TextView

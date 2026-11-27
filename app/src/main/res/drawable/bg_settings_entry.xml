@@ -2,21 +2,18 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android"
     android:enterFadeDuration="100"
     android:exitFadeDuration="80">
-    <!-- 遥控器焦点在此项：染色蓝亮玻璃（边框由 SlidingFocusHighlight 统一绘制） -->
+    <!-- 遥控器焦点在此项：烟熏提亮玻璃（边框由 SlidingFocusHighlight 统一绘制） -->
     <item android:state_focused="true">
         <shape>
             <corners android:radius="@dimen/ui_radius_item" />
-            <solid android:color="@color/ui_glass_blue_focus" />
+            <solid android:color="@color/ui_glass_item_focus" />
         </shape>
     </item>
-    <!-- 默认：轻透烟熏玻璃条目 + 细折射边 -->
+    <!-- 默认：面板内轻透烟熏玻璃条目 -->
     <item>
         <shape>
             <corners android:radius="@dimen/ui_radius_item" />
-            <solid android:color="@color/ui_glass_panel_deep" />
-            <stroke
-                android:width="@dimen/ui_stroke_hairline"
-                android:color="@color/ui_divider" />
+            <solid android:color="@color/ui_glass_item" />
         </shape>
     </item>
 </selector>

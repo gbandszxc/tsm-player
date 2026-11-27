@@ -2,18 +2,18 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android"
     android:enterFadeDuration="100"
     android:exitFadeDuration="80">
-    <!-- 当前分类同时获得遥控器焦点：焦点框优先，左侧指示条由子 View 保留 -->
+    <!-- 当前分类同时获得遥控器焦点：烟熏提亮玻璃，焦点描边交由 SlidingFocusHighlight 绘制 -->
     <item android:state_focused="true" android:state_selected="true">
         <shape>
             <corners android:radius="@dimen/ui_radius_item" />
-            <solid android:color="@color/ui_glass_blue_focus" />
+            <solid android:color="@color/ui_glass_item_focus" />
         </shape>
     </item>
     <!-- 遥控器焦点在此项 -->
     <item android:state_focused="true">
         <shape>
             <corners android:radius="@dimen/ui_radius_item" />
-            <solid android:color="@color/ui_glass_blue_focus" />
+            <solid android:color="@color/ui_glass_item_focus" />
         </shape>
     </item>
     <!-- 当前选中分类：半透明低亮玻璃底 -->

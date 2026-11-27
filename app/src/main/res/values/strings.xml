@@ -81,6 +81,7 @@
     <string name="browser_playback_controls">播放控制</string>
     <string name="browser_file_browser">文件浏览</string>
     <string name="browser_back_parent">⬅ 返回上一级</string>
+    <string name="browser_nav_back">返回</string>
     <string name="browser_settings">设置</string>
     <string name="browser_mode_nas">网络</string>
     <string name="browser_mode_local">本地</string>

@@ -93,6 +93,9 @@
     <color name="ui_ambient_glow">#3894A3B8</color>
     <color name="ui_ambient_glow_secondary">#2864748B</color>
     <color name="ui_modal_scrim_blur">#52080A0E</color>
+    <color name="ui_vignette_center">#33080A0E</color>
+    <color name="ui_vignette_mid">#78080A0E</color>
+    <color name="ui_vignette_edge">#D9080A0E</color>
 
     <!-- 歌词景深渐变色阶 -->
     <color name="ui_lyric_active">#FFFFFF</color>

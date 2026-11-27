@@ -21,71 +21,93 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="horizontal">
-
-    <!-- 左侧：分类面板（固定宽度，方便遥控器聚焦） -->
-    <LinearLayout
-        android:layout_width="260dp"
-        android:layout_height="match_parent"
-        android:background="@color/ui_glass_sidebar"
-        android:orientation="vertical"
+        android:orientation="horizontal"
         android:padding="@dimen/ui_space_4xl">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_title"
-            android:paddingBottom="@dimen/ui_space_4xl"
-            style="@style/TsmTextPageTitle" />
+        <!-- 左侧：悬浮分类玻璃面板 -->
+        <LinearLayout
+            android:id="@+id/panel_settings_sidebar"
+            android:layout_width="256dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_panel"
+            android:orientation="vertical"
+            android:padding="@dimen/ui_space_xl">
 
-        <!-- 分类列表（动态填充）：小屏触摸设备可纵向滑动 -->
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipChildren="false"
-            android:clipToPadding="false"
-            android:fillViewport="false"
-            android:scrollbars="none">
-
-            <LinearLayout
-                android:id="@+id/container_categories"
+            <TextView
+                style="@style/TsmTextPageTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:clipChildren="false"
-                android:clipToPadding="false"
-                android:orientation="vertical" />
+                android:paddingStart="@dimen/ui_space_md"
+                android:paddingTop="@dimen/ui_space_sm"
+                android:paddingEnd="@dimen/ui_space_md"
+                android:paddingBottom="@dimen/ui_space_3xl"
+                android:text="@string/settings_title" />
 
-        </ScrollView>
+            <!-- 分类列表（动态填充）：小屏触摸设备可纵向滑动 -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipChildren="true"
+                android:clipToPadding="true"
+                android:fillViewport="false"
+                android:padding="@dimen/ui_space_xs"
+                android:scrollbars="none">
 
-    </LinearLayout>
+                <LinearLayout
+                    android:id="@+id/container_categories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:orientation="vertical" />
 
-    <!-- 分隔线 -->
-    <View
-        android:layout_width="1dp"
-        android:layout_height="match_parent"
-        android:background="@color/ui_divider" />
+            </ScrollView>
 
-    <!-- 右侧：详情面板（自适应剩余宽度） -->
-    <ScrollView
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:scrollbars="none"
-        android:fillViewport="false">
+        </LinearLayout>
 
+        <!-- 右侧：悬浮详情玻璃面板（自适应剩余宽度） -->
         <LinearLayout
-            android:id="@+id/container_detail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clipChildren="false"
-            android:clipToPadding="false"
+            android:id="@+id/panel_settings_detail"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/ui_space_3xl"
+            android:layout_weight="1"
+            android:background="@drawable/bg_panel"
             android:orientation="vertical"
-            android:padding="@dimen/ui_space_screen" />
+            android:padding="@dimen/ui_space_3xl">
 
-    </ScrollView>
+            <TextView
+                android:id="@+id/tv_settings_detail_title"
+                style="@style/TsmTextSectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="@dimen/ui_space_xs"
+                android:paddingEnd="@dimen/ui_space_xs"
+                android:paddingBottom="@dimen/ui_space_3xl" />
+
+            <ScrollView
+                android:id="@+id/scroll_settings_detail"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipChildren="true"
+                android:clipToPadding="true"
+                android:fillViewport="false"
+                android:padding="@dimen/ui_space_xs"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/container_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:orientation="vertical" />
+
+            </ScrollView>
+
+        </LinearLayout>
 
     </LinearLayout>
 

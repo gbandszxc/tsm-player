@@ -39,16 +39,47 @@ class TvBrowseFragmentLayoutTest {
     }
 
     @Test
-    fun `playback control row keeps favorites before playback action buttons`() {
+    fun `collapsible nav rail sits outside scroll container with reserved start channel`() {
         val context = RuntimeEnvironment.getApplication()
         val root = LayoutInflater.from(context)
             .inflate(R.layout.fragment_tv_browser, FrameLayout(context), false)
+        val scrollView = root.findViewById<ScrollView>(R.id.root_scroll)
+        val scrollParams = scrollView.layoutParams as FrameLayout.LayoutParams
+        val navRail = root.findViewById<View>(R.id.panel_nav_rail)
+        val backTop = root.findViewById<View>(R.id.btn_back_top)
+        val browseMode = root.findViewById<View>(R.id.btn_browse_mode)
         val favorites = root.findViewById<View>(R.id.btn_favorites)
+        val history = root.findViewById<View>(R.id.btn_history)
+        val navConnection = root.findViewById<View>(R.id.btn_nav_connection)
+        val settings = root.findViewById<View>(R.id.btn_settings)
+
+        assertEquals(0, scrollParams.topMargin)
+        assertTrue(
+            scrollParams.marginStart >= context.resources.getDimensionPixelSize(R.dimen.ui_nav_rail_collapsed_width),
+        )
+        assertFalse(isDescendantOf(navRail.parent, scrollView))
+        assertTrue(isDescendantOf(backTop.parent, navRail))
+        assertTrue(isDescendantOf(browseMode.parent, navRail))
+        assertTrue(isDescendantOf(favorites.parent, navRail))
+        assertTrue(isDescendantOf(history.parent, navRail))
+        assertTrue(isDescendantOf(navConnection.parent, navRail))
+        assertTrue(isDescendantOf(settings.parent, navRail))
+        assertTrue(
+            context.resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width) <
+                (200 * context.resources.displayMetrics.density).toInt(),
+        )
+        assertTrue(context.getString(R.string.browser_nav_back).length <= 4)
+    }
+
+    @Test
+    fun `playback control row keeps play order shuffle and now playing buttons`() {
+        val context = RuntimeEnvironment.getApplication()
+        val root = LayoutInflater.from(context)
+            .inflate(R.layout.fragment_tv_browser, FrameLayout(context), false)
         val playAll = root.findViewById<View>(R.id.btn_play_all)
         val playShuffle = root.findViewById<View>(R.id.btn_play_shuffle)
         val nowPlaying = root.findViewById<View>(R.id.btn_now_playing)
 
-        assertTrue(leftOf(favorites, playAll))
         assertTrue(leftOf(playAll, playShuffle))
         assertTrue(leftOf(playShuffle, nowPlaying))
     }

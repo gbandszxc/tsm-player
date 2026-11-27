@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/ui_space_lg"
+    android:layout_marginBottom="@dimen/ui_space_md"
     android:background="@drawable/bg_settings_entry"
     android:clickable="true"
     android:focusable="true"
@@ -30,9 +30,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/ui_space_xl"
+            android:background="@drawable/bg_settings_value_pill"
+            android:ellipsize="end"
             android:fontFamily="@font/misans_medium"
+            android:maxLines="1"
+            android:maxWidth="280dp"
+            android:paddingStart="@dimen/ui_space_xl"
+            android:paddingTop="@dimen/ui_space_xs"
+            android:paddingEnd="@dimen/ui_space_xl"
+            android:paddingBottom="@dimen/ui_space_xs"
             android:textColor="@color/ui_accent_blue_text"
-            android:textSize="@dimen/ui_text_body_large"
+            android:textSize="@dimen/ui_text_body"
             android:visibility="gone" />
 
         <ImageView

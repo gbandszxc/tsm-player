@@ -58,6 +58,20 @@ internal class SlidingFocusHighlight private constructor(
         onGlobalFocusChanged(newFocus)
     }
 
+    private val layoutChangeListener = View.OnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
+        if ((right - left) == (oldRight - oldLeft) && (bottom - top) == (oldBottom - oldTop)) {
+            return@OnLayoutChangeListener
+        }
+        if (!hasVisibleRect || container.isInTouchMode) return@OnLayoutChangeListener
+        val focused = findDirectChildHosting(container.findFocus()) ?: return@OnLayoutChangeListener
+        if (!computeChildBounds(focused, scratchRect)) return@OnLayoutChangeListener
+        targetRect.set(scratchRect)
+        if (glideAnimator?.isRunning != true) {
+            currentRect.set(targetRect)
+            applyBounds(currentRect)
+        }
+    }
+
     private val attachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {
             registerFocusListener()
@@ -65,6 +79,7 @@ internal class SlidingFocusHighlight private constructor(
 
         override fun onViewDetachedFromWindow(v: View) {
             unregisterFocusListener()
+            container.removeOnLayoutChangeListener(layoutChangeListener)
             cancelAnimators()
         }
     }
@@ -73,6 +88,7 @@ internal class SlidingFocusHighlight private constructor(
         if (container.isAttachedToWindow) {
             registerFocusListener()
         }
+        container.addOnLayoutChangeListener(layoutChangeListener)
         container.addOnAttachStateChangeListener(attachListener)
     }
 

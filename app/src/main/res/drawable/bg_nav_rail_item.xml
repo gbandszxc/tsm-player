@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 左侧导航导轨条目：静置透明，聚焦烟熏提亮玻璃（亮蓝折射边框交由 SlidingFocusHighlight 绘制） -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="100"
+    android:exitFadeDuration="80">
+    <item android:state_focused="true">
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_glass_item_focus" />
+        </shape>
+    </item>
+    <item>
+        <shape>
+            <corners android:radius="@dimen/ui_radius_item" />
+            <solid android:color="@color/ui_transparent" />
+        </shape>
+    </item>
+</selector>

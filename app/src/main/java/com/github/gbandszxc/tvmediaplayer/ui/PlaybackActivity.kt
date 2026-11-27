@@ -1,6 +1,8 @@
 ﻿package com.github.gbandszxc.tvmediaplayer.ui
 
+import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.ComponentName
 import android.content.Intent
@@ -20,9 +22,11 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
@@ -141,8 +145,15 @@ class PlaybackActivity : BaseActivity() {
     private lateinit var scrollLyrics: ScrollView
     private lateinit var tvLyricContent: TextView
     private lateinit var layoutArtworkFullscreen: FrameLayout
+    private lateinit var layoutArtworkFullscreenHost: FrameLayout
+    private lateinit var layoutArtworkFullscreenStage: FrameLayout
     private lateinit var ivArtworkFullscreenBlur: ImageView
     private lateinit var ivArtworkFullscreen: ImageView
+    private lateinit var viewArtworkFullscreenRim: View
+    private lateinit var pbArtworkFullscreenProgress: ProgressBar
+    private var fullscreenHudHideJob: Job? = null
+    private var fullscreenBlurBreatheAnimator: AnimatorSet? = null
+    private var fullscreenBlurBreathing: Boolean = false
     private lateinit var btnPrevious: Button
     private lateinit var btnPlayPause: Button
     private lateinit var btnNext: Button
@@ -217,6 +228,9 @@ class PlaybackActivity : BaseActivity() {
     override fun onStop() {
         lyricsScrollAnimator?.cancel()
         lyricsScrollAnimator = null
+        fullscreenHudHideJob?.cancel()
+        fullscreenHudHideJob = null
+        setFullscreenBlurBreathing(false)
         ambientBackdrop?.setBreathing(false)
         savePlaybackSnapshot()
         releaseController()
@@ -224,6 +238,8 @@ class PlaybackActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
+        fullscreenBlurBreatheAnimator?.cancel()
+        fullscreenBlurBreatheAnimator = null
         ambientBackdrop?.dispose()
         ambientBackdrop = null
         super.onDestroy()
@@ -247,8 +263,22 @@ class PlaybackActivity : BaseActivity() {
         scrollLyrics = findViewById(R.id.scroll_lyrics)
         tvLyricContent = findViewById(R.id.tv_lyric_content)
         layoutArtworkFullscreen = findViewById(R.id.layout_artwork_fullscreen)
+        layoutArtworkFullscreenHost = findViewById(R.id.layout_artwork_fullscreen_host)
+        layoutArtworkFullscreenStage = findViewById(R.id.layout_artwork_fullscreen_stage)
         ivArtworkFullscreenBlur = findViewById(R.id.iv_artwork_fullscreen_blur)
         ivArtworkFullscreen = findViewById(R.id.iv_artwork_fullscreen)
+        viewArtworkFullscreenRim = findViewById(R.id.view_artwork_fullscreen_rim)
+        pbArtworkFullscreenProgress = findViewById(R.id.pb_artwork_fullscreen_progress)
+        LiquidGlassSurface.applyRoundedClip(layoutArtworkFullscreenStage, R.dimen.ui_radius_panel)
+        layoutArtworkFullscreenStage.elevation = 24f * resources.displayMetrics.density
+        LiquidGlassSurface.applyGlassFrameOverlay(viewArtworkFullscreenRim, R.dimen.ui_radius_panel)
+        layoutArtworkFullscreenHost.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+            if (((r - l) != (or - ol) || (b - t) != (ob - ot)) &&
+                layoutArtworkFullscreen.visibility == View.VISIBLE
+            ) {
+                updateFullscreenArtworkStageBounds(currentArtworkBitmap ?: defaultArtworkBitmap())
+            }
+        }
         btnPrevious = findViewById(R.id.btn_prev)
         btnPlayPause = findViewById(R.id.btn_play_pause)
         btnNext = findViewById(R.id.btn_next)
@@ -294,11 +324,35 @@ class PlaybackActivity : BaseActivity() {
         layoutArtworkFullscreen.setOnClickListener { hideArtworkFullscreen() }
         layoutArtworkFullscreen.setOnKeyListener { _, keyCode, event ->
             if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
-            if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
-                hideArtworkFullscreen()
-                true
-            } else {
-                false
+            when (keyCode) {
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
+                    hideArtworkFullscreen()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_CENTER,
+                KeyEvent.KEYCODE_ENTER,
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                    val controller = mediaController ?: return@setOnKeyListener false
+                    if (controller.isPlaying) controller.pause() else controller.play()
+                    renderPlayerState(controller)
+                    showFullscreenHud()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    mediaController?.seekToPreviousMediaItem()
+                    showFullscreenHud()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    mediaController?.seekToNextMediaItem()
+                    showFullscreenHud()
+                    true
+                }
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN -> {
+                    showFullscreenHud()
+                    true
+                }
+                else -> false
             }
         }
         btnPrevious.setOnClickListener { mediaController?.seekToPreviousMediaItem() }
@@ -481,6 +535,7 @@ class PlaybackActivity : BaseActivity() {
         refreshFavoriteState()
         renderPlayPauseButton(player.isPlaying)
         ambientBackdrop?.setBreathing(player.isPlaying)
+        setFullscreenBlurBreathing(layoutArtworkFullscreen.visibility == View.VISIBLE && player.isPlaying)
 
         maybeLoadLyrics(player)
         maybeLoadArtwork(player)
@@ -1161,13 +1216,15 @@ class PlaybackActivity : BaseActivity() {
             renderedProgressText = timeText
             tvTime.text = timeText
         }
-        pbProgress.progress = if (safeDuration <= 0L) {
+        val progressValue = if (safeDuration <= 0L) {
             0
         } else {
             ((positionMs.coerceAtLeast(0L) * pbProgress.max.toLong()) / safeDuration)
                 .toInt()
                 .coerceIn(0, pbProgress.max)
         }
+        pbProgress.progress = progressValue
+        pbArtworkFullscreenProgress.progress = progressValue
     }
 
     private fun maybeLoadLyrics(player: Player) {
@@ -1369,7 +1426,7 @@ class PlaybackActivity : BaseActivity() {
         ivArtwork.setImageBitmap(bitmap)
         ambientBackdrop?.update(currentArtworkUri, bitmap)
         if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
-            renderArtworkFullscreen(bitmap)
+            renderArtworkFullscreen(bitmap, animateChange = true)
         }
     }
 
@@ -1379,21 +1436,27 @@ class PlaybackActivity : BaseActivity() {
         ivArtwork.setImageResource(R.drawable.default_cover)
         ambientBackdrop?.update(null)
         if (layoutArtworkFullscreen.visibility == View.VISIBLE) {
-            hideArtworkFullscreen()
+            renderArtworkFullscreen(defaultArtworkBitmap(), animateChange = false)
         }
     }
 
     private fun showArtworkFullscreen() {
         val bitmap = currentArtworkBitmap ?: defaultArtworkBitmap()
-        renderArtworkFullscreen(bitmap)
+        renderArtworkFullscreen(bitmap, animateChange = false)
         layoutArtworkFullscreen.animate().cancel()
-        ivArtworkFullscreen.animate().cancel()
+        layoutArtworkFullscreenStage.animate().cancel()
+        pbArtworkFullscreenProgress.animate().cancel()
         layoutArtworkFullscreen.visibility = View.VISIBLE
         layoutArtworkFullscreen.alpha = 1f
-        ivArtworkFullscreen.scaleX = 1f
-        ivArtworkFullscreen.scaleY = 1f
+        layoutArtworkFullscreenStage.alpha = 1f
+        layoutArtworkFullscreenStage.scaleX = 1f
+        layoutArtworkFullscreenStage.scaleY = 1f
+        pbArtworkFullscreenProgress.alpha = 0f
+        pbArtworkFullscreenProgress.translationY = 4f * resources.displayMetrics.density
         layoutArtworkFullscreen.bringToFront()
         layoutArtworkFullscreen.requestFocus()
+        setFullscreenBlurBreathing(mediaController?.isPlaying == true)
+        showFullscreenHud()
         layoutArtworkFullscreen.post {
             if (!layoutArtworkFullscreen.isAttachedToWindow ||
                 layoutArtworkFullscreen.visibility != View.VISIBLE ||
@@ -1401,24 +1464,29 @@ class PlaybackActivity : BaseActivity() {
             ) {
                 return@post
             }
+            updateFullscreenArtworkStageBounds(bitmap)
             layoutArtworkFullscreen.alpha = 0f
-            ivArtworkFullscreen.scaleX = 0.94f
-            ivArtworkFullscreen.scaleY = 0.94f
+            layoutArtworkFullscreenStage.scaleX = 0.93f
+            layoutArtworkFullscreenStage.scaleY = 0.93f
             layoutArtworkFullscreen.animate()
                 .alpha(1f)
                 .setDuration(220L)
                 .setInterpolator(UiMotion.springGlideInterpolator())
                 .start()
-            ivArtworkFullscreen.animate()
+            layoutArtworkFullscreenStage.animate()
                 .scaleX(1f)
                 .scaleY(1f)
-                .setDuration(240L)
+                .setDuration(260L)
                 .setInterpolator(UiMotion.springGlideInterpolator())
+                .withEndAction {
+                    (viewArtworkFullscreenRim.background as? LiquidGlassDrawable)?.triggerSheen()
+                }
                 .start()
         }
     }
 
-    private fun renderArtworkFullscreen(bitmap: Bitmap) {
+    private fun renderArtworkFullscreen(bitmap: Bitmap, animateChange: Boolean) {
+        updateFullscreenArtworkStageBounds(bitmap)
         ivArtworkFullscreen.setImageBitmap(bitmap)
         val blurSource = createScaledBlurSource(bitmap)
         val blurred = BitmapBlur.blur(blurSource, radius = 14)
@@ -1426,11 +1494,123 @@ class PlaybackActivity : BaseActivity() {
             blurSource.recycle()
         }
         ivArtworkFullscreenBlur.setImageBitmap(blurred)
+        if (animateChange && layoutArtworkFullscreenStage.width > 0) {
+            layoutArtworkFullscreenStage.animate().cancel()
+            layoutArtworkFullscreenStage.alpha = 0.35f
+            layoutArtworkFullscreenStage.scaleX = 0.96f
+            layoutArtworkFullscreenStage.scaleY = 0.96f
+            layoutArtworkFullscreenStage.animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(240L)
+                .setInterpolator(UiMotion.springGlideInterpolator())
+                .withEndAction {
+                    (viewArtworkFullscreenRim.background as? LiquidGlassDrawable)?.triggerSheen()
+                }
+                .start()
+            showFullscreenHud()
+        }
+    }
+
+    private fun updateFullscreenArtworkStageBounds(bitmap: Bitmap) {
+        val padH = layoutArtworkFullscreenHost.paddingLeft + layoutArtworkFullscreenHost.paddingRight
+        val padV = layoutArtworkFullscreenHost.paddingTop + layoutArtworkFullscreenHost.paddingBottom
+        val measuredW = layoutArtworkFullscreenHost.width - padH
+        val measuredH = layoutArtworkFullscreenHost.height - padV
+        val availW = if (measuredW > 0) {
+            measuredW
+        } else {
+            (resources.displayMetrics.widthPixels -
+                resources.getDimensionPixelSize(R.dimen.ui_artwork_fullscreen_padding_h) * 2).coerceAtLeast(1)
+        }
+        val availH = if (measuredH > 0) {
+            measuredH
+        } else {
+            (resources.displayMetrics.heightPixels -
+                resources.getDimensionPixelSize(R.dimen.ui_artwork_fullscreen_padding_top) -
+                resources.getDimensionPixelSize(R.dimen.ui_artwork_fullscreen_padding_bottom)).coerceAtLeast(1)
+        }
+        val bmpW = bitmap.width.coerceAtLeast(1)
+        val bmpH = bitmap.height.coerceAtLeast(1)
+        val scale = minOf(availW.toFloat() / bmpW.toFloat(), availH.toFloat() / bmpH.toFloat())
+        val targetW = (bmpW * scale).toInt().coerceAtLeast(1)
+        val targetH = (bmpH * scale).toInt().coerceAtLeast(1)
+        val lp = layoutArtworkFullscreenStage.layoutParams
+        if (lp.width != targetW || lp.height != targetH) {
+            lp.width = targetW
+            lp.height = targetH
+            layoutArtworkFullscreenStage.layoutParams = lp
+        }
+    }
+
+    private fun showFullscreenHud() {
+        fullscreenHudHideJob?.cancel()
+        if (layoutArtworkFullscreen.visibility != View.VISIBLE) return
+        pbArtworkFullscreenProgress.animate().cancel()
+        pbArtworkFullscreenProgress.visibility = View.VISIBLE
+        if (pbArtworkFullscreenProgress.alpha < 1f || pbArtworkFullscreenProgress.translationY != 0f) {
+            pbArtworkFullscreenProgress.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setDuration(200L)
+                .setInterpolator(UiMotion.springGlideInterpolator())
+                .start()
+        }
+        fullscreenHudHideJob = lifecycleScope.launch {
+            delay(FULLSCREEN_HUD_AUTO_HIDE_MS)
+            hideFullscreenHud()
+        }
+    }
+
+    private fun hideFullscreenHud() {
+        pbArtworkFullscreenProgress.animate().cancel()
+        pbArtworkFullscreenProgress.animate()
+            .alpha(0f)
+            .translationY(4f * resources.displayMetrics.density)
+            .setDuration(260L)
+            .start()
+    }
+
+    private fun setFullscreenBlurBreathing(enabled: Boolean) {
+        if (fullscreenBlurBreathing == enabled) return
+        fullscreenBlurBreathing = enabled
+        fullscreenBlurBreatheAnimator?.cancel()
+        fullscreenBlurBreatheAnimator = null
+        if (!enabled) {
+            if (ivArtworkFullscreenBlur.width > 0) {
+                ivArtworkFullscreenBlur.animate().scaleX(1f).scaleY(1f).setDuration(300L).start()
+            } else {
+                ivArtworkFullscreenBlur.scaleX = 1f
+                ivArtworkFullscreenBlur.scaleY = 1f
+            }
+            return
+        }
+        val sx = ObjectAnimator.ofFloat(ivArtworkFullscreenBlur, View.SCALE_X, 1.05f, 1.11f).apply {
+            duration = 14_000L
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = LinearInterpolator()
+        }
+        val sy = ObjectAnimator.ofFloat(ivArtworkFullscreenBlur, View.SCALE_Y, 1.05f, 1.11f).apply {
+            duration = 14_000L
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = LinearInterpolator()
+        }
+        fullscreenBlurBreatheAnimator = AnimatorSet().apply {
+            playTogether(sx, sy)
+            start()
+        }
     }
 
     private fun hideArtworkFullscreen() {
+        fullscreenHudHideJob?.cancel()
+        fullscreenHudHideJob = null
+        setFullscreenBlurBreathing(false)
         layoutArtworkFullscreen.animate().cancel()
-        ivArtworkFullscreen.animate().cancel()
+        layoutArtworkFullscreenStage.animate().cancel()
+        pbArtworkFullscreenProgress.animate().cancel()
         if (layoutArtworkFullscreen.visibility == View.VISIBLE && layoutArtworkFullscreen.width > 0) {
             layoutArtworkFullscreen.animate()
                 .alpha(0f)
@@ -1438,8 +1618,8 @@ class PlaybackActivity : BaseActivity() {
                 .withEndAction {
                     layoutArtworkFullscreen.visibility = View.GONE
                     layoutArtworkFullscreen.alpha = 1f
-                    ivArtworkFullscreen.scaleX = 1f
-                    ivArtworkFullscreen.scaleY = 1f
+                    layoutArtworkFullscreenStage.scaleX = 1f
+                    layoutArtworkFullscreenStage.scaleY = 1f
                     layoutArtworkFrame.requestFocus()
                 }
                 .start()
@@ -1760,6 +1940,7 @@ class PlaybackActivity : BaseActivity() {
     companion object {
         const val PLAYER_PROGRESS_RENDER_HOLD_MS = 350L
         const val PLAYBACK_TOAST_DURATION_MS = 2_000L
+        private const val FULLSCREEN_HUD_AUTO_HIDE_MS = 3_500L
         const val EXTRA_FAVORITES_PLAYLIST_ID = "extra_favorites_playlist_id"
 
         /**

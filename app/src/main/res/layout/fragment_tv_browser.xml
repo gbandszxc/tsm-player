@@ -22,10 +22,12 @@
         android:id="@+id/root_scroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="56dp"
+        android:layout_marginStart="@dimen/ui_nav_rail_content_start_margin"
         android:clipChildren="false"
         android:clipToPadding="false"
+        android:fadingEdgeLength="24dp"
         android:fillViewport="true"
+        android:requiresFadingEdge="vertical"
         android:scrollbars="none">
 
         <LinearLayout
@@ -35,7 +37,10 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:orientation="vertical"
-            android:padding="@dimen/ui_space_4xl">
+            android:paddingStart="0dp"
+            android:paddingTop="@dimen/ui_space_4xl"
+            android:paddingEnd="@dimen/ui_space_4xl"
+            android:paddingBottom="@dimen/ui_space_4xl">
 
             <LinearLayout
                 android:id="@+id/panel_connection"
@@ -115,34 +120,10 @@
                     android:orientation="horizontal">
 
                     <Button
-                        android:id="@+id/btn_favorites"
-                        style="@style/TsmButtonDanger"
-                        android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="@dimen/ui_space_sm"
-                        android:gravity="center"
-                        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:text=""
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/btn_history"
-                        style="@style/TsmButtonWarning"
-                        android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/ui_space_lg"
-                        android:drawablePadding="@dimen/ui_space_sm"
-                        android:gravity="center"
-                        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:text=""
-                        android:textAllCaps="false" />
-
-                    <Button
                         android:id="@+id/btn_play_all"
                         style="@style/TsmButtonSuccess"
                         android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/ui_space_lg"
                         android:drawablePadding="@dimen/ui_space_sm"
                         android:gravity="center"
                         android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
@@ -289,56 +270,264 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- 顶部悬浮栏渐隐底衬：避免滚动内容在按钮下方被生硬裁切 -->
+    <!-- 左侧导轨展开时的右半区轻遮罩：点击可收起导轨 -->
     <View
+        android:id="@+id/view_nav_rail_scrim"
         android:layout_width="match_parent"
-        android:layout_height="76dp"
-        android:background="@drawable/bg_top_bar_scrim"
-        android:clickable="false"
-        android:focusable="false" />
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:background="@color/ui_bg_overlay"
+        android:clickable="true"
+        android:focusable="false"
+        android:visibility="gone" />
 
-    <Button
-        android:id="@+id/btn_back_top"
-        style="@style/TsmButtonDark"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|start"
+    <!-- 左侧可折叠液态玻璃导轨：静置 64dp 胶囊图标栏，按 ← 平滑展开至 212dp -->
+    <FrameLayout
+        android:id="@+id/panel_nav_rail"
+        android:layout_width="@dimen/ui_nav_rail_collapsed_width"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
         android:layout_marginStart="@dimen/ui_space_4xl"
-        android:layout_marginTop="@dimen/ui_space_xl"
-        android:minWidth="130dp"
-        android:gravity="center"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="@string/browser_back_parent"
-        android:textAllCaps="false" />
+        android:layout_marginTop="@dimen/ui_space_4xl"
+        android:layout_marginBottom="@dimen/ui_space_4xl"
+        android:background="@drawable/bg_panel"
+        android:padding="@dimen/ui_space_md">
 
-    <Button
-        android:id="@+id/btn_browse_mode"
-        style="@style/TsmButtonDark"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginEnd="@dimen/ui_browser_mode_button_end_margin"
-        android:layout_marginTop="@dimen/ui_space_xl"
-        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-        android:gravity="center"
-        android:maxLines="1"
-        android:text=""
-        android:textAllCaps="false" />
+        <LinearLayout
+            android:id="@+id/container_nav_rail"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:orientation="vertical">
 
-    <Button
-        android:id="@+id/btn_settings"
-        style="@style/TsmButtonDark"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginEnd="@dimen/ui_space_4xl"
-        android:layout_marginTop="@dimen/ui_space_xl"
-        android:minWidth="100dp"
-        android:gravity="center"
-        android:maxLines="1"
-        android:text="@string/browser_settings"
-        android:textAllCaps="false" />
+            <LinearLayout
+                android:id="@+id/btn_back_top"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/ui_space_xs"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_nav_back"
+                    android:tint="@color/ui_text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_nav_back_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/browser_nav_back"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_browse_mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/ui_space_xs"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_switch_source"
+                    android:tint="@color/ui_accent_blue_text" />
+
+                <TextView
+                    android:id="@+id/tv_nav_mode_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/browser_mode_local"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_favorites"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/ui_space_xs"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_favorite_filled"
+                    android:tint="@color/ui_accent_red_text" />
+
+                <TextView
+                    android:id="@+id/tv_nav_favorites_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/favorites_title"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_history"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/ui_space_xs"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_history"
+                    android:tint="@color/ui_text_warning_glass" />
+
+                <TextView
+                    android:id="@+id/tv_nav_history_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/history_title"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/btn_nav_connection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/ui_space_xs"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_nav_connection"
+                    android:tint="@color/ui_accent_cyan" />
+
+                <TextView
+                    android:id="@+id/tv_nav_connection_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/browser_connection_section"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+
+            <Space
+                android:layout_width="1dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/btn_settings"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_nav_rail_item"
+                android:clickable="true"
+                android:focusable="true"
+                android:focusableInTouchMode="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingEnd="@dimen/ui_space_xl">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_settings"
+                    android:tint="@color/ui_text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_nav_settings_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_2xl"
+                    android:alpha="0"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/misans_medium"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:text="@string/browser_settings"
+                    android:textColor="@color/ui_text_primary"
+                    android:textSize="@dimen/ui_text_body_large" />
+            </LinearLayout>
+        </LinearLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/panel_fast_locate"

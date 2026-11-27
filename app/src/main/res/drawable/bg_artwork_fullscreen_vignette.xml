@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 全屏封面赏图暗角遮罩：中心柔光托举封面主体，四周渐暗收敛氛围 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:centerX="0.5"
+        android:centerY="0.5"
+        android:centerColor="@color/ui_vignette_mid"
+        android:endColor="@color/ui_vignette_edge"
+        android:gradientRadius="78%p"
+        android:startColor="@color/ui_vignette_center"
+        android:type="radial" />
+</shape>

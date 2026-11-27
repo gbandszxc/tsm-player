@@ -214,10 +214,10 @@ internal class LiquidGlassDrawable(
 /** 液态玻璃表面装配工具：统一面板、弹窗、控制坞、下拉框与圆角裁剪。 */
 internal object LiquidGlassSurface {
 
-    fun applyPanel(view: View) {
+    fun applyPanel(view: View, strongFill: Boolean = false) {
         apply(
             view = view,
-            fillColorRes = R.color.ui_glass_panel,
+            fillColorRes = if (strongFill) R.color.ui_glass_panel_strong else R.color.ui_glass_panel,
             rimLightColorRes = R.color.ui_glass_rim_light,
             rimMidColorRes = R.color.ui_glass_rim_mid,
             rimSoftColorRes = R.color.ui_glass_rim_soft,
@@ -255,6 +255,24 @@ internal object LiquidGlassSurface {
             rimMidColorRes = R.color.ui_glass_rim_mid,
             rimSoftColorRes = R.color.ui_glass_blue_rim,
             cornerRadiusRes = R.dimen.ui_radius_card,
+        )
+    }
+
+    /** 仅绘制 3 段镜面折射边 + 可选掠光，不填底色与顶雾，叠加于无边框或画框封面之上。 */
+    fun applyGlassFrameOverlay(view: View, @DimenRes cornerRadiusRes: Int = R.dimen.ui_radius_panel) {
+        val context = view.context
+        val res = view.resources
+        view.background = LiquidGlassDrawable(
+            LiquidGlassDrawable.Config(
+                fillColor = Color.TRANSPARENT,
+                glossTopColor = Color.TRANSPARENT,
+                glossBottomColor = Color.TRANSPARENT,
+                rimLightColor = ContextCompat.getColor(context, R.color.ui_glass_rim_light),
+                rimMidColor = ContextCompat.getColor(context, R.color.ui_glass_rim_mid),
+                rimSoftColor = ContextCompat.getColor(context, R.color.ui_glass_rim_soft),
+                cornerRadiusPx = res.getDimension(cornerRadiusRes),
+                rimWidthPx = res.getDimension(R.dimen.ui_stroke_glass_rim),
+            )
         )
     }
 

@@ -18,55 +18,168 @@
         android:layout_height="match_parent"
         android:background="@color/ui_ambient_scrim_deep" />
 
+    <!-- 3A 双栏剧场：左悬浮封面展台与元信息，右沉浸 4 档景深大歌词 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="@dimen/ui_space_5xl">
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/ui_space_screen"
+        android:paddingTop="@dimen/ui_space_4xl"
+        android:paddingEnd="@dimen/ui_space_screen"
+        android:paddingBottom="@dimen/ui_space_4xl">
 
-        <TextView
-            android:id="@+id/tv_fullscreen_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/playback_lyrics_fullscreen"
-            android:textColor="@color/ui_text_primary"
-            android:textSize="@dimen/ui_text_hero"
-            android:maxLines="2"
-            android:ellipsize="end"
-            android:fontFamily="@font/misans_bold" />
+        <!-- 左栏（34%）：封面玻璃画框 + 歌曲信息 + 极简流光进度 + 低调烟熏控制按钮 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="34"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:paddingEnd="@dimen/ui_space_4xl">
 
+            <com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout
+                android:id="@+id/layout_fullscreen_artwork_stage"
+                android:layout_width="196dp"
+                android:layout_height="196dp"
+                android:layout_gravity="start"
+                android:background="@color/ui_bg_artwork">
+
+                <ImageView
+                    android:id="@+id/iv_fullscreen_artwork"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:focusable="false"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/default_cover" />
+
+                <View
+                    android:id="@+id/view_fullscreen_artwork_rim"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </com.github.gbandszxc.tvmediaplayer.ui.SquareFrameLayout>
+
+            <TextView
+                android:id="@+id/tv_fullscreen_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_3xl"
+                android:ellipsize="end"
+                android:fontFamily="@font/misans_bold"
+                android:maxLines="2"
+                android:text="@string/playback_empty_title"
+                android:textColor="@color/ui_text_primary"
+                android:textSize="@dimen/ui_text_page_title" />
+
+            <TextView
+                android:id="@+id/tv_fullscreen_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_xs"
+                android:ellipsize="end"
+                android:fontFamily="@font/misans_regular"
+                android:maxLines="1"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="@dimen/ui_text_body_large"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_fullscreen_album"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_xs"
+                android:ellipsize="end"
+                android:fontFamily="@font/misans_regular"
+                android:maxLines="1"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_body"
+                android:visibility="gone" />
+
+            <ProgressBar
+                android:id="@+id/pb_fullscreen_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/ui_space_xs"
+                android:layout_marginTop="@dimen/ui_space_xl"
+                android:focusable="false"
+                android:max="10000"
+                android:progressDrawable="@drawable/bg_playback_seekbar" />
+
+            <TextView
+                android:id="@+id/tv_fullscreen_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_sm"
+                android:fontFamily="@font/misans_regular"
+                android:text="00:00 / 00:00"
+                android:textColor="@color/ui_text_muted"
+                android:textSize="@dimen/ui_text_caption" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/ui_space_3xl"
+                android:clipChildren="false"
+                android:clipToPadding="false"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_fullscreen_play_pause"
+                    style="@style/TsmButtonDark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center_vertical"
+                    android:nextFocusRight="@id/btn_close_fullscreen_lyrics"
+                    android:text="@string/common_pause"
+                    android:textAllCaps="false" />
+
+                <Button
+                    android:id="@+id/btn_close_fullscreen_lyrics"
+                    style="@style/TsmButtonDark"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ui_space_lg"
+                    android:gravity="center"
+                    android:nextFocusLeft="@id/btn_fullscreen_play_pause"
+                    android:text="@string/playback_back_to_fullscreen"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 右栏（66%）：沉浸大歌词视口（首尾居中留白 + 上下渐隐） -->
         <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
             android:id="@+id/scroll_lyrics"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="@dimen/ui_space_3xl"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="@dimen/ui_space_3xl"
+            android:layout_weight="66"
+            android:descendantFocusability="blocksDescendants"
             android:fadeScrollbars="false"
-            android:fadingEdgeLength="40dp"
-            android:requiresFadingEdge="vertical"
+            android:fadingEdgeLength="72dp"
             android:focusable="false"
             android:focusableInTouchMode="false"
-            android:descendantFocusability="blocksDescendants">
+            android:requiresFadingEdge="vertical"
+            android:scrollbars="none">
 
             <TextView
                 android:id="@+id/tv_fullscreen_lyrics"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textColor="@color/ui_text_secondary"
-                android:textSize="@dimen/ui_text_hero"
-                android:lineSpacingExtra="@dimen/ui_space_md"
+                android:focusable="false"
                 android:fontFamily="@font/misans_regular"
-                android:focusable="false" />
+                android:lineSpacingExtra="@dimen/ui_space_md"
+                android:paddingStart="@dimen/ui_space_3xl"
+                android:paddingEnd="@dimen/ui_space_xl"
+                android:shadowColor="@color/ui_bg_overlay"
+                android:shadowDy="1"
+                android:shadowRadius="4"
+                android:textColor="@color/ui_text_secondary"
+                android:textSize="@dimen/ui_text_hero" />
         </com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView>
-
-        <Button
-            android:id="@+id/btn_close_fullscreen_lyrics"
-            style="@style/TsmButtonPrimary"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/ui_space_3xl"
-            android:text="@string/playback_back_to_fullscreen"
-            android:textAllCaps="false" />
 
     </LinearLayout>
 

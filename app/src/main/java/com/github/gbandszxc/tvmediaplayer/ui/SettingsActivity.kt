@@ -18,6 +18,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
@@ -78,6 +79,8 @@ class SettingsActivity : BaseActivity() {
 
     private lateinit var containerCategories: LinearLayout
     private lateinit var containerDetail: LinearLayout
+    private lateinit var scrollDetail: ScrollView
+    private lateinit var tvDetailTitle: TextView
     private var selectedCategoryIndex = 0
     private val categoryViews = mutableListOf<View>()
     private val modalCoordinator by lazy { TsmModalCoordinator(this) }
@@ -363,8 +366,12 @@ class SettingsActivity : BaseActivity() {
         )
         UiSettingsApplier.applyAll(this)
 
+        LiquidGlassSurface.applyPanel(findViewById(R.id.panel_settings_sidebar))
+        LiquidGlassSurface.applyPanel(findViewById(R.id.panel_settings_detail))
         containerCategories = findViewById(R.id.container_categories)
         containerDetail = findViewById(R.id.container_detail)
+        scrollDetail = findViewById(R.id.scroll_settings_detail)
+        tvDetailTitle = findViewById(R.id.tv_settings_detail_title)
         SlidingFocusHighlight.attach(
             container = containerCategories,
             strokeColorRes = R.color.ui_accent_blue_stroke,
@@ -402,16 +409,7 @@ class SettingsActivity : BaseActivity() {
 
     /** 氛围底跟随当前播放封面；SMB URI 不可直接解码，回退封面缓存的内存位图。 */
     private fun updateAmbientFromPlayback() {
-        val item = mediaController?.currentMediaItem
-        if (item == null) {
-            ambientBackdrop?.update(null)
-            return
-        }
-        val cacheKey = item.localConfiguration?.uri?.toString().orEmpty().ifBlank { item.mediaId }
-        ambientBackdrop?.update(
-            item.mediaMetadata.artworkUri?.toString(),
-            PlaybackArtworkCache.get(cacheKey),
-        )
+        ambientBackdrop?.updateFromMediaItem(mediaController?.currentMediaItem)
     }
 
     private fun ensureController() {
@@ -483,50 +481,71 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun selectCategory(index: Int, moveFocusToDetail: Boolean) {
+        val changed = index != selectedCategoryIndex
         selectedCategoryIndex = index
+        val selectedColor = ContextCompat.getColor(this, R.color.ui_text_primary)
+        val defaultColor = ContextCompat.getColor(this, R.color.ui_text_secondary)
         categoryViews.forEachIndexed { i, view ->
-            view.isSelected = (i == index)
+            val selected = (i == index)
+            view.isSelected = selected
+            view.findViewById<TextView>(R.id.tv_category_title)
+                ?.setTextColor(if (selected) selectedColor else defaultColor)
         }
-        buildDetailPanel(categories[index], moveFocusToDetail)
+        buildDetailPanel(categories[index], moveFocusToDetail, animateTransition = changed)
     }
 
     private fun rebuildCurrentCategory(moveFocusToDetail: Boolean) {
         if (categories.isEmpty()) return
-        buildDetailPanel(categories[selectedCategoryIndex], moveFocusToDetail)
+        buildDetailPanel(categories[selectedCategoryIndex], moveFocusToDetail, animateTransition = false)
     }
 
-    private fun buildDetailPanel(category: SettingsCategory, moveFocusToDetail: Boolean) {
+    private fun buildDetailPanel(
+        category: SettingsCategory,
+        moveFocusToDetail: Boolean,
+        animateTransition: Boolean = false,
+    ) {
+        val currentFocused = currentFocus
+        val focusedChildIndex = if (
+            !moveFocusToDetail &&
+            !animateTransition &&
+            currentFocused != null &&
+            currentFocused.parent === containerDetail
+        ) {
+            containerDetail.indexOfChild(currentFocused)
+        } else {
+            -1
+        }
+        containerDetail.animate().cancel()
+        containerDetail.alpha = 1f
+        containerDetail.translationY = 0f
+
         val items = category.itemsProvider.invoke()
         containerDetail.removeAllViews()
-
-        val headerView = TextView(this).apply {
-            text = category.title
-            setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_accent_blue_text))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
-            typeface = AppFonts.bold(this@SettingsActivity)
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            lp.bottomMargin = dp(20)
-            layoutParams = lp
-        }
-        containerDetail.addView(headerView)
+        tvDetailTitle.text = category.title
 
         var firstEntryView: View? = null
+        val spaceGroupTop = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+        val spaceGroupBottom = resources.getDimensionPixelSize(R.dimen.ui_space_md)
+        val groupTextSizePx = resources.getDimension(R.dimen.ui_text_body)
+        val activeValueLabels = setOf(
+            getString(R.string.common_enabled),
+            getString(R.string.common_authorized),
+            getString(R.string.common_configured),
+        )
+
         items.forEachIndexed { i, item ->
             if (item.isGroupHeader) {
                 val groupHeaderView = TextView(this).apply {
                     text = item.title
                     setTextColor(ContextCompat.getColor(this@SettingsActivity, R.color.ui_text_muted))
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                    setTextSize(TypedValue.COMPLEX_UNIT_PX, groupTextSizePx)
                     typeface = AppFonts.medium(this@SettingsActivity)
                     val lp = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT
                     )
-                    lp.topMargin = dp(if (i == 0) 0 else 16)
-                    lp.bottomMargin = dp(4)
+                    lp.topMargin = if (i == 0) 0 else spaceGroupTop
+                    lp.bottomMargin = spaceGroupBottom
                     layoutParams = lp
                 }
                 containerDetail.addView(groupHeaderView)
@@ -549,7 +568,17 @@ class SettingsActivity : BaseActivity() {
             val tvValue = itemView.findViewById<TextView>(R.id.tv_settings_value)
             val valueText = item.valueProvider?.invoke().orEmpty()
             if (valueText.isNotBlank()) {
+                val isActive = valueText in activeValueLabels
                 tvValue.text = valueText
+                tvValue.setBackgroundResource(
+                    if (isActive) R.drawable.bg_settings_value_pill_active else R.drawable.bg_settings_value_pill
+                )
+                tvValue.setTextColor(
+                    ContextCompat.getColor(
+                        this,
+                        if (isActive) R.color.ui_accent_green_text else R.color.ui_accent_blue_text,
+                    )
+                )
                 tvValue.visibility = View.VISIBLE
             } else {
                 tvValue.visibility = View.GONE
@@ -578,9 +607,26 @@ class SettingsActivity : BaseActivity() {
             if (firstEntryView == null) firstEntryView = itemView
         }
 
+        if (animateTransition) {
+            scrollDetail.scrollTo(0, 0)
+            if (containerDetail.width > 0) {
+                containerDetail.alpha = 0f
+                containerDetail.translationY = 8f * resources.displayMetrics.density
+                containerDetail.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(160L)
+                    .setInterpolator(UiMotion.springGlideInterpolator())
+                    .start()
+            }
+        }
+
         if (moveFocusToDetail) {
             val target = firstEntryView
             containerDetail.post { target?.requestFocus() }
+        } else if (focusedChildIndex in 0 until containerDetail.childCount) {
+            val restoreTarget = containerDetail.getChildAt(focusedChildIndex)
+            containerDetail.post { restoreTarget?.requestFocus() }
         }
     }
 

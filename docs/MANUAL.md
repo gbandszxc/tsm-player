@@ -375,3 +375,24 @@ v3 已在 MuMu 走查：根目录（中性底）、Apple 目录列表、播放�
    - 播放页：`PlaybackActivity.showLocateConfirmationDialog` 从原生 `AlertDialog` 迁移至 `TsmModalCoordinator.showConfirmModal`（至此全应用零残留业务弹窗）；`pb_playback` 升级为 `bg_playback_seekbar` 蓝青流光玻璃槽并接入聚焦 `1.35x` 纵向弹簧缩放；全屏封面预览新增淡入 + `0.94x → 1.0x` 弹簧展开与退场淡出。
    - 睡眠定时与历史页：睡眠定时自定义滚轮切换为 `bg_wheel_panel`、`UiMotion.animateFocusScale` 焦点缩放与 `animateModalEnter` 展开动画，并接入 `MediaController` 监听与历史页一并通过 `AmbientBackdrop.Controller.updateFromMediaItem()` 实时同步播放封面氛围底。
    - 公共 Form Modal：`CHECKBOX` 字段接入 `bg_modal_list_row` 玻璃条目背景与遥控器聚焦高光框。
+
+### 19.5 v5——设置页、全屏封面与全屏歌词液态玻璃重构
+
+1. **设置页（1A 双悬浮玻璃面板）**：
+   - `activity_settings.xml` 与 `SettingsActivity.kt` 取消贴边直角侧栏与 `1dp` 竖分隔线，改用外周 `20dp` 边距 + 左右两块独立 `LiquidGlassSurface.applyPanel`（`20dp` 圆角 + 顶部 28% 光泽 + 3 段折射边），右栏固定顶部标题且条目降噪为 `ui_glass_item` 轻透行；`tv_settings_value` 升级为 `999dp` 玻璃胶囊徽章（开启/授权态使用绿玻璃胶囊 `bg_settings_value_pill_active`，普通值使用 `bg_settings_value_pill`）。
+   - `bg_settings_category.xml` 与 `bg_settings_entry.xml` 移除聚焦整块实蓝填充，统一为 `ui_glass_item_focus` 烟熏提亮玻璃，聚焦高光完全交由 `SlidingFocusHighlight` 滑行折射框承担；切换分类时右栏支持 160ms 淡入轻上浮过渡，氛围底统一复用 `updateFromMediaItem()`。
+2. **播放页全屏封面（2A 悬浮玻璃画框 + 自动隐去 HUD）**：
+   - `LiquidGlassSurface` 新增纯描边折射框 `applyGlassFrameOverlay` 与悬浮胶囊 `applyFloatingHud`。
+   - `activity_playback.xml` / `PlaybackActivity.kt` 为全屏赏图新增径向暗角氛围底（`bg_artwork_fullscreen_vignette` + 播放中慢呼吸）、在 `20dp / 16dp / 26dp` 紧凑留白内按原图比例精确自适应的不裁切 `20dp` 圆角悬浮画框与 `1dp` 玻璃折射高光边（进场/切歌带缩放淡入与斜向掠光），以及贴合屏幕底部的 `3dp` 极细不重叠自动淡出进度条（`3.5s` 自动隐去），支持全屏状态下 `OK` 播放/暂停与左右切歌。
+3. **全屏歌词（3A 双栏剧场）**：
+   - `activity_lyrics_fullscreen.xml` / `LyricsFullscreenActivity.kt` 重构为 34% 左栏（`20dp` 圆角玻璃框封面、曲名/歌手/专辑、流光细进度条、低调烟熏 `暂停/播放` 与 `返回播放页` 按钮）+ 66% 右栏大歌词视口（72dp 上下渐隐、视口动态首尾留白让首末句均居中、当前行 `1.08x` 加粗高亮 + `340ms` 阻尼弹簧滚动）。
+4. **浏览页顶栏融入滚动流**：
+   - 移除 `fragment_tv_browser.xml` 顶部固定 `56dp` 隔离区与 `bg_top_bar_scrim.xml` 硬裁切遮罩，改为主流 TV App 的 Inline 顶栏布局（`layout_top_bar` 放入 `root_scroll` 首行与下方玻璃面板左右齐平，配合 `24dp` 垂直渐隐边缘），彻底消除滚动时列表与顶栏按钮重叠割裂感。
+
+### 19.6 v6——首页左侧可折叠液态玻璃导轨
+
+1. **左导轨 + 右滚动双区布局**：
+   - `fragment_tv_browser.xml` 新增左侧独立悬浮玻璃导轨 `panel_nav_rail`（静置 `64dp`、展开 `176dp`，装配 `LiquidGlassSurface.applyPanel` + `applyRoundedClip` + `SlidingFocusHighlight`），集中收纳 `返回`、`切换本地/网络`、`收藏`、`历史`、`连接管理` 与底部常驻 `设置`；右侧 `root_scroll` 预留 `100dp` 左通道（取消顶部操作栏），消除长列表向上滚动时与顶栏的割裂，展开导轨作为浮层覆盖右侧轻量遮罩 `view_nav_rail_scrim` 上，不触发右侧列表/宫格重排闪烁。
+2. **全场景确定性遥控器导航与焦点记忆**：
+   - `SlidingFocusHighlight` 新增容器 `OnLayoutChangeListener`，在导轨宽度弹簧动画期间实时同步聚焦蓝框尺寸。
+   - `TvBrowseFragment` 为左导轨配置严格上下闭环（跨底部留白从历史/连接管理直达设置、不串入右侧内容区），并为右侧功能区、列表行和宫格全方向建立确定性聚焦链路（消除了空列表/末行按 `↓` 跳入设置、末列按 `→` 越界等异常轨迹）；左侧入口按 `DPAD_LEFT` 唤起左导轨，导轨内按 `DPAD_RIGHT` 或 `Back` 原地恢复进入前焦点位置。
