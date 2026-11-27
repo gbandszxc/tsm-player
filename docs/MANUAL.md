@@ -76,9 +76,6 @@ tsm-player/
 # Release（规避 lintVital 依赖下载问题）
 .\gradlew.bat clean assembleRelease -x lintVitalAnalyzeRelease
 
-# 发版（默认读取 app/build.gradle 当前版本，创建 v<versionName> Release 并上传两个 ABI APK）
-.\scripts\release.ps1
-
 # 清理
 .\gradlew.bat clean
 ```
@@ -220,48 +217,32 @@ Release:
 
 Debug 包在设置页“关于”分类下提供“预览启动更新提示”和“预览更新下载样式”入口。“预览启动更新提示”会展示与开屏自动更新一致的新版本提示和“稍后”时间选择效果，不访问 GitHub Release、不下载真实 APK，也不会写入真实稍后策略；点击预览弹窗的“下载并安装”只会提示预览模式不会下载或安装。“预览更新下载样式”只模拟下载状态并展示同一套进度弹窗，不访问 GitHub Release、不下载真实 APK，也不会触发安装；Release 包不会显示这些入口。
 
-## 13. GitHub Release 发版脚本
+## 13. GitHub Actions 发版
 
-项目根目录提供 `scripts/release.ps1`。脚本会读取 `app/build.gradle` 中的 `versionName/versionCode`，默认执行：
+正式发版统一在 GitHub 的 **Actions → 发布 Android APK → Run workflow** 执行，选择 `main`。
 
-```powershell
-.\gradlew.bat clean assembleRelease -x lintVitalAnalyzeRelease
-```
+- **发布新版本**：在 `main` 上填写目标 `version` 和 Markdown `release_notes`。版本号高于源码版本时，工作流更新 `app/build.gradle` 的 `versionName` 并将 `versionCode` 加 1。构建和签名校验通过后，工作流把版本提交推送到 `main`，从同一提交创建 `v<version>` Release。源码已填写目标版本且标签尚未创建时，沿用源码中的 `versionCode`。
+- **覆盖同版本**：填写已有版本的 `version`，勾选 `overwrite`。工作流从现有 `v<version>` 标签重新构建并替换两个 APK，保留标签和 `versionCode`。`release_notes` 留空时保留原说明，填写时更新发布说明。
 
-随后校验以下两个 Release APK 存在且非空，并通过已登录的 `gh` 创建 `v<versionName>` Release：
-
-```text
-app\build\outputs\apk\release\tsm-player-release-armeabi-v7a-<versionName>.apk
-app\build\outputs\apk\release\tsm-player-release-arm64-v8a-<versionName>.apk
-```
-
-常用参数：
+也可以在 PowerShell 中用 GitHub CLI 触发。使用 `-F` 从 Markdown 文件读取多行更新日志。
 
 ```powershell
-# 标准发版
-.\scripts\release.ps1
-
-# 只上传已有构建产物
-.\scripts\release.ps1 -SkipBuild
-
-# 更新已存在 Release 的 APK 资产
-.\scripts\release.ps1 -SkipBuild -Clobber
-
-# 指定自定义 tag 或标题
-.\scripts\release.ps1 -TagName v1.0.7 -Title "v1.0.7"
+gh workflow run release.yml --ref main -f version=1.2.1 -F "release_notes=@release-notes.md"
+gh workflow run release.yml --ref main -f version=1.2.0 -f overwrite=true
 ```
 
-## 14. 项目级发版 Skill
+工作流使用 JDK 17，执行 `testDebugUnitTest`、`assembleDebug` 和 `assembleRelease`，并校验两个发布 APK 的签名证书。发布后在对应 Release 确认这两个附件均可下载。
 
-仓库内新增项目级 skill：
+- `tsm-player-release-armeabi-v7a-<version>.apk`
+- `tsm-player-release-arm64-v8a-<version>.apk`
 
-```text
-.agents\skills\tsm-release\SKILL.md
-```
+## 14. GitHub Actions 签名配置
 
-后续由 Agent 进行本项目发版、版本迭代、GitHub Release 创建或上传 release APK 时，应优先调用 `tsm-release`。该 skill 会复用 `scripts\release.ps1`，并固定执行更新日志确认、版本号递增、文档维护、Debug/Release 构建、提交推送、GitHub Release 创建与两个 ABI 资产校验。
+仓库的 Actions Secrets 通过 `gh secret set` 从标准输入配置。
 
-如果用户没有提供更新日志，skill 会先询问是否需要根据上次发版后的 git 提交记录智能总结；若用户不需要智能总结，则必须由用户补充更新日志后再继续发版。
+- `ANDROID_RELEASE_KEYSTORE` 保存正式发版 keystore 的 Base64。
+- `ANDROID_RELEASE_SIGNING_PROPERTIES` 保存 `storePassword`、`keyPassword` 和 `keyAlias` 三行 Java Properties 文本的 Base64。工作流会补上 `storeFile`。
+- Actions 变量 `ANDROID_RELEASE_CERT_SHA256` 保存正式发版证书的 SHA-256 指纹。可通过 `gh variable set` 配置，用于检查每个发布 APK 是否与已发行版本使用相同证书。
 
 ## 15. 睡眠定时器
 

@@ -59,18 +59,30 @@ jobs:
           ref: ${{ steps.source.outputs.ref }}
           persist-credentials: false
 
-      - name: 校验 Gradle 版本
+      - name: 准备 Gradle 版本
         shell: pwsh
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
-          $gradle = Get-Content -LiteralPath app/build.gradle -Raw
-          $version = [regex]::Match($gradle, '(?m)^\s*versionName\s+"([^"]+)"').Groups[1].Value
-          if ($version -ne $env:VERSION) {
-            throw "源码中的 versionName 为 '$version'，与输入的 '$env:VERSION' 不一致"
+          $buildFile = (Resolve-Path -LiteralPath app/build.gradle).Path
+          $gradle = [IO.File]::ReadAllText($buildFile)
+          $namePattern = '(?m)^([ \t]*versionName[ \t]+)"([^"]+)"'
+          $version = [regex]::Match($gradle, $namePattern).Groups[2].Value
+          if ($env:OVERWRITE -eq 'true') {
+            if ($version -ne $env:VERSION) { throw '标签源码的 versionName 与请求版本不一致' }
+            return
           }
-          if ($env:OVERWRITE -ne 'true' -and (git ls-remote --refs --tags origin "refs/tags/v$env:VERSION")) {
+          if (git ls-remote --refs --tags origin "refs/tags/v$env:VERSION") {
             throw '标签已存在，请勾选覆盖附件'
           }
+          if ([version]$env:VERSION -lt [version]$version) { throw '新版本号小于源码中的版本号' }
+          if ($version -eq $env:VERSION) { return }
+
+          $codePattern = '(?m)^([ \t]*versionCode[ \t]+)([0-9]+)(?=[ \t]*\r?$)'
+          if ($gradle -notmatch $codePattern) { throw '无法读取 versionCode' }
+          $nextCode = [int]$Matches[2] + 1
+          $gradle = $gradle -replace $namePattern, { $_.Groups[1].Value + '"' + $env:VERSION + '"' }
+          $gradle = $gradle -replace $codePattern, { $_.Groups[1].Value + $nextCode }
+          [IO.File]::WriteAllText($buildFile, $gradle)
 
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
@@ -130,12 +142,22 @@ jobs:
           if ($hasNotes) { [IO.File]::WriteAllText($notesFile, $env:RELEASE_NOTES) }
           $files = $apks.FullName
           if ($env:OVERWRITE -ne 'true') {
-            gh release create $tag @files --title $tag --notes-file $notesFile --target $env:GITHUB_SHA
+            if (git status --porcelain -- app/build.gradle) {
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git add -- app/build.gradle
+              git commit -m "chore(release): 更新版本至 $env:VERSION"
+              gh auth setup-git --hostname github.com
+              git push origin HEAD:refs/heads/main
+            }
+            $target = (git rev-parse HEAD).Trim()
+            gh release create $tag @files --title $tag --notes-file $notesFile --target $target
             exit 0
           }
 
           $repoApi = "repos/$env:GITHUB_REPOSITORY"
           $release = gh api "$repoApi/releases/tags/$tag" | ConvertFrom-Json
+          $releaseApi = "$repoApi/releases/$($release.id)"
           $assetsApi = "$repoApi/releases/assets"
           $suffix = "$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $replacements = foreach ($apk in $apks) {
@@ -154,16 +176,16 @@ jobs:
               Installed = $false
             }
           }
-          $stagedFiles = $replacements.Staged
-          gh release upload $tag @stagedFiles
-          $assets = (gh api "$repoApi/releases/$($release.id)" | ConvertFrom-Json).assets
-          foreach ($item in $replacements) {
-            $uploaded = $assets | Where-Object name -CEQ $item.Incoming
-            if ($uploaded.digest -ne $item.Digest) { throw "上传后的 APK 校验失败：$($item.Name)" }
-            $item.NewId = $uploaded.id
-          }
-
           try {
+            $stagedFiles = $replacements.Staged
+            gh release upload $tag @stagedFiles
+            $assets = (gh api $releaseApi | ConvertFrom-Json).assets
+            foreach ($item in $replacements) {
+              $uploaded = $assets | Where-Object name -CEQ $item.Incoming
+              if ($uploaded.digest -ne $item.Digest) { throw "上传后的 APK 校验失败：$($item.Name)" }
+              $item.NewId = $uploaded.id
+            }
+
             foreach ($item in $replacements) {
               if ($item.Original) {
                 gh api --method PATCH "$assetsApi/$($item.Original.id)" -f "name=$($item.Backup)" --silent
@@ -185,6 +207,17 @@ jobs:
               } catch {
                 Write-Warning "请恢复旧 APK 附件名：$($item.Backup)"
               }
+            }
+            try {
+              $incomingNames = $replacements.Incoming
+              $assets = (gh api $releaseApi | ConvertFrom-Json).assets
+              foreach ($asset in $assets) {
+                if ($asset.name -cin $incomingNames) {
+                  gh api --method DELETE "$assetsApi/$($asset.id)" --silent
+                }
+              }
+            } catch {
+              Write-Warning "部分临时附件可能需要清理，附件名后缀：incoming-$suffix"
             }
             throw
           }
