@@ -13,6 +13,7 @@ import android.text.style.StyleSpan
 import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
@@ -119,6 +120,9 @@ class LyricsFullscreenActivity : BaseActivity() {
         btnPlayPause = findViewById(R.id.btn_fullscreen_play_pause)
         btnClose = findViewById(R.id.btn_close_fullscreen_lyrics)
         scrollLyrics = findViewById(R.id.scroll_lyrics)
+        // 双栏允许封面阴影越界，歌词需要单独裁剪才能在渐隐边缘消失。
+        scrollLyrics.outlineProvider = ViewOutlineProvider.BOUNDS
+        scrollLyrics.clipToOutline = true
         tvLyrics = findViewById(R.id.tv_fullscreen_lyrics)
 
         LiquidGlassSurface.applyRoundedClip(layoutArtworkStage, R.dimen.ui_radius_panel)
