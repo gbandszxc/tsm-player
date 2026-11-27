@@ -32,7 +32,7 @@
 ## 🖼️ 界面预览
 
 ### 主界面
-![主界面](docs/screenshots/home.png)
+![主界面](docs/screenshots/home.jpg)
 
 ## ✨ 特性
 
@@ -71,7 +71,7 @@
 目录级焦点锚点会自动记住最近浏览位置；再次进入同一目录时，会尽量恢复到上次停留的条目。若在设置页执行“清理缓存”，这些浏览锚点也会一并重置。
 
 ### 播放界面
-![播放界面](docs/screenshots/playback.png)
+![播放界面](docs/screenshots/playback.jpg)
 
 ## 🔧 构建
 
