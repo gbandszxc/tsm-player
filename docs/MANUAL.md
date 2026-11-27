@@ -235,7 +235,7 @@ gh workflow run release.yml --ref main -f version=1.2.1 -F "release_notes=@relea
 gh workflow run release.yml --ref main -f version=1.2.0 -f overwrite=true
 ```
 
-工作流使用 JDK 17，执行 `testDebugUnitTest`、`assembleDebug` 和 `assembleRelease`，并校验两个发布 APK 的签名证书。发布后在对应 Release 确认这两个附件均可下载。
+工作流使用 JDK 17 和 Gradle 依赖缓存，直接执行 `:app:assembleRelease`，并校验两个发布 APK 和签名证书。发布后在对应 Release 确认这两个附件均可下载。
 
 - `tsm-player-release-armeabi-v7a-<version>.apk`
 - `tsm-player-release-arm64-v8a-<version>.apk`
