@@ -306,8 +306,9 @@ class LyricsFullscreenActivity : BaseActivity() {
         val iconRes = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         val icon = ContextCompat.getDrawable(this, iconRes)?.mutate()
         if (icon != null) {
+            val iconSize = resources.getDimensionPixelSize(R.dimen.ui_button_icon_size)
             DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.ui_text_on_accent))
-            icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+            icon.setBounds(0, 0, iconSize, iconSize)
             btnPlayPause.setCompoundDrawables(icon, null, null, null)
         }
     }

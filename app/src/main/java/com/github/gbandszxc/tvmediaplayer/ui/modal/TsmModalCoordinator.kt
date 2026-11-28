@@ -8,6 +8,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -182,7 +183,7 @@ class TsmModalCoordinator(
                 }
                 FormFieldSpecType.CHECKBOX -> {
                     val horizontalPad = host.resources.getDimensionPixelSize(R.dimen.ui_space_xl)
-                    val verticalPad = host.resources.getDimensionPixelSize(R.dimen.ui_space_lg)
+                    val verticalPad = host.resources.getDimensionPixelSize(R.dimen.ui_space_sm)
                     val checkBox = CheckBox(host).apply {
                         tag = field.key
                         text = field.label
@@ -190,7 +191,7 @@ class TsmModalCoordinator(
                         typeface = null
                         setBackgroundResource(R.drawable.bg_modal_list_row)
                         setTextColor(ContextCompat.getColor(host, R.color.ui_text_primary))
-                        textSize = 14f
+                        setTextSize(TypedValue.COMPLEX_UNIT_PX, host.resources.getDimension(R.dimen.ui_text_body_large))
                         setPadding(horizontalPad, verticalPad, horizontalPad, verticalPad)
                         layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,

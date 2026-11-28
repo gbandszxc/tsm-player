@@ -23,11 +23,11 @@
     </style>
 
     <style name="TsmButtonBase">
-        <item name="android:minHeight">44dp</item>
-        <item name="android:paddingStart">@dimen/ui_space_3xl</item>
-        <item name="android:paddingEnd">@dimen/ui_space_3xl</item>
-        <item name="android:paddingTop">@dimen/ui_space_lg</item>
-        <item name="android:paddingBottom">@dimen/ui_space_lg</item>
+        <item name="android:minHeight">36dp</item>
+        <item name="android:paddingStart">@dimen/ui_space_2xl</item>
+        <item name="android:paddingEnd">@dimen/ui_space_2xl</item>
+        <item name="android:paddingTop">@dimen/ui_space_sm</item>
+        <item name="android:paddingBottom">@dimen/ui_space_sm</item>
         <item name="android:textSize">@dimen/ui_text_body_large</item>
         <item name="android:fontFamily">@font/misans_medium</item>
         <item name="android:focusable">true</item>

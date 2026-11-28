@@ -50,7 +50,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/ui_space_4xl"
+            android:layout_marginTop="@dimen/ui_space_xl"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -59,12 +59,16 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minHeight="36dp"
                 android:background="@drawable/bg_modal_input"
                 android:hint="@string/history_search_hint"
                 android:imeOptions="actionSearch"
                 android:inputType="text"
                 android:maxLines="1"
-                android:padding="@dimen/ui_space_lg"
+                android:paddingStart="@dimen/ui_space_xl"
+                android:paddingTop="@dimen/ui_space_sm"
+                android:paddingEnd="@dimen/ui_space_xl"
+                android:paddingBottom="@dimen/ui_space_sm"
                 android:singleLine="true"
                 android:textColor="@color/ui_text_primary"
                 android:textColorHint="@color/ui_text_muted"
@@ -83,7 +87,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/ui_space_lg"
+            android:layout_marginTop="@dimen/ui_space_md"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -92,7 +96,8 @@
                 style="@style/TsmTextSecondary"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1" />
+                android:layout_weight="1"
+                android:textSize="@dimen/ui_text_body" />
 
             <Button
                 android:id="@+id/btn_history_prev"
@@ -107,7 +112,7 @@
                 style="@style/TsmButtonDark"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/ui_space_lg"
+                android:layout_marginStart="@dimen/ui_space_md"
                 android:text="@string/history_next_page"
                 android:textAllCaps="false" />
         </LinearLayout>
@@ -117,14 +122,14 @@
             style="@style/TsmTextSecondary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/ui_space_lg"
+            android:layout_marginTop="@dimen/ui_space_md"
             android:visibility="gone" />
 
         <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
             android:id="@+id/scroll_history"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="@dimen/ui_space_lg"
+            android:layout_marginTop="@dimen/ui_space_md"
             android:layout_weight="1"
             android:fillViewport="false">
 

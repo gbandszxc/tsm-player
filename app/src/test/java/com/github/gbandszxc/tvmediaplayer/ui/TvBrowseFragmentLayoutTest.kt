@@ -33,17 +33,17 @@ class TvBrowseFragmentLayoutTest {
 
     @Test
     @Config(sdk = [28], qualifiers = "w960dp-h540dp-land-mdpi")
-    fun `browser grid fits five cards at default scale and reduces columns at 120 percent`() {
+    fun `browser grid fits six cards at default scale and reduces columns at 120 percent`() {
         val root = attachBrowser()
         val grid = root.findViewById<View>(R.id.container_files)
         val minWidth = root.resources.getDimensionPixelSize(R.dimen.ui_browser_grid_min_item_width)
         val gap = root.resources.getDimensionPixelSize(R.dimen.ui_space_md)
 
         layoutBrowser(root, 960, 540)
-        assertEquals(5, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
+        assertEquals(6, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
 
         layoutBrowser(root, 800, 450)
-        assertEquals(4, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
+        assertEquals(5, BrowserGridSizer.calculate(grid.width, minWidth, gap).columns)
     }
 
     @Test
@@ -94,7 +94,7 @@ class TvBrowseFragmentLayoutTest {
     @Config(sdk = [28], qualifiers = "w640dp-h360dp-land")
     fun `settings entry scrolls clear of the rail bottom padding`() {
         val root = attachBrowser()
-        layoutBrowser(root, 640, 320)
+        layoutBrowser(root, 640, 240)
         val rail = root.findViewById<ScrollView>(R.id.panel_nav_rail)
         val settings = root.findViewById<View>(R.id.btn_settings)
         assertTrue(rail.canScrollVertically(1))
@@ -258,12 +258,16 @@ class TvBrowseFragmentLayoutTest {
             hasFocus = false,
         )
 
-        assertNotNull(button.compoundDrawables[0])
+        val icon = button.compoundDrawables[0]
+        assertNotNull(icon)
         assertEquals(0, button.compoundDrawablePadding)
-        val basePadding = context.resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
-        val correction = context.resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
-        assertEquals(basePadding + correction, button.paddingStart)
-        assertEquals(basePadding - correction, button.paddingEnd)
+        val expectedIconSize = context.resources.getDimensionPixelSize(R.dimen.ui_button_icon_size)
+        assertEquals(expectedIconSize, icon.bounds.width())
+        val collapsedWidth = context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+        val expectedStart = (collapsedWidth - expectedIconSize) / 2
+        val expectedEnd = collapsedWidth - expectedIconSize - expectedStart
+        assertEquals(expectedStart, button.paddingStart)
+        assertEquals(expectedEnd, button.paddingEnd)
     }
 
     @Test

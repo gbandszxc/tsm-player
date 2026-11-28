@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:layout_marginBottom="@dimen/ui_space_xl">
+    android:layout_marginBottom="@dimen/ui_space_md">
 
     <!-- 字段标签 -->
     <TextView
@@ -20,12 +20,12 @@
         android:id="@+id/et_modal_field_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="44dp"
+        android:minHeight="38dp"
         android:background="@drawable/bg_modal_input"
-        android:paddingStart="@dimen/ui_space_3xl"
-        android:paddingEnd="@dimen/ui_space_3xl"
-        android:paddingTop="@dimen/ui_space_md"
-        android:paddingBottom="@dimen/ui_space_md"
+        android:paddingStart="@dimen/ui_space_xl"
+        android:paddingEnd="@dimen/ui_space_xl"
+        android:paddingTop="@dimen/ui_space_sm"
+        android:paddingBottom="@dimen/ui_space_sm"
         android:textColor="@color/ui_text_primary"
         android:textColorHint="@color/ui_text_muted"
         android:textSize="@dimen/ui_text_body_large"

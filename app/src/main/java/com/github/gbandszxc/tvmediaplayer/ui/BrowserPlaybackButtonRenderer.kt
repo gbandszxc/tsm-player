@@ -23,6 +23,7 @@ internal object BrowserPlaybackButtonRenderer {
         button.setSingleLine(true)
         button.ellipsize = null
 
+        val iconSize = context.resources.getDimensionPixelSize(R.dimen.ui_button_icon_size)
         val icon = ContextCompat.getDrawable(context, spec.iconResId)?.mutate()
         if (icon != null) {
             val iconColor = ContextCompat.getColor(context, iconColorResId)
@@ -31,7 +32,7 @@ internal object BrowserPlaybackButtonRenderer {
                 iconColor,
                 BlendModeCompat.SRC_IN,
             )
-            icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+            icon.setBounds(0, 0, iconSize, iconSize)
         }
 
         val showsLabel = hasFocus && spec.text.isNotEmpty()
@@ -43,13 +44,11 @@ internal object BrowserPlaybackButtonRenderer {
         } else {
             button.text = ""
             button.setCompoundDrawables(icon, null, null, null)
-            val centerCorrection = context.resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
-            button.setPaddingRelative(
-                basePadding + centerCorrection,
-                button.paddingTop,
-                basePadding - centerCorrection,
-                button.paddingBottom,
-            )
+            val collapsedWidth = context.resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+            val iconWidth = if (icon != null) iconSize else 0
+            val startPad = ((collapsedWidth - iconWidth) / 2).coerceAtLeast(0)
+            val endPad = (collapsedWidth - iconWidth - startPad).coerceAtLeast(0)
+            button.setPaddingRelative(startPad, button.paddingTop, endPad, button.paddingBottom)
         }
         button.compoundDrawablePadding = if (showsLabel) {
             context.resources.getDimensionPixelSize(R.dimen.ui_space_sm)

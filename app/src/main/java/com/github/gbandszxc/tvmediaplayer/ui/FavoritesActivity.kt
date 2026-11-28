@@ -57,6 +57,7 @@ import jcifs.smb.SmbFileInputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
 
 class FavoritesActivity : BaseActivity() {
 
@@ -70,6 +71,7 @@ class FavoritesActivity : BaseActivity() {
     private var activeFavoritePlaybackMediaIds: Set<String> = emptySet()
     private var invalidDialogTrackId: String? = null
     private var ambientBackdrop: AmbientBackdrop.Controller? = null
+    private var renderedPlaylistGridLayout: BrowserGridLayout? = null
 
     private lateinit var tvTitle: TextView
     private lateinit var btnBack: Button
@@ -145,6 +147,14 @@ class FavoritesActivity : BaseActivity() {
             strokeColorRes = R.color.ui_accent_blue_stroke_soft,
             cornerRadiusRes = R.dimen.ui_radius_card,
         )
+        gridPlaylists.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+            if (right - left == oldRight - oldLeft) return@addOnLayoutChangeListener
+            if (scrollPlaylists.visibility != View.VISIBLE || gridPlaylists.childCount == 0) return@addOnLayoutChangeListener
+            val layout = calculatePlaylistGridLayout(right - left)
+            if (layout != renderedPlaylistGridLayout) {
+                applyPlaylistGridLayout(layout)
+            }
+        }
         scrollTracks = findViewById(R.id.scroll_tracks)
         tracksContainer = findViewById(R.id.container_tracks)
     }
@@ -196,6 +206,7 @@ class FavoritesActivity : BaseActivity() {
         repository.getPlaylists().forEach { playlist ->
             gridPlaylists.addView(createPlaylistTile(playlist))
         }
+        applyPlaylistGridLayout(calculatePlaylistGridLayout(gridPlaylists.width))
         gridPlaylists.post {
             gridPlaylists.getChildAt(0)?.requestFocus() ?: btnBack.requestFocus()
         }
@@ -244,7 +255,9 @@ class FavoritesActivity : BaseActivity() {
         val icon = ImageView(this).apply {
             setImageResource(R.drawable.ic_add_playlist)
             setColorFilter(ContextCompat.getColor(this@FavoritesActivity, R.color.ui_accent_blue_stroke_soft))
-            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            val iconPad = dimenPx(R.dimen.ui_space_5xl)
+            setPadding(iconPad, iconPad, iconPad, iconPad)
         }
         tile.setOnFocusChangeListener { _, hasFocus -> UiMotion.animateFocusScale(icon, hasFocus) }
         tile.addView(icon, LinearLayout.LayoutParams(matchParent(), 0, 1f))
@@ -278,26 +291,47 @@ class FavoritesActivity : BaseActivity() {
             isFocusable = true
             isClickable = true
             background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_playlist_tile)
-            val padding = dimenPx(R.dimen.ui_space_lg)
+            val padding = dimenPx(R.dimen.ui_space_md)
             setPadding(padding, padding, padding, padding)
             layoutParams = GridLayout.LayoutParams().apply {
                 width = dimenPx(R.dimen.ui_playlist_tile_width)
                 height = dimenPx(R.dimen.ui_playlist_tile_height)
-                setMargins(0, 0, dimenPx(R.dimen.ui_space_3xl), 0)
             }
         }
+
+    private fun calculatePlaylistGridLayout(availableWidth: Int): BrowserGridLayout {
+        val minWidth = dimenPx(R.dimen.ui_playlist_tile_width)
+        val gap = dimenPx(R.dimen.ui_space_lg)
+        if (availableWidth <= 0) return BrowserGridLayout(columns = 5, itemWidth = minWidth)
+        return BrowserGridSizer.calculate(availableWidth, minWidth, gap)
+    }
+
+    private fun applyPlaylistGridLayout(layout: BrowserGridLayout) {
+        renderedPlaylistGridLayout = layout
+        gridPlaylists.columnCount = layout.columns
+        val gap = dimenPx(R.dimen.ui_space_lg)
+        val tileHeight = (layout.itemWidth * 1.12f).roundToInt()
+        for (i in 0 until gridPlaylists.childCount) {
+            val tile = gridPlaylists.getChildAt(i)
+            val params = tile.layoutParams as GridLayout.LayoutParams
+            params.width = layout.itemWidth
+            params.height = tileHeight
+            params.setMargins(0, 0, if ((i + 1) % layout.columns == 0) 0 else gap, gap)
+            tile.layoutParams = params
+        }
+    }
 
     private fun createTileTitle(text: String): TextView =
         TextView(this).apply {
             this.text = text
             setTextColor(ContextCompat.getColor(this@FavoritesActivity, R.color.ui_text_primary))
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.ui_text_body_large))
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(R.dimen.ui_text_body_medium))
             typeface = ResourcesCompat.getFont(this@FavoritesActivity, R.font.misans_medium)
             gravity = Gravity.CENTER
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(matchParent(), wrapContent()).apply {
-                topMargin = dimenPx(R.dimen.ui_space_md)
+                topMargin = dimenPx(R.dimen.ui_space_sm)
             }
         }
 
@@ -326,11 +360,11 @@ class FavoritesActivity : BaseActivity() {
             isClickable = true
             background = ContextCompat.getDrawable(this@FavoritesActivity, R.drawable.bg_file_item)
             val paddingH = dimenPx(R.dimen.ui_space_3xl)
-            val paddingV = dimenPx(R.dimen.ui_space_lg)
+            val paddingV = dimenPx(R.dimen.ui_space_sm)
             setPadding(paddingH, paddingV, paddingH, paddingV)
             setOnClickListener { playPlaylistFrom(playlist, index) }
             layoutParams = LinearLayout.LayoutParams(matchParent(), wrapContent()).apply {
-                bottomMargin = dimenPx(R.dimen.ui_space_md)
+                bottomMargin = dimenPx(R.dimen.ui_space_sm)
             }
         }
 
@@ -377,7 +411,7 @@ class FavoritesActivity : BaseActivity() {
             contentDescription = getString(R.string.favorites_play),
             backgroundResId = R.drawable.bg_button_green,
             iconResId = R.drawable.ic_play,
-            marginStartPx = dimenPx(R.dimen.ui_space_3xl),
+            marginStartPx = dimenPx(R.dimen.ui_space_xl),
         ) {
             playPlaylistFrom(playlist, index)
         }
@@ -387,7 +421,7 @@ class FavoritesActivity : BaseActivity() {
             contentDescription = getString(R.string.favorites_remove),
             backgroundResId = R.drawable.bg_button_red,
             iconResId = R.drawable.ic_delete,
-            marginStartPx = dimenPx(R.dimen.ui_space_lg),
+            marginStartPx = dimenPx(R.dimen.ui_space_md),
         ) {
             confirmRemoveTrack(playlist, track)
         }
@@ -399,7 +433,7 @@ class FavoritesActivity : BaseActivity() {
         marginStartPx: Int,
         onClick: () -> Unit,
     ): Button {
-        val size = dimenPx(R.dimen.ui_playback_mode_button_collapsed_width)
+        val size = dimenPx(R.dimen.ui_list_action_button_size)
         return Button(this).apply {
             text = ""
             this.contentDescription = contentDescription
@@ -745,11 +779,10 @@ class FavoritesActivity : BaseActivity() {
             }
         } ?: return
         button.overlay.clear()
-        val iconWidth = icon.intrinsicWidth.coerceAtLeast(1)
-        val iconHeight = icon.intrinsicHeight.coerceAtLeast(1)
-        val left = (button.width - iconWidth) / 2
-        val top = (button.height - iconHeight) / 2
-        icon.setBounds(left, top, left + iconWidth, top + iconHeight)
+        val iconSize = dimenPx(R.dimen.ui_button_icon_size)
+        val left = (button.width - iconSize) / 2
+        val top = (button.height - iconSize) / 2
+        icon.setBounds(left, top, left + iconSize, top + iconSize)
         button.overlay.add(icon)
     }
 

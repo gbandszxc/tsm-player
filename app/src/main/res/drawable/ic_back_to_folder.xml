@@ -5,23 +5,24 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M3.5,7.5a2,2 0,0 1,2 -2h5l2,2h6a2,2 0,0 1,2 2v8a2,2 0,0 1,-2 2h-13a2,2 0,0 1,-2 -2z"
-        android:strokeWidth="2"
-        android:strokeColor="#FF000000"
+        android:fillColor="@color/ui_transparent"
+        android:pathData="M2,7.5 V5 A2,2 0 0,1 4,3 H7.9 A2,2 0 0,1 9.59,3.9 L10.4,5.1 A2,2 0 0,0 12.07,6 H20 A2,2 0 0,1 22,8 V18 A2,2 0 0,1 20,20 H4 A2,2 0 0,1 2,18.5"
+        android:strokeColor="@color/ui_text_on_accent"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:strokeLineJoin="round"
+        android:strokeWidth="2" />
     <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M10,12H5"
-        android:strokeWidth="2.2"
-        android:strokeColor="#FF000000"
-        android:strokeLineCap="round" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M7,9.5L4.5,12L7,14.5"
-        android:strokeWidth="2.2"
-        android:strokeColor="#FF000000"
+        android:fillColor="@color/ui_transparent"
+        android:pathData="M2,13 H12"
+        android:strokeColor="@color/ui_text_on_accent"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
+        android:strokeLineJoin="round"
+        android:strokeWidth="2" />
+    <path
+        android:fillColor="@color/ui_transparent"
+        android:pathData="M5,10 L2,13 L5,16"
+        android:strokeColor="@color/ui_text_on_accent"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="2" />
 </vector>

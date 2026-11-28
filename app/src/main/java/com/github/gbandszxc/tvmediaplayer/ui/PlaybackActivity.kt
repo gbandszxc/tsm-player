@@ -775,10 +775,11 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             btnSleepTimer.layoutParams = layoutParams
         }
+        val iconSize = resources.getDimensionPixelSize(R.dimen.ui_button_icon_size)
         val iconRes = if (remaining != null) R.drawable.ic_sleep_timer_active else R.drawable.ic_sleep_timer
         val icon = ContextCompat.getDrawable(this, iconRes)?.mutate() ?: return
         DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.ui_text_primary))
-        icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        icon.setBounds(0, 0, iconSize, iconSize)
         val basePadding = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
         if (focused) {
             btnSleepTimer.text = label
@@ -787,13 +788,10 @@ class PlaybackActivity : BaseActivity() {
         } else {
             btnSleepTimer.text = ""
             btnSleepTimer.setCompoundDrawables(icon, null, null, null)
-            val centerCorrection = resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
-            btnSleepTimer.setPaddingRelative(
-                basePadding + centerCorrection,
-                btnSleepTimer.paddingTop,
-                basePadding - centerCorrection,
-                btnSleepTimer.paddingBottom,
-            )
+            val collapsedWidth = resources.getDimensionPixelSize(R.dimen.ui_playback_mode_button_collapsed_width)
+            val startPad = ((collapsedWidth - iconSize) / 2).coerceAtLeast(0)
+            val endPad = (collapsedWidth - iconSize - startPad).coerceAtLeast(0)
+            btnSleepTimer.setPaddingRelative(startPad, btnSleepTimer.paddingTop, endPad, btnSleepTimer.paddingBottom)
         }
         btnSleepTimer.compoundDrawablePadding = if (focused) {
             resources.getDimensionPixelSize(R.dimen.ui_space_sm)
@@ -856,12 +854,13 @@ class PlaybackActivity : BaseActivity() {
             layoutParams.width = targetWidth
             button.layoutParams = layoutParams
         }
+        val iconSize = resources.getDimensionPixelSize(R.dimen.ui_button_icon_size)
         val icon = ContextCompat.getDrawable(this, spec.iconResId)?.mutate() ?: return
         DrawableCompat.setTint(
             icon,
             ContextCompat.getColor(this, iconColorResId)
         )
-        icon.setBounds(0, 0, icon.intrinsicWidth, icon.intrinsicHeight)
+        icon.setBounds(0, 0, iconSize, iconSize)
         val showsLabel = expanded && spec.text.isNotEmpty()
         val basePadding = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
         if (showsLabel) {
@@ -871,13 +870,10 @@ class PlaybackActivity : BaseActivity() {
         } else {
             button.text = ""
             button.setCompoundDrawables(icon, null, null, null)
-            val centerCorrection = resources.getDimensionPixelSize(R.dimen.ui_space_sm) / 2
-            button.setPaddingRelative(
-                basePadding + centerCorrection,
-                button.paddingTop,
-                basePadding - centerCorrection,
-                button.paddingBottom,
-            )
+            val collapsedWidth = resources.getDimensionPixelSize(collapsedWidthResId)
+            val startPad = ((collapsedWidth - iconSize) / 2).coerceAtLeast(0)
+            val endPad = (collapsedWidth - iconSize - startPad).coerceAtLeast(0)
+            button.setPaddingRelative(startPad, button.paddingTop, endPad, button.paddingBottom)
         }
         button.compoundDrawablePadding = if (showsLabel) {
             resources.getDimensionPixelSize(R.dimen.ui_space_sm)

@@ -8,18 +8,18 @@
     android:focusable="true"
     android:focusableInTouchMode="true"
     android:orientation="horizontal"
-    android:minHeight="58dp"
-    android:paddingStart="@dimen/ui_space_lg"
-    android:paddingTop="@dimen/ui_space_lg"
-    android:paddingEnd="@dimen/ui_space_2xl"
-    android:paddingBottom="@dimen/ui_space_lg"
-    android:layout_marginBottom="@dimen/ui_space_sm">
+    android:minHeight="42dp"
+    android:paddingStart="@dimen/ui_space_md"
+    android:paddingTop="@dimen/ui_space_md"
+    android:paddingEnd="@dimen/ui_space_xl"
+    android:paddingBottom="@dimen/ui_space_md"
+    android:layout_marginBottom="@dimen/ui_space_xs">
 
     <View
         android:layout_width="@dimen/ui_indicator_width"
-        android:layout_height="30dp"
+        android:layout_height="20dp"
         android:layout_gravity="center_vertical"
-        android:layout_marginEnd="@dimen/ui_space_xl"
+        android:layout_marginEnd="@dimen/ui_space_lg"
         android:background="@drawable/bg_settings_category_indicator"
         android:duplicateParentState="true" />
 

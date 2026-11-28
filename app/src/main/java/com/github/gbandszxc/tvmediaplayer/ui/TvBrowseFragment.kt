@@ -653,13 +653,13 @@ class TvBrowseFragment : Fragment() {
             panelPaddingHorizontalPx = panelNavRail.paddingStart + panelNavRail.paddingEnd,
             itemPaddingStartPx = sampleItem.paddingStart,
             itemPaddingEndPx = sampleItem.paddingEnd,
-            iconWidthPx = resources.getDimensionPixelSize(R.dimen.ui_space_5xl),
+            iconWidthPx = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_icon_size),
             labelMarginStartPx = labelMarginStart,
             maxLabelWidthPx = maxLabelWidthPx,
             opticalRightBalancePx = (2f * density).roundToInt(),
             collapsedWidthPx = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_collapsed_width),
             fallbackExpandedWidthPx = resources.getDimensionPixelSize(R.dimen.ui_nav_rail_expanded_width),
-            maxExpandedWidthPx = (240f * density).roundToInt(),
+            maxExpandedWidthPx = (220f * density).roundToInt(),
         )
     }
 
@@ -851,7 +851,7 @@ class TvBrowseFragment : Fragment() {
         panelConnection.visibility = if (showConnectionSection) View.VISIBLE else View.GONE
         val playbackParams = panelPlayback.layoutParams as ViewGroup.MarginLayoutParams
         val targetPlaybackTop = if (showConnectionSection) {
-            resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
+            resources.getDimensionPixelSize(R.dimen.ui_space_lg)
         } else {
             0
         }
@@ -1087,7 +1087,7 @@ class TvBrowseFragment : Fragment() {
     private fun showGridFallbackIcon(view: ImageView, directory: Boolean) {
         view.setImageResource(if (directory) R.drawable.ic_tag_folder else R.drawable.ic_tag_music)
         view.scaleType = ImageView.ScaleType.FIT_CENTER
-        val padding = resources.getDimensionPixelSize(R.dimen.ui_space_5xl)
+        val padding = resources.getDimensionPixelSize(R.dimen.ui_grid_fallback_icon_padding)
         view.setPadding(padding, padding, padding, padding)
     }
 

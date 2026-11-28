@@ -544,8 +544,8 @@ class SettingsActivity : BaseActivity() {
         tvDetailTitle.text = category.title
 
         var firstEntryView: View? = null
-        val spaceGroupTop = resources.getDimensionPixelSize(R.dimen.ui_space_3xl)
-        val spaceGroupBottom = resources.getDimensionPixelSize(R.dimen.ui_space_md)
+        val spaceGroupTop = resources.getDimensionPixelSize(R.dimen.ui_space_lg)
+        val spaceGroupBottom = resources.getDimensionPixelSize(R.dimen.ui_space_xs)
         val groupTextSizePx = resources.getDimension(R.dimen.ui_text_body)
         val activeValueLabels = setOf(
             getString(R.string.common_enabled),
@@ -745,8 +745,8 @@ class SettingsActivity : BaseActivity() {
                 resources.getDimension(R.dimen.ui_text_page_title),
             )
             gravity = android.view.Gravity.CENTER
-            minWidth = dp(160)
-            setPadding(dp(24), dp(10), dp(24), dp(10))
+            minWidth = dp(128)
+            setPadding(dp(18), dp(8), dp(18), dp(8))
             setBackgroundResource(R.drawable.bg_modal_input)
         }
 

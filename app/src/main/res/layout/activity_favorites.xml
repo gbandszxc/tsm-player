@@ -63,7 +63,7 @@
             android:id="@+id/scroll_playlists"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/ui_space_5xl"
+            android:layout_marginTop="@dimen/ui_space_2xl"
             android:clipChildren="false"
             android:clipToPadding="false"
             android:fillViewport="false">
@@ -83,7 +83,7 @@
             android:id="@+id/scroll_tracks"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="@dimen/ui_space_5xl"
+            android:layout_marginTop="@dimen/ui_space_2xl"
             android:layout_weight="1"
             android:fillViewport="false"
             android:visibility="gone">

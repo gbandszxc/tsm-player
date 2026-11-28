@@ -216,12 +216,12 @@ class HistoryActivity : BaseActivity() {
             isClickable = true
             background = ContextCompat.getDrawable(this@HistoryActivity, R.drawable.bg_file_item)
             val paddingH = dimenPx(R.dimen.ui_space_3xl)
-            val paddingV = dimenPx(R.dimen.ui_space_lg)
+            val paddingV = dimenPx(R.dimen.ui_space_sm)
             setPadding(paddingH, paddingV, paddingH, paddingV)
             setOnClickListener { playFrom(index) }
             setOnFocusChangeListener { v, hasFocus -> UiMotion.animateRowFocus(v, hasFocus) }
             layoutParams = LinearLayout.LayoutParams(matchParent(), wrapContent()).apply {
-                bottomMargin = dimenPx(R.dimen.ui_space_md)
+                bottomMargin = dimenPx(R.dimen.ui_space_sm)
             }
         }
 
@@ -267,7 +267,7 @@ class HistoryActivity : BaseActivity() {
             gravity = Gravity.END
             maxLines = 1
             layoutParams = LinearLayout.LayoutParams(dimenPx(R.dimen.ui_browser_time_column_width), wrapContent()).apply {
-                marginStart = dimenPx(R.dimen.ui_space_3xl)
+                marginStart = dimenPx(R.dimen.ui_space_xl)
             }
         }
 

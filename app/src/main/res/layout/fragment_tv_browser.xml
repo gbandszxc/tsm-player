@@ -48,43 +48,48 @@
                 android:layout_height="wrap_content"
                 android:clipChildren="false"
                 android:clipToPadding="false"
-                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:background="@drawable/bg_panel"
-                android:padding="@dimen/ui_space_3xl">
+                android:paddingStart="@dimen/ui_space_3xl"
+                android:paddingTop="@dimen/ui_space_md"
+                android:paddingEnd="@dimen/ui_space_3xl"
+                android:paddingBottom="@dimen/ui_space_md">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/browser_connection_section"
-                    android:textColor="@color/ui_accent_blue_text"
-                    android:textSize="@dimen/ui_text_section_title"
-                    android:fontFamily="@font/misans_bold" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/tv_connection"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_md"
-                    android:textColor="@color/ui_text_primary"
-                    android:textSize="@dimen/ui_text_title"
-                    android:fontFamily="@font/misans_medium" />
+                    <TextView
+                        android:id="@+id/tv_connection"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="middle"
+                        android:fontFamily="@font/misans_medium"
+                        android:singleLine="true"
+                        android:textColor="@color/ui_text_primary"
+                        android:textSize="@dimen/ui_text_body_large" />
 
-                <TextView
-                    android:id="@+id/tv_saved_count"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_xs"
-                    android:textColor="@color/ui_text_secondary"
-                    android:textSize="@dimen/ui_text_body_large"
-                    android:fontFamily="@font/misans_regular" />
+                    <TextView
+                        android:id="@+id/tv_saved_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="@font/misans_regular"
+                        android:singleLine="true"
+                        android:textColor="@color/ui_text_secondary"
+                        android:textSize="@dimen/ui_text_body" />
+                </LinearLayout>
 
                 <Button
                     android:id="@+id/btn_manage"
                     style="@style/TsmButtonPrimary"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_xl"
-                    android:minWidth="180dp"
+                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:minWidth="112dp"
                     android:gravity="center"
                     android:maxLines="1"
                     android:ellipsize="end"
@@ -96,161 +101,154 @@
                 android:id="@+id/panel_playback"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/ui_space_3xl"
+                android:layout_marginTop="@dimen/ui_space_lg"
                 android:clipChildren="false"
                 android:clipToPadding="false"
-                android:orientation="vertical"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:background="@drawable/bg_panel"
-                android:padding="@dimen/ui_space_3xl">
+                android:paddingStart="@dimen/ui_space_3xl"
+                android:paddingTop="@dimen/ui_space_md"
+                android:paddingEnd="@dimen/ui_space_3xl"
+                android:paddingBottom="@dimen/ui_space_md">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <Button
+                    android:id="@+id/btn_play_all"
+                    style="@style/TsmButtonSuccess"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
-                    android:text="@string/browser_playback_controls"
-                    android:textColor="@color/ui_accent_blue_text"
-                    android:textSize="@dimen/ui_text_section_title"
-                    android:fontFamily="@font/misans_bold" />
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                    android:text=""
+                    android:textAllCaps="false" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <Button
+                    android:id="@+id/btn_play_shuffle"
+                    style="@style/TsmButtonSuccess"
+                    android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_lg"
-                    android:clipChildren="false"
-                    android:clipToPadding="false"
-                    android:orientation="horizontal">
+                    android:layout_marginStart="@dimen/ui_space_md"
+                    android:drawablePadding="@dimen/ui_space_sm"
+                    android:gravity="center"
+                    android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                    android:text=""
+                    android:textAllCaps="false" />
 
-                    <Button
-                        android:id="@+id/btn_play_all"
-                        style="@style/TsmButtonSuccess"
-                        android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="@dimen/ui_space_sm"
-                        android:gravity="center"
-                        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:text=""
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/btn_play_shuffle"
-                        style="@style/TsmButtonSuccess"
-                        android:layout_width="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/ui_space_lg"
-                        android:drawablePadding="@dimen/ui_space_sm"
-                        android:gravity="center"
-                        android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-                        android:text=""
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/btn_now_playing"
-                        style="@style/TsmButtonWarning"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginStart="@dimen/ui_space_lg"
-                        android:paddingStart="@dimen/ui_space_2xl"
-                        android:paddingEnd="@dimen/ui_space_2xl"
-                        android:gravity="center"
-                        android:singleLine="true"
-                        android:ellipsize="marquee"
-                        android:marqueeRepeatLimit="marquee_forever"
-                        android:text="@string/browser_now_playing"
-                        android:textAllCaps="false"
-                        android:visibility="gone" />
-                </LinearLayout>
+                <Button
+                    android:id="@+id/btn_now_playing"
+                    style="@style/TsmButtonWarning"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="@dimen/ui_space_md"
+                    android:paddingStart="@dimen/ui_space_2xl"
+                    android:paddingEnd="@dimen/ui_space_2xl"
+                    android:gravity="center"
+                    android:singleLine="true"
+                    android:ellipsize="marquee"
+                    android:marqueeRepeatLimit="marquee_forever"
+                    android:text="@string/browser_now_playing"
+                    android:textAllCaps="false"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/panel_files"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/ui_space_3xl"
+                android:layout_marginTop="@dimen/ui_space_lg"
                 android:clipChildren="false"
                 android:clipToPadding="false"
                 android:orientation="vertical"
                 android:background="@drawable/bg_panel"
                 android:padding="@dimen/ui_space_3xl">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/browser_file_browser"
-                    android:textColor="@color/ui_accent_blue_text"
-                    android:textSize="@dimen/ui_text_section_title"
-                    android:fontFamily="@font/misans_bold" />
-
-                <TextView
-                    android:id="@+id/tv_path"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_md"
-                    android:background="@drawable/bg_path_bar"
-                    android:padding="@dimen/ui_space_lg"
-                    android:textColor="@color/ui_text_primary"
-                    android:textSize="@dimen/ui_text_title"
-                    android:fontFamily="@font/misans_medium" />
-
-                <com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_xl"
                     android:clipChildren="false"
                     android:clipToPadding="false"
-                    android:scrollbars="none"
-                    android:fillViewport="false">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/tv_path"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="36dp"
+                        android:gravity="center_vertical"
+                        android:singleLine="true"
+                        android:ellipsize="middle"
+                        android:background="@drawable/bg_path_bar"
+                        android:paddingStart="@dimen/ui_space_xl"
+                        android:paddingTop="@dimen/ui_space_sm"
+                        android:paddingEnd="@dimen/ui_space_xl"
+                        android:paddingBottom="@dimen/ui_space_sm"
+                        android:textColor="@color/ui_text_primary"
+                        android:textSize="@dimen/ui_text_body_large"
+                        android:fontFamily="@font/misans_medium" />
+
+                    <com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/ui_space_lg"
                         android:clipChildren="false"
                         android:clipToPadding="false"
-                        android:orientation="horizontal">
+                        android:scrollbars="none"
+                        android:fillViewport="false">
 
-                        <Button
-                            android:id="@+id/btn_refresh"
-                            style="@style/TsmButtonDark"
+                        <LinearLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:minWidth="130dp"
-                            android:gravity="center"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:text="@string/browser_refresh_current_dir"
-                            android:textAllCaps="false" />
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            android:orientation="horizontal">
 
-                        <Button
-                            android:id="@+id/btn_sort"
-                            style="@style/TsmButtonDark"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:minWidth="130dp"
-                            android:layout_marginStart="@dimen/ui_space_lg"
-                            android:gravity="center"
-                            android:maxLines="1"
-                            android:ellipsize="end"
-                            android:text="@string/browser_sort_name_asc"
-                            android:textAllCaps="false" />
+                            <Button
+                                android:id="@+id/btn_refresh"
+                                style="@style/TsmButtonDark"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:ellipsize="end"
+                                android:text="@string/browser_refresh_current_dir"
+                                android:textAllCaps="false" />
 
-                        <Button
-                            android:id="@+id/btn_view_mode"
-                            style="@style/TsmButtonDark"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/ui_space_lg"
-                            android:gravity="center"
-                            android:maxLines="1"
-                            android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
-                            android:text=""
-                            android:textAllCaps="false" />
-                    </LinearLayout>
-                </com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView>
+                            <Button
+                                android:id="@+id/btn_sort"
+                                style="@style/TsmButtonDark"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/ui_space_md"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:ellipsize="end"
+                                android:text="@string/browser_sort_name_asc"
+                                android:textAllCaps="false" />
+
+                            <Button
+                                android:id="@+id/btn_view_mode"
+                                style="@style/TsmButtonDark"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/ui_space_md"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:minWidth="@dimen/ui_playback_mode_button_collapsed_width"
+                                android:text=""
+                                android:textAllCaps="false" />
+                        </LinearLayout>
+                    </com.github.gbandszxc.tvmediaplayer.ui.TvHorizontalScrollView>
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tv_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_lg"
+                    android:layout_marginTop="@dimen/ui_space_md"
                     android:textColor="@color/ui_text_error"
                     android:textSize="@dimen/ui_text_body_medium"
                     android:fontFamily="@font/misans_regular"
@@ -260,7 +258,7 @@
                     android:id="@+id/container_files"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/ui_space_lg"
+                    android:layout_marginTop="@dimen/ui_space_md"
                     android:clipChildren="false"
                     android:clipToPadding="false"
                     android:columnCount="1"
@@ -281,7 +279,7 @@
         android:focusable="false"
         android:visibility="gone" />
 
-    <!-- 左侧可折叠液态玻璃导轨：静置 64dp 胶囊图标栏，按 ← 按可见文案动态对称展开（兜底 148dp） -->
+    <!-- 左侧可折叠液态玻璃导轨：静置 52dp 胶囊图标栏，按 ← 按可见文案动态对称展开（兜底 132dp） -->
     <com.github.gbandszxc.tvmediaplayer.ui.NonFocusableScrollView
         android:id="@+id/panel_nav_rail"
         android:layout_width="@dimen/ui_nav_rail_collapsed_width"
@@ -292,7 +290,7 @@
         android:layout_marginBottom="@dimen/ui_space_4xl"
         android:background="@drawable/bg_panel"
         android:fillViewport="true"
-        android:padding="@dimen/ui_space_md"
+        android:padding="@dimen/ui_space_sm"
         android:scrollbars="none">
 
         <LinearLayout
@@ -313,14 +311,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_nav_back"
                     android:tint="@color/ui_text_primary" />
@@ -329,7 +327,7 @@
                     android:id="@+id/tv_nav_back_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -350,14 +348,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_switch_source"
                     android:tint="@color/ui_accent_blue_text" />
@@ -366,7 +364,7 @@
                     android:id="@+id/tv_nav_mode_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -387,14 +385,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_favorite_outline"
                     android:tint="@color/ui_accent_red_text" />
@@ -403,7 +401,7 @@
                     android:id="@+id/tv_nav_favorites_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -424,14 +422,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_history"
                     android:tint="@color/ui_text_warning_glass" />
@@ -440,7 +438,7 @@
                     android:id="@+id/tv_nav_history_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -461,14 +459,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_nav_connection"
                     android:tint="@color/ui_accent_cyan" />
@@ -477,7 +475,7 @@
                     android:id="@+id/tv_nav_connection_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -502,14 +500,14 @@
                 android:focusable="true"
                 android:focusableInTouchMode="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
+                android:minHeight="40dp"
                 android:orientation="horizontal"
-                android:paddingStart="@dimen/ui_space_xl"
-                android:paddingEnd="@dimen/ui_space_xl">
+                android:paddingStart="@dimen/ui_space_lg"
+                android:paddingEnd="@dimen/ui_space_lg">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="@dimen/ui_nav_rail_icon_size"
+                    android:layout_height="@dimen/ui_nav_rail_icon_size"
                     android:importantForAccessibility="no"
                     android:src="@drawable/ic_settings"
                     android:tint="@color/ui_text_primary" />
@@ -518,7 +516,7 @@
                     android:id="@+id/tv_nav_settings_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="@dimen/ui_space_xl"
+                    android:layout_marginStart="@dimen/ui_space_lg"
                     android:alpha="0"
                     android:ellipsize="end"
                     android:fontFamily="@font/misans_medium"
@@ -542,14 +540,14 @@
         android:elevation="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="@dimen/ui_space_2xl"
-        android:paddingTop="@dimen/ui_space_xl"
+        android:paddingStart="@dimen/ui_space_xl"
+        android:paddingTop="@dimen/ui_space_lg"
         android:paddingEnd="@dimen/ui_space_xl"
-        android:paddingBottom="@dimen/ui_space_xl"
+        android:paddingBottom="@dimen/ui_space_lg"
         android:visibility="gone">
 
         <LinearLayout
-            android:layout_width="280dp"
+            android:layout_width="240dp"
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
@@ -576,8 +574,8 @@
         <FrameLayout
             android:id="@+id/view_fast_locate_track"
             android:layout_width="14dp"
-            android:layout_height="136dp"
-            android:layout_marginStart="@dimen/ui_space_2xl"
+            android:layout_height="112dp"
+            android:layout_marginStart="@dimen/ui_space_xl"
             android:padding="2dp"
             android:background="@drawable/bg_fast_locate_track">
 
